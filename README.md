@@ -1,6 +1,6 @@
 # ComfyUI H3 Workflows
 <img width="2533" height="1095" alt="1788846005-el6s4Jn5qwcZfK9jvUEYGN3I" src="https://github.com/user-attachments/assets/fbb0f478-c638-4c2f-ae50-b31e44df2eb7" />
-Version / バージョン: **v1.0.0**
+Version / バージョン: v1.0.0
 
 T2V, I2V and Ref2V workflows for MiniMax H3: four-step video generation, two-step audio refinement, variable duration and optional Japanese-to-English prompt conversion with LM Studio.
 
