@@ -1,0 +1,5 @@
+numpy
+Pillow
+av
+safetensors
+requests

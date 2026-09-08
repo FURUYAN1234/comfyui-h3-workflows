@@ -1,0 +1,150 @@
+{
+  "required": {
+    "japanese_instruction": [
+      "STRING",
+      {
+        "display_name": "① 動画の指示 → LM Studioで変換（直接入力時は空欄）",
+        "multiline": true,
+        "dynamicPrompts": true,
+        "tooltip": "ここに文章がある場合は、日本語・英語どちらもLM StudioでH3形式へ変換します。下の完成プロンプト欄は使いません。",
+        "placeholder": "例：成人の人物が公園でゆっくり手を振る。台詞なし、BGMなし。",
+        "default": ""
+      }
+    ],
+    "mode": [
+      [
+        "T2VA",
+        "I2VA",
+        "Ref2VA (R2V)"
+      ]
+    ],
+    "duration_seconds": [
+      "FLOAT",
+      {
+        "default": 15.0,
+        "min": 0.1,
+        "max": 600.0,
+        "step": 0.5,
+        "display_name": "秒数指定がない場合の長さ（秒）"
+      }
+    ],
+    "model": [
+      "STRING",
+      {
+        "default": "qwen-prompt-ja",
+        "multiline": false
+      }
+    ],
+    "api_base": [
+      "STRING",
+      {
+        "default": "http://127.0.0.1:1234/v1",
+        "multiline": false
+      }
+    ],
+    "temperature": [
+      "FLOAT",
+      {
+        "default": 0.15,
+        "min": 0.0,
+        "max": 1.5,
+        "step": 0.05
+      }
+    ],
+    "max_tokens": [
+      "INT",
+      {
+        "default": 2048,
+        "min": 512,
+        "max": 4096,
+        "step": 256
+      }
+    ],
+    "timeout_seconds": [
+      "INT",
+      {
+        "default": 240,
+        "min": 10,
+        "max": 900,
+        "step": 10
+      }
+    ],
+    "fallback_to_japanese": [
+      "BOOLEAN",
+      {
+        "default": false
+      }
+    ]
+  },
+  "optional": {
+    "extra_rules": [
+      "STRING",
+      {
+        "display_name": "LM Studioの基本ルール（通常はこのまま）",
+        "multiline": true,
+        "default": "話し言葉・会話・台詞・ナレーション・歌詞は、ユーザーが別の言語を明示しない限り日本語にする。H3プロンプトでは日本語の発話を必ず <d>[Japanese] ...</d> として、話者ごとに固定IDを付ける。\n引用符内またはユーザーが明示した台詞は一字も変更せず、指定回数がなければ一度だけ発声させる。同じ台詞・同じ意味の相づち・発声を繰り返さず、二重発声させない。台詞が明示されていないが場面上必要なら、短く自然な日本語を一度だけ創作してよい。無言・台詞なし・発声なしの指定では人声を追加しない。\n字幕・テロップ・吹き出し・ロゴ・ウォーターマーク・意味不明な画面文字は、ユーザーが明示しない限り追加しない。指定のない新しい登場人物・モブ・画面外の声を追加せず、人物の分身や重複を作らない。話者の声質と人物同一性を維持し、口の動きと発声を一致させる。\nBGMの有無・種類はユーザー指示を優先する。BGMを入れる場合は台詞と効果音を邪魔しない音量にし、台詞中は自動的に音量を下げる。BGM指定がない場合は勝手に追加しない。\n長尺を複数区間で生成するときは、前区間の台詞・動作・導入を繰り返さず、未実行の続きだけを進める。",
+        "tooltip": "会話が必要なのに台詞が未指定なら、LM Studioが尺に合う短い台詞を創作し、H3の発話タグへ変換します。既定は日本語です。別の言語にする場合は入力文で英語、中国語などを指定してください。無言や台詞なしも明示できます。",
+        "placeholder": "記入例：話し言葉は日本語にする。台詞は一字も変更しない。字幕とロゴを追加しない。指定のない場合は新しい登場人物を増やさない。"
+      }
+    ],
+    "source_h3_prompt": [
+      "STRING",
+      {
+        "display_name": "上流で生成したH3下書き（自動入力・任意）",
+        "multiline": true,
+        "dynamicPrompts": true,
+        "forceInput": true,
+        "tooltip": "①と③が空欄の場合に使う、外部ノードからのH3文章入力。通常は未接続。"
+      }
+    ],
+    "reference_image_1": [
+      "IMAGE",
+      {
+        "tooltip": "LM Studioが直接解析するPicture 1。H3へ渡す同じ画像を接続します。"
+      }
+    ],
+    "reference_image_2": [
+      "IMAGE",
+      {
+        "tooltip": "LM Studioが直接解析するPicture 2（任意）。"
+      }
+    ],
+    "reference_image_3": [
+      "IMAGE",
+      {
+        "tooltip": "LM Studioが直接解析するPicture 3（任意）。"
+      }
+    ],
+    "reference_image_4": [
+      "IMAGE",
+      {
+        "tooltip": "LM Studioが直接解析するPicture 4（任意）。"
+      }
+    ],
+    "reference_image_5": [
+      "IMAGE",
+      {
+        "tooltip": "LM Studioが直接解析するPicture 5（任意）。"
+      }
+    ],
+    "external_h3_prompt": [
+      "STRING",
+      {
+        "default": "",
+        "multiline": true,
+        "dynamicPrompts": false,
+        "display_name": "③ 完成した英語H3プロンプト（①が空欄なら直接使用）",
+        "tooltip": "①が空欄ならこの文章をH3へ渡します。LM Studioと②のルールは使いません。両方に文章がある場合は①が優先されます。"
+      }
+    ],
+    "context_frames": [
+      [
+        "22",
+        "39"
+      ],
+      {
+        "default": "39"
+      }
+    ]
+  }
+}

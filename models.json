@@ -1,0 +1,38 @@
+[
+  {
+    "name": "minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors",
+    "directory": "diffusion_models",
+    "url": "https://huggingface.co/MATLOWAI/minimax-h3-fused-turbo-int8-convrot/resolve/main/diffusion_models/minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors",
+    "size": 20980178976,
+    "sha256": "4262e4e9963c553fa00016bbe83961407a4fc0a888be95fd836c8d4f2304e48b",
+    "repo": "MATLOWAI/minimax-h3-fused-turbo-int8-convrot",
+    "revision": "8a8dffaa0cd99c6184833ae0a3b4e9b0089c17b3"
+  },
+  {
+    "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+    "directory": "text_encoders",
+    "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+    "size": 15687142551,
+    "sha256": "35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6",
+    "repo": "Comfy-Org/MiniMax-H3",
+    "revision": "a98869194787969724c7425d95d0ed73ce9202af"
+  },
+  {
+    "name": "minimax_h3_video_vae_int8_convrot.safetensors",
+    "directory": "vae",
+    "url": "https://huggingface.co/Kijai/MiniMax-H3-experimental/resolve/main/minimax_h3_video_vae_int8_convrot.safetensors",
+    "size": 3171670912,
+    "sha256": "9bb2d96f218c76babd85e0611b85ca8fb330a90546c01a0005e8a58a59593410",
+    "repo": "Kijai/MiniMax-H3-experimental",
+    "revision": "f4cac997f880e93cf6940af61ee8d58ef31ff7f3"
+  },
+  {
+    "name": "minimax_h3_audio_vae_fp32.safetensors",
+    "directory": "vae",
+    "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+    "size": 605254808,
+    "sha256": "8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48",
+    "repo": "Comfy-Org/MiniMax-H3",
+    "revision": "a98869194787969724c7425d95d0ed73ce9202af"
+  }
+]

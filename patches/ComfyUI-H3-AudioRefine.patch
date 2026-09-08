@@ -1,0 +1,270 @@
+diff --git a/frozen_cache.py b/frozen_cache.py
+--- a/frozen_cache.py
++++ b/frozen_cache.py
+@@ -232,20 +232,28 @@
+         self.k = [None] * n_blocks
+         self.v = [None] * n_blocks
+ 
+-    @staticmethod
+-    def _copy_to_ram(t):
++    _pin_failed = False
++
++    @classmethod
++    def _pin(cls, t):
+         if t is None:
+             return None
+-        # Keep the persistent cache pageable. PyTorch's pinned-host caching allocator
+-        # retains freed blocks for the lifetime of the process; repeated H3 cache
+-        # rebuilds with different shapes otherwise leave tens of GiB resident.
+-        c = torch.empty(t.shape, dtype=t.dtype, device="cpu", pin_memory=False)
++        pin = torch.cuda.is_available() and not cls._pin_failed
++        try:
++            c = torch.empty(t.shape, dtype=t.dtype, device="cpu", pin_memory=pin)
++        except RuntimeError:
++            if not cls._pin_failed:
++                cls._pin_failed = True
++                log.warning("H3 Frozen Video Cache: could not pin cache memory (RAM pressure); "
++                            "falling back to pageable memory. Cached steps will be slightly "
++                            "slower but the cache can be swapped instead of killing the process.")
++            c = torch.empty(t.shape, dtype=t.dtype, device="cpu", pin_memory=False)
+         c.copy_(t)
+         return c
+ 
+     def put(self, i, k_q, k_s, v_q, v_s):
+-        self.k[i] = (self._copy_to_ram(k_q), self._copy_to_ram(k_s))
+-        self.v[i] = (self._copy_to_ram(v_q), self._copy_to_ram(v_s))
++        self.k[i] = (self._pin(k_q), self._pin(k_s))
++        self.v[i] = (self._pin(v_q), self._pin(v_s))
+ 
+     def get(self, i, device):
+         k_q, k_s = self.k[i]
+@@ -459,17 +467,20 @@
+             rss1 = _rss_bytes()
+             if rss0 is not None and rss1 is not None:
+                 returned = rss0 - rss1
++                note = ""
++                if backend == "ram" and returned < 0.5 * (rss0 - rss1 + 1):
++                    note = (" -- pinned host memory is held by PyTorch's caching host "
++                            "allocator and is not returned to the OS; it is reused by the "
++                            "next build rather than released")
+                 log.info("H3 Frozen Video Cache: cache freed (%s) | process RSS %s -> %s "
+-                         "(returned %s)", backend, _gb(rss0), _gb(rss1), _gb(max(returned, 0)))
++                         "(returned %s)%s", backend, _gb(rss0), _gb(rss1), _gb(max(returned, 0)), note)
+         self.store = None
+         self.dq_k = self.dq_v = self.dq_h = None
+ 
+ 
+ class _State:
+     def __init__(self, backend, precision, refresh_interval, contents="kv", verbose=False,
+-                 allow_disk=False, vram_margin_gb=1.0, free_after_pass=False):
+-        self.free_after_pass = free_after_pass
+-        self.activated_this_pass = False
++                 allow_disk=False, vram_margin_gb=1.0):
+         self.verbose = verbose
+         self.allow_disk = allow_disk
+         self.vram_margin = int(vram_margin_gb * (1 << 30))
+@@ -529,17 +540,11 @@
+     return True
+ 
+ 
+-# Host footprint of the RAM cache relative to its packed size, used for the auto-backend
+-# fit test and the room we ask comfy to clear.
+-#
+-# Measured on a pageable cache (20.6 GB packed -> 20.0 GB RSS delta, 19.4 GB MemAvailable
+-# delta): overhead is essentially nil, because the store is a handful of large contiguous
+-# tensors. The 1.5x that lived here before was measured against the old *pinned*
+-# implementation, where the caching host allocator retained blocks; that is gone (PR #1),
+-# and 1.5x was over-asking by ~11 GB on a 20 GB cache -- enough to make `auto` refuse RAM
+-# for caches that fit comfortably. 1.1 keeps a little slack for allocator rounding without
+-# inventing headroom that is not needed.
+-RAM_OVERHEAD_FACTOR = 1.1
++# Measured on a real build: a 9.7 GB packed RAM cache cost ~14.9 GB of resident RSS.
++# Allocator slack, per-tensor pinning overhead (50 blocks x 4 tensors), and fragmentation
++# make the true host footprint ~1.5x the packed size. Used for both the auto-backend fit
++# test and the room we ask comfy to clear.
++RAM_OVERHEAD_FACTOR = 1.5
+ 
+ # comfy_kitchen's int8_linear allocates its output in fp32 (observed:
+ # torch.empty((rows, ffn*2), dtype=out_dtype) asking 7.98 GiB at ~74.7k rows,
+@@ -815,14 +820,6 @@
+             if not activate:
+                 return executor(x, timestep, context, transformer_options, **kwargs)
+ 
+-            return _run_activated(executor, x, timestep, context,
+-                                  transformer_options, kwargs, seg, layout)
+-
+-        finally:
+-            state.mode = "off"
+-
+-    def _run_activated(executor, x, timestep, context, transformer_options, kwargs,
+-                       seg, layout):
+             state.aa, state.ab = seg["audio"]
+             sig = getattr(layout, "signature", None)
+             # NB: no data_ptr() here -- core allocates a fresh context tensor per call.
+@@ -884,7 +881,7 @@
+                          working_vram / 2**30)
+                 if backend == "ram":
+                     log.info("H3 Frozen Video Cache: expect ~%.1f GB host RAM resident for the "
+-                             "%.1f GB packed cache (%.2fx allocator overhead)",
++                             "%.1f GB packed cache (measured ~%.1fx allocator/pinning overhead)",
+                              total * RAM_OVERHEAD_FACTOR / 2**30, total / 2**30, RAM_OVERHEAD_FACTOR)
+                 if backend == "disk":
+                     log.warning("H3 Frozen Video Cache: writing %.1f GB to disk for this cache "
+@@ -918,7 +915,6 @@
+                                     "per-step free_memory() failed (%s); continuing." % e)
+ 
+             state.slot = slot
+-            state.activated_this_pass = True
+             state.step_ctx = {"block_index": 0}
+             try:
+                 ret = executor(x, timestep, context, transformer_options, **kwargs)
+@@ -944,14 +940,10 @@
+                 avail_after = _meminfo_available_bytes()
+                 d_rss = None if (rss_after is None or state.rss_before is None) else rss_after - state.rss_before
+                 d_av = None if (avail_after is None or state.avail_before is None) else state.avail_before - avail_after
+-                ratio = ""
+-                if d_rss is not None and state.est_bytes:
+-                    ratio = " | actual/estimated = %.2fx (RAM_OVERHEAD_FACTOR is %.2f)" % (
+-                        d_rss / state.est_bytes, RAM_OVERHEAD_FACTOR)
+                 log.info("H3 Frozen Video Cache: cache built | estimated %s | process RSS %s -> %s "
+-                         "(+%s) | MemAvailable %s -> %s (-%s)%s",
++                         "(+%s) | MemAvailable %s -> %s (-%s)",
+                          _gb(state.est_bytes), _gb(state.rss_before), _gb(rss_after), _gb(d_rss),
+-                         _gb(state.avail_before), _gb(avail_after), _gb(d_av), ratio)
++                         _gb(state.avail_before), _gb(avail_after), _gb(d_av))
+             if state.verbose:
+                 _sync_if_cuda(x[0])
+                 total = time.perf_counter() - t_call
+@@ -967,60 +959,9 @@
+                          state.mode, state.n_cached, state.n_built, state.n_stock, n_blocks,
+                          state.t_blocks, total, total - state.t_blocks)
+             return ret
+-
+-    return wrapper
+-
+-
+-def make_outer_sample_wrapper(state):
+-    """Frees the cache when a sampling run ends, if free_after_pass is set.
+-
+-    OUTER_SAMPLE wraps the whole sampling call, so its `finally` is an exact
+-    "the pass is over" signal -- no guessing from step counts. Runs on error and
+-    on interrupt too, which is when releasing the memory matters most.
+-    """
+-    def wrapper(executor, *args, **kwargs):
+-        state.activated_this_pass = False
+-        # ComfyUI 0.34+ records the DiT forward into an aimdo "malloc graph" that
+-        # assumes a repeatable allocation pattern. This node is the opposite of
+-        # repeatable: the build step allocates gigabytes and evicts models
+-        # mid-forward, cached steps allocate a different shape again. Pausing the
+-        # recorder is not enough -- with nothing recorded between begin and end,
+-        # malloc_graph_end's pop() itself fails. So switch the compiler off for
+-        # the duration of sampling on this model, exactly what
+-        # --disable-comfy-compiler does globally, and restore it afterwards.
+-        cli = None
+-        prev = None
+-        try:
+-            import comfy.cli_args as _cli_args
+-            cli = _cli_args.args
+-            prev = getattr(cli, "disable_comfy_compiler", None)
+-            if prev is False:
+-                cli.disable_comfy_compiler = True
+-                if "compiler" not in state.warned:
+-                    state.warned.add("compiler")
+-                    log.info("H3 Frozen Video Cache: disabling the Comfy model compiler for "
+-                             "this sampling run (the cache's allocations cannot be recorded "
+-                             "into its malloc graph). Restored when the run ends.")
+-        except Exception:
+-            cli = None
+-        try:
+-            return executor(*args, **kwargs)
+         finally:
+-            if cli is not None and prev is False:
+-                try:
+-                    cli.disable_comfy_compiler = prev
+-                except Exception:
+-                    pass
+-            if state.free_after_pass and state.activated_this_pass:
+-                freed = 0
+-                for slot in list(state.slots.values()):
+-                    if slot.store is not None:
+-                        freed += 1
+-                    slot.free()
+-                state.slots.clear()
+-                if freed:
+-                    log.info("H3 Frozen Video Cache: pass finished, cache released "
+-                             "(free_after_pass). The next run will rebuild it.")
++            state.mode = "off"
++
+     return wrapper
+ 
+ 
+@@ -1052,7 +993,7 @@
+ 
+ 
+ def patch_model(model, backend, precision, refresh_interval, cache_contents="kv", verbose=False,
+-                allow_disk=False, enabled=True, vram_margin_gb=1.0, free_after_pass=False):
++                allow_disk=False, enabled=True, vram_margin_gb=1.0):
+     if not enabled:
+         # Return the model untouched: no wrapper, no block patches, no compat check.
+         # Identical to bypassing the node, but keeps the graph wiring intact.
+@@ -1075,13 +1016,10 @@
+ 
+     m = model.clone()
+     state = _State(backend, precision, refresh_interval, cache_contents, verbose=verbose,
+-                   allow_disk=allow_disk, vram_margin_gb=vram_margin_gb,
+-                   free_after_pass=free_after_pass)
++                   allow_disk=allow_disk, vram_margin_gb=vram_margin_gb)
+     replace = make_block_replace(state, lambda i: dm.blocks[i], n_blocks)
+     for i in range(n_blocks):
+         m.set_model_patch_replace(replace, "dit", "double_block", i)
+     m.add_wrapper_with_key(WrappersMP.DIFFUSION_MODEL, WRAPPER_KEY,
+                            make_wrapper(state, n_blocks, d_kv, d_hidden, d_ffn2))
+-    m.add_wrapper_with_key(WrappersMP.OUTER_SAMPLE, WRAPPER_KEY,
+-                           make_outer_sample_wrapper(state))
+     return m
+diff --git a/nodes.py b/nodes.py
+--- a/nodes.py
++++ b/nodes.py
+@@ -167,6 +167,14 @@
+             denoise=audio_denoise, noise_mask=noise_mask,
+             callback=callback, disable_pbar=disable_pbar, seed=seed,
+         )
++
++        # ComfyUI's masked sampler may still round/reconstruct the zero-mask
++        # stream on some dtype/backend combinations.  A zero video denoise is
++        # an exact freeze contract, so restore the original video explicitly
++        # and keep only the newly sampled audio stream.
++        if float(video_denoise) == 0.0:
++            _, sampled_audio = _require_av_nested(samples)
++            samples = comfy.nested_tensor.NestedTensor((video, sampled_audio))
+ 
+         out = latent.copy()
+         out.pop("noise_mask", None)
+@@ -245,25 +253,16 @@
+                                "this if you hit CUDA OOM during refinement -- it makes comfy "
+                                "evict more weights before the cache and its working buffers "
+                                "allocate."}),
+-                "free_after_pass": ("BOOLEAN", {
+-                    "default": False,
+-                    "tooltip": "Release the cache as soon as the refinement pass ends, instead of "
+-                               "keeping it for the next run. OFF keeps it resident so re-queueing "
+-                               "the SAME pass-1 latent skips the rebuild -- but if you randomize "
+-                               "seeds, the next run invalidates it anyway and you are holding "
+-                               "several GB for nothing. Turn this ON if memory is tight; the cost "
+-                               "is one full-price build step on every run."}),
+             },
+         }
+ 
+     def patch(self, model, enabled, cache_contents, backend, precision, refresh_interval,
+-              verbose=False, allow_disk=False, free_after_pass=False, vram_margin_gb=1.0):
++              verbose=False, allow_disk=False, vram_margin_gb=1.0):
+         from . import frozen_cache
+         return (frozen_cache.patch_model(model, backend, precision, refresh_interval,
+                                          cache_contents=cache_contents, verbose=verbose,
+                                          allow_disk=allow_disk, enabled=enabled,
+-                                         vram_margin_gb=vram_margin_gb,
+-                                         free_after_pass=free_after_pass),)
++                                         vram_margin_gb=vram_margin_gb),)
+ 
+ 
+ NODE_CLASS_MAPPINGS = {

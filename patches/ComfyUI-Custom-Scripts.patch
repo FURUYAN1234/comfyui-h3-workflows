@@ -1,0 +1,173 @@
+diff --git a/user/text_file_dirs.json b/user/text_file_dirs.json
+--- a/user/text_file_dirs.json
++++ b/user/text_file_dirs.json
+@@ -1,5 +1,4 @@
+ {
+-	"input": "$input/**/*.txt",
+-	"output": "$output/**/*.txt",
+-	"temp": "$temp/**/*.txt"
+-}
++  "input": "$input/**/*.txt",
++  "output": "$output/**/*.txt"
++}
+\ No newline at end of file
+diff --git a/web/js/autocompleter.js b/web/js/autocompleter.js
+--- a/web/js/autocompleter.js
++++ b/web/js/autocompleter.js
+@@ -310,7 +310,7 @@
+ 					}
+ 				}
+ 
+-				new TextAreaAutoComplete(r.widget.inputEl ?? r.widget.element, words, separator);
++				new TextAreaAutoComplete(r.widget.inputEl, words, separator);
+ 			}
+ 
+ 			return r;
+diff --git a/web/js/imageFeed.js b/web/js/imageFeed.js
+--- a/web/js/imageFeed.js
++++ b/web/js/imageFeed.js
+@@ -198,7 +198,8 @@
+ 		background: var(--border-color);
+ 		background-clip: content-box;
+ 	}
+-	.pysssss-image-feed-list img {
++	.pysssss-image-feed-list img,
++	.pysssss-image-feed-list video {
+ 		object-fit: var(--img-fit, contain);
+ 		max-width: 100%;
+ 		max-height: calc(var(--max-size) * 1vh);
+@@ -423,31 +424,31 @@
+ 			window.dispatchEvent(new Event("resize"));
+ 		}
+ 
+-		function addImageToFeed(href) {
++		function isVideoResult(result) {
++			return /\.(mp4|webm|ogg|mov)$/i.test(result.filename || "");
++		}
++
++		function addMediaToFeed(href, isVideo = false) {
+ 			const method = feedDirection.value === "newest first" ? "prepend" : "append";
+ 
+ 			if (maxImages.value > 0 && imageList.children.length >= maxImages.value) {
+ 				imageList.children[method === "prepend" ? imageList.children.length - 1 : 0].remove();
+ 			}
+ 
+-			imageList[method](
+-				$el("div", [
+-					$el(
+-						"a",
+-						{
+-							target: "_blank",
+-							href,
+-							onclick: (e) => {
+-								const imgs = [...imageList.querySelectorAll("img")].map((img) => img.getAttribute("src"));
+-								lightbox.show(imgs, imgs.indexOf(href));
+-								e.preventDefault();
+-							},
+-						},
+-						[$el("img", { src: href })]
+-					),
+-				])
+-			);
+-			// If lightbox is open, update it with new image
++			if (isVideo) {
++				imageList[method]($el("div", [$el("video", { src: href, controls: true, preload: "metadata" })]));
++				return;
++			}
++
++			imageList[method]($el("div", [$el("a", {
++				target: "_blank",
++				href,
++				onclick: (e) => {
++					const imgs = [...imageList.querySelectorAll("img")].map((img) => img.getAttribute("src"));
++					lightbox.show(imgs, imgs.indexOf(href));
++					e.preventDefault();
++				},
++			}, [$el("img", { src: href })])]));
+ 			lightbox.updateWithNewImage(href, feedDirection.value);
+ 		}
+ 
+@@ -552,6 +553,12 @@
+ 				for (const src of detail.output.images) {
+ 					const href = `./view?filename=${encodeURIComponent(src.filename)}&type=${src.type}&
+ 					subfolder=${encodeURIComponent(src.subfolder)}&t=${+new Date()}`;
++					const isVideo = isVideoResult(src);
++
++					if (isVideo) {
++						addMediaToFeed(href, true);
++						continue;
++					}
+ 
+ 					// deduplicateFeed.value is essentially the scaling factor used for image hashing
+ 					// but when deduplication is disabled, this value is "0"
+@@ -565,7 +572,7 @@
+ 							let img = $el("img", { src: href });
+ 							img.onerror = () => {
+ 								// fall back to default behavior
+-								addImageToFeed(href);
++								addMediaToFeed(href);
+ 							};
+ 							img.onload = () => {
+ 								// redraw the image onto a canvas to strip metadata (resize if performance mode)
+@@ -590,12 +597,12 @@
+ 								} else {
+ 									// if we got to here, then the image is unique--so add to feed
+ 									seenImages.set(hash, true);
+-									addImageToFeed(href);
++									addMediaToFeed(href);
+ 								}
+ 							};
+ 						}
+ 					} else {
+-						addImageToFeed(href);
++						addMediaToFeed(href);
+ 					}
+ 				}
+ 			}
+diff --git a/web/js/snapToGridGuide.js b/web/js/snapToGridGuide.js
+--- a/web/js/snapToGridGuide.js
++++ b/web/js/snapToGridGuide.js
+@@ -106,7 +106,7 @@
+ 		const origDrawNode = LGraphCanvas.prototype.drawNode;
+ 		LGraphCanvas.prototype.drawNode = function (node, ctx) {
+ 			const enabled = guide_config.lines.enabled || guide_config.block.enabled;
+-			if (enabled && this.isDragging && node.id in this.selected_nodes && snapToGridEnabled()) {
++			if (enabled && this.node_dragged && node.id in this.selected_nodes && snapToGridEnabled()) {
+ 				// discretize the canvas into grid
+ 				let x = LiteGraph.CANVAS_GRID_SIZE * Math.round(node.pos[0] / LiteGraph.CANVAS_GRID_SIZE);
+ 				let y = LiteGraph.CANVAS_GRID_SIZE * Math.round(node.pos[1] / LiteGraph.CANVAS_GRID_SIZE);
+diff --git a/web/js/workflowImage.js b/web/js/workflowImage.js
+--- a/web/js/workflowImage.js
++++ b/web/js/workflowImage.js
+@@ -544,8 +544,7 @@
+ 				const draw = w.widget.draw;
+ 				w.widget.draw = function (ctx) {
+ 					draw.apply(this, arguments);
+-					const inputEl = this.inputEl ?? this.element;
+-					if (!inputEl || inputEl.hidden) return;
++					if (this.inputEl.hidden) return;
+ 
+ 					if (getDrawTextConfig) {
+ 						const config = getDrawTextConfig(ctx, this);
+@@ -555,10 +554,10 @@
+ 							ctx.resetTransform();
+ 						}
+ 
+-						const style = document.defaultView.getComputedStyle(inputEl, null);
++						const style = document.defaultView.getComputedStyle(this.inputEl, null);
+ 						const x = config.x;
+ 						const y = config.y;
+-						const domWrapper = inputEl.closest(".dom-widget") ?? inputEl;
++						const domWrapper = this.inputEl.closest(".dom-widget") ?? widget.inputEl;
+ 						let w = parseInt(domWrapper.style.width);
+ 						if (w === 0) {
+ 							w = this.node.size[0] - 20;
+@@ -571,7 +570,7 @@
+ 						ctx.font = style.getPropertyValue("font");
+ 
+ 						const line = t.d * 12;
+-						const split = inputEl.value.split("\n");
++						const split = this.inputEl.value.split("\n");
+ 						let start = y;
+ 						for (const l of split) {
+ 							start += line;

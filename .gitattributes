@@ -1,0 +1,6 @@
+* text=auto eol=lf
+*.patch -text -whitespace
+*.json -text
+*.zip -text
+*.md whitespace=-blank-at-eol
+licenses/* -whitespace
