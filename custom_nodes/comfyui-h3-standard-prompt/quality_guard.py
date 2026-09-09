@@ -10,7 +10,7 @@ VOCAL_REQUEST = re.compile(r'悲鳴|叫び|叫ぶ|叫ん|泣き声|笑い声|息
 
 def repetition_requested(text):
     text=re.sub(r'繰り返さ(?:ない|ず)|繰り返し(?:なし|無し)|(?:do not|never|don.t|no)\s+repeat\w*', '', text, flags=re.I)
-    return bool(re.search(r'繰り返|繰返|何度|回(?:言|話|叫|発声)|\brepeat\b',text,re.I))
+    return bool(re.search(r'繰り返|繰返|何度|回(?:言|話|叫|発声)|(?:常に|ずっと|絶えず).{0,20}(?:叫|話|言|歌|唱|喋)|(?:叫|話|言|歌|唱|喋).{0,8}続け|\brepeat\b',text,re.I))
 
 def norm(text):
     return re.sub(r'\s+', '', unicodedata.normalize('NFKC',text))

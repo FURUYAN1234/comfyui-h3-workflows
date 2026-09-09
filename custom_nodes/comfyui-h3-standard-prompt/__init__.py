@@ -259,6 +259,9 @@ def split_conversion_issues(errors, prompt, image_count):
     used = {int(n) for n in re.findall(r'<Picture\s+(\d+)>', prompt, re.I)}
     for error in errors:
         minor = error.startswith((
+            'The user requests speech. Put every spoken line',
+            'Split the action phase at ',
+            'Use explicit time ranges with generation boundaries:',
             'Soundscape contains spoken words or written cries.',
             'Untranslated Japanese production prose remains',
             'retention_analysis must state reference preservation relationships',

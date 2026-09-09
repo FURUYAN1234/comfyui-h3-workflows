@@ -79,6 +79,17 @@ non_diegetic_music: N/A'''
             self.assertEqual(bool(blocking),blocked)
             self.assertTrue(warnings)
 
+    def test_speech_markup_and_boundary_warnings_do_not_block(self):
+        errors=['The user requests speech. Put every spoken line in tags.', 'Split the action phase at 00:15.000.']
+        blocking,warnings=split_issues(errors,'A person speaks continuously.',0)
+        self.assertEqual(blocking,[])
+        self.assertEqual(len(warnings),2)
+
+    def test_explicit_continuous_speech_is_not_unrequested_repetition(self):
+        self.assertTrue(guard.repetition_requested('同じ言葉を常に叫ぶこと。'))
+        self.assertTrue(guard.repetition_requested('同じ歌を歌い続ける。'))
+        self.assertFalse(guard.repetition_requested('台詞を繰り返さない。'))
+
     def test_20_seconds_or_less_is_one_pass_for_both_context_sizes(self):
         for duration in (5, 10, 15, 16, 20, 30, 60):
             for context_frames in (22, 39):
