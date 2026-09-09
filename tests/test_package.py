@@ -27,7 +27,9 @@ class PackageTests(unittest.TestCase):
         def ignore_payload(directory, names):
             relative = pathlib.Path(directory).relative_to(ROOT)
             excluded_dirs = {'.git', 'dist', '__pycache__', 'docs', 'patches', 'tests'}
-            ignored = {name for name in names if name in excluded_dirs or name.endswith('.pyc')}
+            ignored = {name for name in names if name.endswith('.pyc')}
+            if relative == pathlib.Path('.'):
+                ignored |= set(names) & excluded_dirs
             if relative == pathlib.Path('.'):
                 ignored |= set(names) & root_exclusions
             return ignored

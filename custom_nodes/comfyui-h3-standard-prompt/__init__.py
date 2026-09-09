@@ -252,6 +252,23 @@ For references: subject_definitions contains ONLY stable appearance, never the s
 Soundscape contains environmental and nonverbal sounds. Music is N/A unless requested. Preserve deliberate silence and requested BGM.
 '''
 
+
+def split_conversion_issues(errors, prompt, image_count):
+    """Tolerate mixed-language prose and incomplete metadata; never discard content."""
+    warnings, blocking = [], []
+    used = {int(n) for n in re.findall(r'<Picture\s+(\d+)>', prompt, re.I)}
+    for error in errors:
+        minor = error.startswith((
+            'Soundscape contains spoken words or written cries.',
+            'Untranslated Japanese production prose remains',
+            'retention_analysis must state reference preservation relationships',
+        ))
+        if error.startswith('Bind the connected image sources '):
+            # Missing labels are metadata omissions; nonexistent image IDs are not.
+            minor = used.issubset(set(range(1, image_count + 1)))
+        (warnings if minor else blocking).append(error)
+    return blocking, warnings
+
 class H3StandardPrompt:
     @classmethod
     def INPUT_TYPES(cls):
@@ -290,6 +307,7 @@ class H3StandardPrompt:
         planned = tl.plan_segments(tl._h3_grid_frames(max(1, round(duration*24))), int(context_frames), False, max_raw, exact_output_frames=max(1, round(duration*24)))
         boundaries = [s.output_start/24 for s in planned[1:]]
         prompt = source
+        tolerated_warnings = []
         status = '直接入力：LM Studio・外部API呼出しなし'
         if brief:
             helper = LocalLMHelper()
@@ -315,8 +333,11 @@ class H3StandardPrompt:
                 errors += reference_format_errors(prompt,len(images)) if 'Ref2' in mode else []
                 errors += dialogue_format_errors(prompt, brief)
                 errors += boundary_errors(prompt, duration, boundaries)
+                errors, tolerated_warnings = split_conversion_issues(errors, prompt, len(images))
                 if not errors:
-                    status += f' / content checks passed (attempt {attempt + 1}/3)'
+                    status += f' / blocking checks passed (attempt {attempt + 1}/3)'
+                    if tolerated_warnings:
+                        print('[H3] Continuing with nonblocking conversion warnings: ' + '; '.join(tolerated_warnings))
                     break
                 reasons = '; '.join(dict.fromkeys(errors))
                 print(f'[H3] Rejected conversion {attempt + 1}/3: {reasons}')
@@ -342,7 +363,7 @@ class H3StandardPrompt:
         }
         report = {'route':status,'mode':mode,'duration_source':origin,'duration_seconds':count_frames/24,
                   'segment_count':len(segments),'dialogue_count_changes_duration':False,
-                  'warnings':dialogue_format_warnings(prompt),
+                  'warnings':dialogue_format_warnings(prompt) + tolerated_warnings,
                   'windows':[[s.output_start/24,(s.output_start+s.output_frames)/24] for s in segments]}
         return prompt,json.dumps(report,ensure_ascii=False,indent=2),length,max_raw,plan
 

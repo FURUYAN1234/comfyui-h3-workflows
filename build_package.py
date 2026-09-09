@@ -27,9 +27,9 @@ def payload_paths():
         path for path in ROOT.rglob('*')
         if path.is_file()
         and path.suffix != '.pyc'
-        and not set(path.relative_to(ROOT).parts) & EXCLUDED
+        and path.relative_to(ROOT).parts[0] not in EXCLUDED
         and not (len(path.relative_to(ROOT).parts) == 1 and path.name in DEVELOPMENT_ROOT_FILES)
-        and path.name != 'SHA256SUMS.json'
+        and path.relative_to(ROOT).as_posix() != 'SHA256SUMS.json'
     )
 
 

@@ -1,4 +1,6 @@
 """Focused offline checks for the v1.1 prompt and long-timeline contract."""
+import ast
+import re
 import importlib.util
 import pathlib
 import unittest
@@ -22,6 +24,12 @@ timeline_module = load_module(
     ROOT / 'custom_nodes' / 'ComfyUI-MiniMax-H3-Long-Video' / 'minimax_h3_long_video' / 'timeline.py'
 )
 
+
+tree=ast.parse((PROMPT_NODE/'__init__.py').read_text(encoding='utf-8'))
+policy=next(n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name=='split_conversion_issues')
+namespace={'re':re}
+exec(compile(ast.Module(body=[policy],type_ignores=[]),'<actual policy>','exec'),namespace)
+split_issues=namespace['split_conversion_issues']
 
 class PromptContractTests(unittest.TestCase):
     def test_bracketed_timed_phases_are_segmented(self):
@@ -53,14 +61,23 @@ non_diegetic_music: N/A'''
         errors = guard.conversion_errors(prompt, '人物が室内に立つ。', [], 30)
         self.assertTrue(any('production/camera/reference' in error for error in errors))
 
-    def test_untranslated_production_prose_is_rejected(self):
+    def test_mixed_japanese_is_warning_and_preserved(self):
         prompt = '''integrated_multimodal_description: [Shot 1] 人物が静かな部屋をゆっくり歩く。カメラは固定し、窓から柔らかな光が入る。
 
 overall_soundscape: Quiet room.
 
 non_diegetic_music: N/A'''
         errors = guard.conversion_errors(prompt, '人物が部屋を歩く。', [], 15)
-        self.assertTrue(any('Untranslated Japanese production prose' in error for error in errors))
+        blocking,warnings=split_issues(errors,prompt,0)
+        self.assertEqual(blocking,[])
+        self.assertTrue(warnings)
+
+    def test_missing_reference_label_is_warning_but_invalid_id_blocks(self):
+        for prompt,blocked in [('<Picture 1>',False),('<Picture 9>',True)]:
+            errors=standard.reference_format_errors(prompt,2)
+            blocking,warnings=split_issues(errors,prompt,2)
+            self.assertEqual(bool(blocking),blocked)
+            self.assertTrue(warnings)
 
     def test_20_seconds_or_less_is_one_pass_for_both_context_sizes(self):
         for duration in (5, 10, 15, 16, 20, 30, 60):

@@ -1,9 +1,9 @@
 {
   "LICENSES_AND_NOTICES.md": "c1ed50654c557a7e87084428ed34b73f81d35f77b989c2aa89e40c2cabcdfc98",
-  "README_JA.md": "0308d73a3eb4f48e9f6d5fc8f5eea0dded423c59340f35da819ad64eabe4e6d0",
-  "REPRODUCE.md": "281f585802ae15f2ee1353f43fd17ea3961736bb43439aa4d21eae44ad5b55a9",
-  "VALIDATION.md": "d0b0461f9858e21ffe0cb01bfd04f29815c3367a1f693ab50b4b02b6b6a2bfd5",
-  "VERSION.json": "db9487d92720b01ff43a2d0af6a7874e531c297fc3f4b947a1d0cbdefd27b923",
+  "README_JA.md": "4fc19e683f8f9612a56e02d3d664e2b188d77996d2c0dada4ab3c0c024bd5c34",
+  "REPRODUCE.md": "e47a9f05caa71df4588a2c73f3670447bfb2c1ccef56b4227ce3fc87c2ed001d",
+  "VALIDATION.md": "b5a0b6f475576751444d286cf0f336646a8ad743a06083418ff688d27b7a03d5",
+  "VERSION.json": "ab10f8289fa43edf5799462290528ccece0688b8b977cbde676a1161be1d2fa9",
   "custom_nodes/ComfyUI-Custom-Scripts/LICENSE": "174def556ebe95efb10fa083b6eb719d8ded1be1f38b12b7c9fbd1b6b37a8575",
   "custom_nodes/ComfyUI-Custom-Scripts/__init__.py": "350abae90f174210f9a94014bf90877f4337b3c3cf79cddd1ab1f6b11e62ae45",
   "custom_nodes/ComfyUI-Custom-Scripts/py/autocomplete.py": "78bae7a24ea019f4fbc1de2f98f0fb0f335cfeb9f95a86f7b21867bb5b8865ab",
@@ -97,7 +97,7 @@
   "custom_nodes/ComfyUI-PlagueKind-Nodes/ltx_lora_loader/ltx_lora_loader.py": "da589f863d2cdff133baabd5027e754baa18e0290ce27e1d5756564fbe3a4426",
   "custom_nodes/ComfyUI-PlagueKind-Nodes/unified_resize/unified_resize.py": "bfd221a0c4a16d423bae06e72c3f52e52b5ddcb796db16ded2be84db6c5cf3cd",
   "custom_nodes/comfyui-h3-standard-prompt/README.md": "bd347bd8349d0d05c6cd052799d5e550585415d0c41148dda10adb49b0732a4b",
-  "custom_nodes/comfyui-h3-standard-prompt/__init__.py": "765e06dc184e4fe82cd198bac59f113805df91afca1c7a766ba1ba29036fd2aa",
+  "custom_nodes/comfyui-h3-standard-prompt/__init__.py": "4e73069df52782ff3b63eea127f479b8c952c3fde12dfaa4ceb1e1dab5aa570e",
   "custom_nodes/comfyui-h3-standard-prompt/input_schema.json": "69aeb45f131338de800f4cec762bba3250a6f23012044be5f8f1a7aaf0c4c82c",
   "custom_nodes/comfyui-h3-standard-prompt/lm_client.py": "41a1fd06375f75561afc933db3f7fc50a6aa32fd36a0811b23c6587e2063a138",
   "custom_nodes/comfyui-h3-standard-prompt/quality_guard.py": "4151491cdf9c5625663bb591eae80d2d06debe8ddc6f22260c2dbe8c22d5800e",
@@ -107,7 +107,7 @@
   "models.json": "b87fa10e86684a1993138407ed51842da601c68ddfa863adff79fc335bab166e",
   "requirements.txt": "dfeb61e49bdb312dce34e92a7832bc244d7f6f97bacb7a462e7a68bd554abc42",
   "verify_package.py": "118027ae18c9843cf6782ed340a0109b1bf3ac14d63b9fbe15774c3b541305f8",
-  "workflows/I2V_4step_20260909141419_v1.1.2.json": "e56440451a047c32f7b5a695ec2f0cc25e7d5614bbc2154cb80b059c801c47b1",
-  "workflows/Ref2V_4step_20260909141419_v1.1.2.json": "32cb1ea2e0f18abcf5c0b7d632f870dd8361b73d379c4177bbd2389f192624ef",
-  "workflows/T2V_4step_20260909141419_v1.1.2.json": "24df7b380a106bab9b9b2a842024b8a8a65b5ec245b24296b1d1fa83a34dfe4c"
+  "workflows/I2V_4step_20260909161623_v1.1.3.json": "e56440451a047c32f7b5a695ec2f0cc25e7d5614bbc2154cb80b059c801c47b1",
+  "workflows/Ref2V_4step_20260909161623_v1.1.3.json": "32cb1ea2e0f18abcf5c0b7d632f870dd8361b73d379c4177bbd2389f192624ef",
+  "workflows/T2V_4step_20260909161623_v1.1.3.json": "24df7b380a106bab9b9b2a842024b8a8a65b5ec245b24296b1d1fa83a34dfe4c"
 }

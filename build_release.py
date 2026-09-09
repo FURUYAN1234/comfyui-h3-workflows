@@ -1,12 +1,8 @@
 import pathlib,subprocess,json,hashlib,zipfile,sys,datetime
 root=pathlib.Path(__file__).resolve().parent
-package_roots={'LICENSES_AND_NOTICES.md','README_JA.md','REPRODUCE.md','VALIDATION.md','VERSION.json','models.json','requirements.txt','verify_package.py'}
-package_directories=('custom_nodes/','licenses/','workflows/')
+excluded_root={'.gitattributes','.gitignore','CHANGELOG.md','LICENSE','README.md','VERSION','build_package.py','build_release.py','docs','tests','patches','dist','dependencies.lock.json','verify_dependencies.py','THIRD_PARTY_NOTICES.md'}
 tracked=subprocess.check_output(['git','ls-files','-z'],cwd=root).decode().split('\0')
-# Keep repository release notes and tests out of the portable payload.  The
-# allow-list makes source-tree changes fail closed instead of silently adding a
-# personal or development-only file to the distribution.
-files={p:(root/p).read_bytes() for p in tracked if p and (p in package_roots or p.startswith(package_directories))}
+files={p:(root/p).read_bytes() for p in tracked if p and p.split('/')[0] not in excluded_root and p!='SHA256SUMS.json'}
 manifest={p:hashlib.sha256(b).hexdigest() for p,b in sorted(files.items())}
 files['SHA256SUMS.json']=(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n').encode()
 v=json.loads(files['VERSION.json']);dt=datetime.datetime.strptime(v['built_at_jst'],'%Y%m%d%H%M%S')
