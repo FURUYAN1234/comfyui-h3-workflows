@@ -1,7 +1,8 @@
-"""Build the portable v1.1.0 ZIP, then verify its extracted contents.
+"""Build the portable ZIP, then verify its extracted contents.
 
 Run from a reviewed clean source tree. Does not publish, install or generate.
 """
+import argparse
 import hashlib
 import json
 import pathlib
@@ -32,6 +33,12 @@ def payload_paths():
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--update-manifest', action='store_true',
+        help='Update the reviewed source manifest before building; does not publish or install.'
+    )
+    args = parser.parse_args()
     metadata = json.loads((ROOT / 'VERSION.json').read_text(encoding='utf-8'))
     version = metadata['version']
     built_at = metadata['built_at_jst']
@@ -54,12 +61,15 @@ def main():
             shutil.copy2(path, target)
         hashes = {path.relative_to(payload).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
                   for path in sorted(payload.rglob('*')) if path.is_file()}
-        manifest = payload / 'SHA256SUMS.json'
         source_manifest = ROOT / 'SHA256SUMS.json'
-        if source_manifest.is_file() and json.loads(source_manifest.read_text(encoding='utf-8')) == hashes:
+        manifest_text = json.dumps(hashes, ensure_ascii=False, indent=2) + '\n'
+        if args.update_manifest:
+            source_manifest.write_text(manifest_text, encoding='utf-8', newline='\n')
+        manifest = payload / 'SHA256SUMS.json'
+        if source_manifest.is_file() and source_manifest.read_text(encoding='utf-8') == manifest_text:
             shutil.copy2(source_manifest, manifest)
         else:
-            manifest.write_text(json.dumps(hashes, ensure_ascii=False, indent=2) + '\n', encoding='utf-8', newline='\n')
+            manifest.write_text(manifest_text, encoding='utf-8', newline='\n')
         verify(payload)
         timestamp = tuple(map(int, (built_at[0:4], built_at[4:6], built_at[6:8], built_at[8:10], built_at[10:12], built_at[12:14])))
         with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED) as archive:

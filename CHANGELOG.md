@@ -1,5 +1,9 @@
 # Changelog / 更新履歴
 
+## v1.1.1 — 2026-09-09
+
+- Preserve byte-identical portable-package source files in Git so the tagged source rebuild passes its own manifest check. The v1.1.0 release asset remains unchanged. / Gitの改行変換を避け、タグ付きソースから再構築してもマニフェスト検査を通るようにした修正版。v1.1.0の公開ZIPアセットは変更しません。
+
 ## v1.1.0 — 2026-09-09
 
 - Ship the reviewed portable distribution: T2V, I2V and Ref2V workflows plus all five required custom-node packages and their license texts. / T2V・I2V・Ref2Vの3ワークフロー、必要な5カスタムノード本体、各ライセンスを含む可搬版を配布。

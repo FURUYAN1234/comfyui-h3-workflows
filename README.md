@@ -1,6 +1,6 @@
 # ComfyUI H3 Workflows
 
-Version / バージョン: **v1.1.0**
+Version / バージョン: **v1.1.1**
 
 Portable T2V, I2V and Ref2V workflows for MiniMax H3. The distribution contains the five required custom-node packages, four-step video generation, two-step audio refinement, variable duration, and optional Japanese-to-English conversion through a locally started LM Studio server.
 
@@ -10,9 +10,9 @@ MiniMax H3で文章・開始画像・参照画像から音声付き動画を作�
 
 | Workflow | Input | Purpose |
 | --- | --- | --- |
-| `T2V_4step_…_v1.1.0.json` | text | Generate video and sound without an image. / 画像なしで映像と音声を生成。 |
-| `I2V_4step_…_v1.1.0.json` | text + first frame | Animate from a starting image. / 開始画像から動かす。 |
-| `Ref2V_4step_…_v1.1.0.json` | text + 1–5 references | Use reference appearance in a new scene. / 参照画像の人物や服装を新しい場面で使う。 |
+| `T2V_4step_…_v1.1.1.json` | text | Generate video and sound without an image. / 画像なしで映像と音声を生成。 |
+| `I2V_4step_…_v1.1.1.json` | text + first frame | Animate from a starting image. / 開始画像から動かす。 |
+| `Ref2V_4step_…_v1.1.1.json` | text + 1–5 references | Use reference appearance in a new scene. / 参照画像の人物や服装を新しい場面で使う。 |
 
 The ZIP contains the three workflows, all five custom-node folders, model metadata, licenses, validation notes, an offline verifier, and a SHA-256 manifest. It does not contain model weights, images, generated media, credentials, private dictionaries, PC-specific paths, or startup scripts.
 
