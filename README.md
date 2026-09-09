@@ -1,6 +1,6 @@
 # ComfyUI H3 Workflows
 
-Version / バージョン: **v1.1.4**
+Version / バージョン: **v1.1.5**
 
 Portable T2V, I2V and Ref2V workflows for MiniMax H3. The distribution contains the five required custom-node packages, four-step video generation, two-step audio refinement, variable duration, and optional Japanese-to-English conversion through a locally started LM Studio server.
 
@@ -10,9 +10,9 @@ MiniMax H3で文章・開始画像・参照画像から音声付き動画を作�
 
 | Workflow | Input | Purpose |
 | --- | --- | --- |
-| `T2V_4step_…_v1.1.4.json` | text | Generate video and sound without an image. / 画像なしで映像と音声を生成。 |
-| `I2V_4step_…_v1.1.4.json` | text + first frame | Animate from a starting image. / 開始画像から動かす。 |
-| `Ref2V_4step_…_v1.1.4.json` | text + 1–5 references | Use reference appearance in a new scene. / 参照画像の人物や服装を新しい場面で使う。 |
+| `T2V_4step_…_v1.1.5.json` | text | Generate video and sound without an image. / 画像なしで映像と音声を生成。 |
+| `I2V_4step_…_v1.1.5.json` | text + first frame | Animate from a starting image. / 開始画像から動かす。 |
+| `Ref2V_4step_…_v1.1.5.json` | text + 1–5 references | Use reference appearance in a new scene. / 参照画像の人物や服装を新しい場面で使う。 |
 
 The ZIP contains the three workflows, all five custom-node folders, model metadata, licenses, validation notes, an offline verifier, and a SHA-256 manifest. It does not contain model weights, images, generated media, credentials, private dictionaries, PC-specific paths, or startup scripts.
 
@@ -45,7 +45,7 @@ H3用4ファイルは合計約40.44GBです。LM Studio用モデル、中間潜�
 
 ### Choose your environment / 最初に環境を選ぶ
 
-> **v1.1.4 installation notice / 導入の注意:** The v1.1.4 portable ZIP already contains all five required custom-node folders. Follow the current Japanese guide, [README_JA.md](README_JA.md), and copy all five folders as stated in the first installation section above. The historical single-node/dependency-patch narrative below is retained only as background for older releases and must not be applied to v1.1.4. / v1.1.4は必要な5フォルダーを同梱しています。導入は上の手順と最新の[README_JA.md](README_JA.md)に従い、下記の旧版向け依存ノード・パッチ説明はv1.1.4へ適用しないでください。
+> **v1.1.5 installation notice / 導入の注意:** The v1.1.5 portable ZIP already contains all five required custom-node folders. Copy all five folders as stated in the first installation section above; do not download the four bundled nodes separately or apply compatibility patches. / v1.1.5は必要な5フォルダーを同梱しています。上の手順どおり5フォルダーすべてをコピーし、同梱済みの外部4ノードを別途取得したり互換パッチを適用したりしないでください。
 
 The recorded GPU runs used WSL2 Ubuntu. Native Windows commands below explain folder and interpreter handling, but do not constitute a native-Windows success report. If you already have a working ComfyUI, keep it intact and prepare a separate installation for this package when possible. / 元のGPU検証はWSL2 Ubuntuです。以下のWindowsコマンドは配置とPythonの使い分けの説明で、Windowsネイティブの動作確認報告ではありません。既存の稼働環境は残し、可能なら別のComfyUIで導入してください。
 
@@ -57,11 +57,10 @@ Start unmodified ComfyUI once and check that its normal interface opens before a
 ### Add this package / 配布物の導入
 
 1. Prepare ComfyUI using the [official instructions](https://docs.comfy.org/installation/system_requirements). / 公式手順でComfyUIを用意します。
-2. Extract the distribution. Copy only `comfyui-h3-standard-prompt` from its `custom_nodes/` into ComfyUI's `custom_nodes/`. Avoid duplicate nested folders. / ZIP内の自作ノード1フォルダーをComfyUIの`custom_nodes/`へコピーします。
-3. Follow [DEPENDENCIES.md](docs/DEPENDENCIES.md) to obtain the four pinned upstream nodes and apply the corresponding patches. Existing installations should be preserved before replacement. / 依存4ノードは固定コミットを取得し、指定パッチを適用します。既存環境は退避してから作業します。
-4. Install `requirements.txt` with **ComfyUI's own Python**. / ComfyUI自身のPythonへ依存ライブラリを入れます。
-5. Obtain the four model files using [MODELS.md](docs/MODELS.md), then restart ComfyUI and select them in the loaders. / モデルを指定位置へ配置し、再起動後にローダーで選びます。
-6. Import one workflow JSON. For I2V/Ref2V, supply your own image before queuing. / JSONを読み込み、画像が必要な経路では自分の画像を入れて実行します。
+2. Extract the distribution. Copy all five folders from `custom_nodes/` into ComfyUI's `custom_nodes/`. Avoid duplicate nested folders. The four external nodes are already bundled; do not download them separately or apply compatibility patches. / ZIP内の5フォルダーすべてをComfyUIの`custom_nodes/`へコピーします。同名フォルダーを二重にしないでください。外部4ノードも同梱済みなので、別取得や互換パッチ適用は不要です。
+3. Install `requirements.txt` with **ComfyUI's own Python**. / ComfyUI自身のPythonへ依存ライブラリを入れます。
+4. Obtain the four model files using [MODELS.md](docs/MODELS.md), then restart ComfyUI and select them in the loaders. / モデルを指定位置へ配置し、再起動後にローダーで選びます。
+5. Import one workflow JSON. For I2V/Ref2V, supply your own image before queuing. / JSONを読み込み、画像が必要な経路では自分の画像を入れて実行します。
 
 Windows Portable example, from its root / Windows Portableのルートからの例:
 

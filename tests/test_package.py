@@ -27,7 +27,7 @@ class PackageTests(unittest.TestCase):
         def ignore_payload(directory, names):
             relative = pathlib.Path(directory).relative_to(ROOT)
             excluded_dirs = {'.git', 'dist', '__pycache__', 'docs', 'patches', 'tests'}
-            ignored = {name for name in names if name.endswith('.pyc')}
+            ignored = {name for name in names if name.endswith('.pyc') or name == '__pycache__'}
             if relative == pathlib.Path('.'):
                 ignored |= set(names) & excluded_dirs
             if relative == pathlib.Path('.'):
@@ -45,6 +45,13 @@ class PackageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             with contextlib.redirect_stdout(io.StringIO()):
                 verify(self.copy_package(folder))
+
+    def test_portable_installation_docs_match_package(self):
+        readme = (ROOT / 'README.md').read_text(encoding='utf-8')
+        guide = (ROOT / 'README_JA.md').read_text(encoding='utf-8')
+        self.assertIn("Copy all five folders from `custom_nodes/`", readme)
+        self.assertNotIn("Copy only `comfyui-h3-standard-prompt`", readme)
+        self.assertIn("`custom_nodes/`内の5フォルダーをComfyUIの`custom_nodes/`へコピー", guide)
 
     def test_missing_portable_module_fails(self):
         with tempfile.TemporaryDirectory() as folder:
