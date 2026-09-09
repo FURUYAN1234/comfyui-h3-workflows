@@ -1,33 +1,51 @@
-# Validation / 検証範囲
+# v1.1.0の検証範囲（2026-09-09）
 
-## Publication revision v1.0.0 / 公開用改訂
+今回の配布版は前回の独立配布版を更新したものです。3ワークフロー、5パッケージ、映像4・音声2ステップ、SLA、モデル取得メタデータ、入力経路を検査しました。独立ノードの実インポートと直接入力の20秒区間計算を確認しています。
 
-The publication work separates the original helper from external dependencies. Four fixed upstream source snapshots plus compatibility patches reconstruct 92 files from the supplied package with LF-normalized hashes. `git apply --check` and application succeeded for all four. The source ZIP initially supplied by the author matched all 108 entries in its manifest.
+変換・分割処理には稼働版で受入確認された修正を反映しました。20秒の稼働版実生成では区間境界の巻き戻り、単一ショット指定の欠落、終盤の近景再登場を修正し、ユーザーから概ね合格の評価を得ています。配布版のstandard.pyとquality_guard.pyは、その稼働版とバイト一致です。
 
-自作ノードと外部依存を分離しました。上流固定版へ4パッチを適用し、元配布物の第三者ファイル92個が改行をLFへそろえたハッシュで一致しました。元ZIPも108件のマニフェストと一致しています。
+配布版そのものへの正常・異常検査で、制作指示の台詞化拒否、再試行、3回上限、旧原文続行ONでも停止、軽微な見出し差・自然な一度の悲鳴の許容を確認しました。新しい配布版で3種類の動画を全件再生成したという意味ではありません。
 
-`verify_package.py` checks all three JSON graphs, link endpoints, prompt routes, the 4+2 sampling configuration, resolution and duration defaults, model metadata, empty image inputs, licenses, required patches and the file manifest. `build_package.py` runs these checks both before packaging and after extraction. These are offline source/package checks, not GPU generation.
+別PCへの導入、Windowsネイティブの実生成、全ての入力に対する映像・音声品質は未保証です。別PC用の参照画像や検証動画、個人識別情報は同梱していません。
 
-検査スクリプトは3本の配線、入力経路、映像4＋音声2ステップ、解像度と秒数、モデル情報、空の画像入力、ライセンス、パッチ、ファイルハッシュを確認します。ZIP作成前と展開後の両方を検査します。GPU生成とは区別してください。
+同梱の独立LMクライアントから実サーバーへ接続し、5秒指定の日本語入力を3種類で検証しました。T2Vは97.33秒・1回目、I2Vは70.68秒・1回目、Ref2Vは138.91秒（再試行を含む）・2回目で内容検査に合格しました。Ref2Vの初回は映像の時間指定不足を検出し、修正指示付きで再試行しています。計測範囲は各ノードの変換呼び出しで、動画生成時間ではありません。
 
-## Original generation record / 元配布構成の生成記録
+# 旧配布版の検証記録（2026-09-08）
 
-The following was reported in the original package/article, not newly rerun during this publication revision. / 以下は元の配布構成・記事に記録された結果で、今回新たに実行した結果ではありません。
+## 実際に実行した内容
 
-| Check / 確認 | Reported result / 記録 |
-| --- | --- |
-| T2V, I2V, Ref2V, direct English / 英語直接入力 | Each saved a 5-second MP4 / 各5秒MP4を保存 |
-| T2V, 20 seconds / 20秒 | 480 video frames and 20-second audio; 15+5-second segments / 480フレームと音声20秒、15＋5秒の区間 |
-| Japanese via LM Studio / 日本語変換 | Prompt output for all three routes, images sent for I2V/Ref2V / 3経路の文章出力と画像送信 |
-| 30 and 60 seconds / 30・60秒 | Duration parsing and 2/4-segment planning only / 尺認識と2/4区間の計算のみ |
+同梱する5カスタムノードだけを読み込んだ独立した環境で、指定モデルを使用し、実際のComfyUI APIから実行しました。
 
-Reference environment: Windows/WSL2 Ubuntu, RTX 5080 16 GB, ComfyUI 0.34.0 (commit `3216c62e9962c3babd28a4dfea6e5aef50b8fe16`), frontend 1.51.9, 864×480, 24 fps. / 元記録の参考環境であり、最低要件ではありません。
+| 経路 | 実行・確認結果 |
+|---|---|
+| T2V・上欄空＋下欄英語 | 5秒・864×480・24fps・120フレーム、AAC音声5秒のMP4保存成功 |
+| I2V・上欄空＋下欄英語 | 開始画像接続で5秒・864×480・24fps・120フレーム、AAC音声5秒のMP4保存成功 |
+| Ref2V・上欄空＋下欄英語 | 参照画像1枚接続で5秒・864×480・24fps・120フレーム、AAC音声5秒のMP4保存成功 |
+| T2V・20秒指定 | 20秒・864×480・24fps・480フレーム、AAC音声20秒のMP4保存成功。manifestでも15秒＋続き5秒の2区間を確認 |
+| 日本語→LM Studio | 3種類とも実サーバーで英語文章の出力を確認。I2V・Ref2Vは実画像を送信し、Picture 1への参照を確認 |
 
-## Not established / 未確認
+すべて映像4ステップ・音声再精錬2ステップの設定を確認しています。LM変換の検証は文章出力までであり、上欄日本語から完成動画までの一括再生成を3種類すべて実施したという意味ではありません。
 
-- No fresh end-to-end video was generated with this restructured package. / 再構成後の配布物で新たな動画生成は行っていません。
-- The original record inspected selected frames and audio stream length, not every frame or audible quality. / 元記録の品質確認は抜粋フレームと音声の有無・長さで、全再生や聴取評価ではありません。
-- All three Japanese routes were not each rerun through final video generation. / 日本語3経路すべての完成動画までの一括再生成ではありません。
-- Native Windows, other GPUs, 30/60-second video output, automatic model placement and arbitrary future dependency updates remain unverified. / Windowsネイティブ、別GPU、30/60秒実動画、自動モデル配置、今後の依存更新は未検証です。
+5秒動画は0・1・2・3・4秒、20秒動画は0・5・10・15・19秒の抽出フレームを目視しました。確認したフレームでは単独人物の顔・髪型・服装がおおむね維持されています。全フレームの動画再生・音声の聴取による品質判定は行っていません。音声はストリームの存在と長さを検査したものです。
 
-Reproduce the short test in the [README](README.md) on your own environment before a long generation. Report the package version, OS, GPU, ComfyUI revision and error text without private paths or credentials. / 長尺生成の前にREADMEの短い例で確認してください。問い合わせには版と環境を添え、秘密情報は含めないでください。
+
+## 検証中に修正・確認した点
+
+- LMが日本語の説明本文を返したため、ワークフローの変換ルールに英語本文の指定を明記し、再実行後の英語出力を確認しました。
+- LMモデルの自動アンロード後に404が発生したケースは、同じモデル識別子で再ロード後に成功しました。サーバー起動とモデルのロードは別の状態であることを導入説明へ記載しています。
+- Custom-Scriptsが使う汎用のtext_file_dirs.jsonを同梱し、個人PCのフォルダー設定への依存を除きました。
+- ワークフローの非表示の名前付きウィジェット保存値も除去しました。検査器で再混入を検出します。
+- 3種類の実接続、モード、映像4ステップ、音声2ステップ、SLA、4モデルの実選択名とダウンロードメタデータを照合しました。
+- 4モデルの実ファイル取得URLが応答し、配布元のファイルサイズと一致することを確認しました。モデル全体を再ダウンロードした検査ではありません。
+- 説明ノードをComfyUI画面へ読み込めることを確認しました。別PCの不足モデルダイアログからの自動配置は未検証です。
+- ZIP作成前とZIP展開後に同じ内容検査を実行します。検査器にはステップ数の変更と非表示保存値の再混入を検出する異常例を与えて確認します。
+
+## 未確認・保証しない範囲
+
+- 30秒・60秒は可変尺の指定例です。実動画で確認した15秒超の長さは20秒です。
+- Ref2Vの参照画像2〜5枚を使った完成動画は今回再生成していません。5枠の配線と初期の有効／無効状態を検査しています。
+- Windowsネイティブ、別GPU、別PCでの導入・実生成は未検証です。個人の識別情報を含まない参考の検証環境はREADMEに記載しています。
+- BGMの音質、日本語台詞の読みや二重発声の有無は、今回のサンプル検証で聴取判定していません。
+- 長尺の継ぎ目、反復動作、人物一致、プロンプトへの完全な忠実性を保証するものではありません。動作反復の一般的な解消を確認したバグ修正版ではありません。
+
+検証画像・動画・実行履歴・個人パスはこのZIPに含みません。

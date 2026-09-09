@@ -9,6 +9,7 @@ import unicodedata
 import folder_paths
 from .lm_client import LocalLMHelper
 from .standard import timing, timeline, segment_prompt, normalize_lm_fields, reference_format_errors
+from .quality_guard import conversion_errors, VOCAL_REQUEST
 
 
 DEFAULT_EXTRA_RULES = '''話し言葉・会話・台詞・ナレーション・歌詞は、ユーザーが別の言語を明示しない限り日本語にする。H3プロンプトでは日本語の発話を必ず <d>[Japanese] ...</d> として、話者ごとに固定IDを付ける。
@@ -150,7 +151,7 @@ def enforce_no_unscripted_speech(prompt, brief):
     main = _main_description(prompt)
     if _DIALOGUE_TAG_RE.search(main):
         return prompt
-    if _SPEECH_REQUEST_RE.search(brief or '') and not _NO_SPEECH_RE.search(brief or ''):
+    if (_SPEECH_REQUEST_RE.search(brief or '') or VOCAL_REQUEST.search(brief or '')) and not _NO_SPEECH_RE.search(brief or ''):
         return prompt
     main_clause = (
         ' No character speaks. No dialogue, narration, singing, chanting, intelligible words, '
@@ -201,7 +202,8 @@ def dialogue_format_errors(prompt, brief):
     explicit_other_language = bool(_OTHER_LANGUAGE_RE.search(brief or ''))
     no_speech = bool(_NO_SPEECH_RE.search(brief or ''))
     requests_speech = bool(_SPEECH_REQUEST_RE.search(brief or '')) and not no_speech
-    claims_speech = bool(_SPEECH_CLAIM_RE.search(main))
+    positive_main = re.sub(r'\b(?:no|without)\b[^.\n]*', '', main, flags=re.I)
+    claims_speech = bool(_SPEECH_CLAIM_RE.search(positive_main))
 
     if no_speech and tags:
         errors.append('The user requested no human speech, so remove every <d> dialogue tag and every vocal line.')
@@ -235,46 +237,19 @@ def long_timeline():
 
 
 def system_prompt(mode, duration):
-    ref = 'Ref2' in mode
-    fields = ('subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music'
-              if ref else 'integrated_multimodal_description, overall_soundscape, non_diegetic_music')
-    result = f'''Convert the user's brief into an ordinary MiniMax H3 audiovisual prompt for {mode}.
-The complete output video is {duration:g} seconds, not a repeated series of short videos.
-Use these exact English field names in this order: {fields}.
-Each field must be followed by a colon, then its value. Use one field per paragraph.
-Write descriptive prose in English. Preserve supplied dialogue, lyrics and visible text verbatim in their original language.
-Preserve requested subjects, actions, order, timing, camera, style and sound. Do not add contradictory instructions.
-Preserve requested music, silence, fades and speech. Do not enforce a music ban, mandatory closed mouths, 5-second windows, one utterance per window, or dialogue-count-derived duration.
-Actual cuts use [Shot 1] with no timestamp, then [Shot N] At MM:SS.mmm, with increasing times strictly before the end.
-Do not invent camera cuts for phases of a continuous shot. Describe timed actions inside that continuous shot.
-Use stable (S1) speaker IDs and <d>[Language] exact spoken words</d>. Create dialogue only when the user requests speech but supplies no words.
-If any speech, narration, singing, or invented vocal line is present and the user did not explicitly request another language, the spoken words must be natural Japanese and use <d>[Japanese] exact spoken words</d>.
-Never write spoken words in ordinary quotation marks. Every utterance must have a stable speaker ID in the same local description, and spoken words must not be repeated in overall_soundscape.
-Use <scenetrans> and explicit continuous audio for a spoken line crossing an actual cut; never repeat the line.
-overall_soundscape describes physical sounds and ambience. non_diegetic_music describes only audience-only music, or N/A if none.
-Return only the complete H3 prompt, without commentary or Markdown fences.
+    fields = 'subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music' if 'Ref2' in mode else 'integrated_multimodal_description, overall_soundscape, non_diegetic_music'
+    return f'''Rewrite the brief as a MiniMax H3 {mode} video lasting {duration:g} seconds. Return only JSON with these string keys: {fields}. The JSON schema enforces field limits. Aim for 350-450 words TOTAL. End immediately after the JSON object.
+All visual prose is English. Translate the production instructions into visible actions in their original order; NEVER read them aloud or discuss rendering, software, or the rewrite process. Only actual dialogue/lyrics and requested visible lettering retain their original language. Exact user-supplied words must remain unchanged. Default voice language is Japanese. Screams, breaths and gasps are short NONVERBAL sounds, not narration. Describe them in English as Japanese female screams, without Japanese phonetic spellings or invented dialogue.
+The main description MUST contain the complete beginning, middle, and ending, spanning the entire requested duration. Never put later actions only in the summary. The main description uses explicit [MM:SS-MM:SS] ranges for successive phases. Cover 00:00 through the requested final second, putting the requested ending in the final range. Keep the action progressing throughout; do not finish the story early and pad the rest with black screen. These ranges are mandatory even for one continuous shot. They are timing phases, not cuts. Maintain continuous action and camera movement unless the user requests cuts; never repeat an establishing view or reset the actors between phases. Keep all requested actions, characters, camera movements and sound. Do not add people, narration, captions or music without a request. Speech uses (S1) <d>[Japanese] actual words</d> once with natural pauses. No speech text in soundscape or music.
+For references: subject_definitions gives separate <Subject 1>, <Subject 2> etc with appearance and correct <Picture N> source. One image may contain multiple people. Retention states fully_preserved/partially_preserved/attribute_transfer/weak_reference relationships. Use the same Subject labels in the action timeline. Ref2VA images define identity, not compulsory first frames. In I2VA, state <Picture 1> is the first frame at 0.00 seconds.
+Soundscape contains environmental and nonverbal sounds. Music is N/A unless requested. Preserve deliberate silence and requested BGM.
 '''
-    result += '\nRequired output skeleton (replace every placeholder with the actual content):\n'+ '\n\n'.join(field.strip()+': ...' for field in fields.split(','))+'\n'
-    if ref:
-        result += '''Reference images provide only the roles requested by the user; they are not automatically starting frames.
-Define reusable visible content as <Subject N> tied to <Picture N>; retain those identities across the six fields. (Sx) is a voice ID, not an extra person.
-subject_definitions: give each separately tracked subject its own line, describe its source-supported features and cite its source <Picture N>. One image can define multiple subjects, and multiple images can define one subject; do not assume a one-to-one mapping.
-summary: summarize the target video and how the reference assets are used.
-retention_analysis: for each referenced content label, state its appearances and the appropriate fixed relationship marker fully_preserved, partially_preserved, attribute_transfer, or weak_reference, then explain which requested attributes are retained or changed. This is reference fidelity analysis, NEVER viewer engagement or audience retention.
-detailed_description: insert the defined <Subject N> labels at their first appearance and in later shots so the source bindings remain explicit. Begin [Shot 1] without a timestamp.
-Address every connected <Picture N> according to the user's requested role. Images used only for identity are cited inside subject definitions, not forced into the target video's first frame.
-'''
-    elif 'I2' in mode:
-        result += 'Picture 1 is the actual first frame, not just an identity reference. Inside integrated_multimodal_description, use: [Shot 1] For the target video, at 0.00 seconds into the target video, <Picture 1> is fully referenced. Put each required field on its own line.\n'
-    if duration > 15:
-        result += 'Because this is a long video, provide increasing [Shot N] At MM:SS.mmm markers to place events throughout the entire duration. For a continuous shot, explicitly say the same uninterrupted shot continues, not that the camera cuts.\n'
-    return result
-
 
 class H3StandardPrompt:
     @classmethod
     def INPUT_TYPES(cls):
         schema = json.loads(Path(__file__).with_name('input_schema.json').read_text(encoding='utf-8'))
+        schema['required']['fallback_to_japanese'][1].update(default=False, display_name='旧・原文続行（安全のため無効）', tooltip='互換性のため残していますが、ONでも未変換原文は動画へ渡しません。内容不備は最大2回修正依頼し、未解決なら停止します。')
         schema['required']['mode'] = (['T2VA','I2VA','Ref2VA (R2V)'],)
         schema['required']['duration_seconds'][1].update(default=15.0, min=0.1, max=600.0,
             display_name='秒数指定がない場合の長さ（秒）')
@@ -307,41 +282,38 @@ class H3StandardPrompt:
         if brief:
             helper = LocalLMHelper()
             helper.SYSTEM_PROMPT = system_prompt(mode, duration)
+            helper.STREAM_RESPONSE = True
+            helper.H3_SAMPLING = True
             images = [x for x in (reference_image_1,reference_image_2,reference_image_3,reference_image_4,reference_image_5) if x is not None]
-            instruction = brief
-            validation_brief = brief
-            if (
-                _SPEECH_REQUEST_RE.search(brief)
-                and not _NO_SPEECH_RE.search(brief)
-                and not _supplied_dialogue_lines(brief)
-                and not _OTHER_LANGUAGE_RE.search(brief)
-            ):
-                created_lines = create_japanese_dialogue(brief, model, api_base, timeout_seconds)
-                exact_lines = '\n'.join(f'「{line}」' for line in created_lines)
-                instruction += (
-                    '\n\nAUTHORITATIVE_JAPANESE_DIALOGUE:\n'
-                    + exact_lines
-                    + '\nUse every line above verbatim exactly once in <d>[Japanese] ...</d>. '
-                    'Do not repeat the words in overall_soundscape or non_diegetic_music.'
-                )
-                validation_brief += '\n\n' + exact_lines
-            prompt, status = helper.convert(instruction,model,api_base,temperature,max_tokens,
-                timeout_seconds,False,extra_rules,input_images=images,reasoning='off')
             expected = ['subject_definitions','summary','retention_analysis','detailed_description','overall_soundscape','non_diegetic_music'] if 'Ref2' in mode else ['integrated_multimodal_description','overall_soundscape','non_diegetic_music']
-            for attempt in range(1):
+            helper.H3_FIELDS = expected
+            extra_rules = extra_rules.replace(DEFAULT_EXTRA_RULES, '').strip()
+            instruction = brief
+            for attempt in range(3):
+                print(f'[H3] LLM conversion attempt {attempt + 1}/3; unconverted fallback disabled.')
+                # Always false, including old workflows that still serialize true.
+                prompt, status = helper.convert(instruction,model,api_base,temperature,max_tokens,
+                    timeout_seconds,False,extra_rules,input_images=images,reasoning='off')
                 prompt, valid = normalize_lm_fields(prompt, expected)
                 if 'Ref2' in mode:
                     prompt = normalize_reference_labels(prompt)
-                ref_errors = reference_format_errors(prompt,len(images)) if 'Ref2' in mode else []
-                prompt = enforce_dialogue_locality(prompt, validation_brief)
-                dialogue_errors = dialogue_format_errors(prompt, validation_brief)
-                errors = ref_errors + dialogue_errors
-                if valid and not errors:
+                prompt = enforce_dialogue_locality(prompt, brief)
+                errors = [] if valid else ['Return the complete ordered H3 fields with nonempty English visual descriptions.']
+                errors += conversion_errors(prompt, brief, _supplied_dialogue_lines(brief), duration)
+                errors += reference_format_errors(prompt,len(images)) if 'Ref2' in mode else []
+                errors += dialogue_format_errors(prompt, brief)
+                if not errors:
+                    status += f' / content checks passed (attempt {attempt + 1}/3)'
                     break
-                status += ' / 形式警告（停止せず続行）: ' + '; '.join(errors or ['セクション表記の揺れ'])
-                break
-            prompt = enforce_music_policy(prompt, validation_brief)
-            prompt = enforce_no_unscripted_speech(prompt, validation_brief)
+                reasons = '; '.join(dict.fromkeys(errors))
+                print(f'[H3] Rejected conversion {attempt + 1}/3: {reasons}')
+                if attempt == 2:
+                    raise RuntimeError('H3変換が内容検査に3回不合格となりました。原文は動画へ渡しません。理由: ' + reasons)
+                instruction = (brief + '\n\nREWRITE_CORRECTION: Generate a fresh conversion. '
+                    'Rewrite the ORIGINAL brief above, preserving its actions, references, duration and exact supplied dialogue. '
+                    'Fix these errors: ' + reasons)
+            prompt = enforce_music_policy(prompt, brief)
+            prompt = enforce_no_unscripted_speech(prompt, brief)
         tl = long_timeline()
         count_frames = max(1, round(duration*24))
         length = tl._h3_grid_frames(count_frames)

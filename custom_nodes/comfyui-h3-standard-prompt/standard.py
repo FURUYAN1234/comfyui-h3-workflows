@@ -95,6 +95,26 @@ def timeline(prompt, duration):
             body_end = fields[i+1].start() if i+1 < len(fields) else len(prompt)
             break
     body = prompt[body_start:body_end]
+    # Local LMs also emit inline bracketed ranges. Parse these as real event
+    # boundaries rather than treating the entire story as one spanning Shot.
+    # Quoted speech is content, not a timeline-control channel.
+    protected = re.compile(r'(<d>.*?</d>|「[^」]*」|"[^"\n]*")', re.S)
+    bracket_range = re.compile(
+        r'(?:\[Shot\s+\d+\]\s*)?\[(' + CLOCK + r')\s*[-–—~〜]\s*(' + CLOCK + r')\]', re.I)
+    chunks = protected.split(body)
+    for index in range(0, len(chunks), 2):
+        chunks[index] = bracket_range.sub(lambda m: '\n'+m.group(1)+'-'+m.group(2)+'\n', chunks[index])
+    body = ''.join(chunks)
+    # Also accept narrative phase clocks such as 'At 3.5s' / 'By 8s'.
+    # Reuse the same shot parser and keep quoted clock text untouched.
+    if not RANGE.search(body):
+        phase = re.compile(r'(?:\[Shot\s+\d+\]\s*)?(?:(?:At|By|From)\s+)(\d+(?:\.\d+)?)\s*(?:seconds?|s)\b(?:\s+to\s+\d+(?:\.\d+)?\s*(?:seconds?|s))?\s*[:,]?', re.I)
+        initial = re.compile(r'\[Shot\s+\d+\]\s*(\d+(?:\.\d+)?)\s*(?:seconds?|s)\s*[:,]?', re.I)
+        chunks = protected.split(body)
+        for index in range(0,len(chunks),2):
+            chunks[index] = initial.sub(lambda m:'[Shot 1] At '+clock(float(m.group(1)))+', ',chunks[index])
+            chunks[index] = phase.sub(lambda m:'[Shot 1] At '+clock(float(m.group(1)))+', ',chunks[index])
+        body=''.join(chunks)
     matches = list(RANGE.finditer(body))
     is_range = bool(matches)
     if not matches:
@@ -158,10 +178,23 @@ def segment_prompt(prompt, duration, segment, count):
         parts.append('Continue the established ending state from the preceding audiovisual context.')
     guide = (f'Continuation window of the original video: {clock(start)}-{clock(end)}. '
              f'The first {context:.3f} seconds are preceding context, not new action. '
-             'Execute only the following remaining local events; do not replay the opening.\n\n')
+             'Execute only the following remaining local events; do not replay the opening. '
+             'Time ranges mark successive phases, not automatic camera cuts. Preserve continuous '
+             'character movement, positions, and scene state between phases. Do not insert '
+             'unrequested establishing shots, reverse-angle resets, or replay a pose/action. '
+             'Use the described camera motion; cut only where the original description explicitly '
+             'requests a cut or a new Shot.\n\n')
     # Ref2V summary/retention can contain the entire story, so retain only identity definitions later.
     if start and prefix:
         definition = re.search(r'(?is)(subject_definitions\s*:.*?)(?=\n\s*(?:summary|retention_analysis|detailed_description)\s*:)',prefix)
         field = 'detailed_description:' if 'detailed_description' in prefix else 'integrated_multimodal_description:'
         prefix = (definition.group(1)+'\n\n' if definition else '')+field
+    # Bracket-range normalization consumes the enclosing Shot marker. Preserve
+    # its single-take meaning for H3 rather than sending a bare list of phases.
+    body_match = re.search(r'(?:detailed_description|integrated_multimodal_description)\s*:(.*?)(?=overall_soundscape\s*:|$)', prompt, re.I|re.S)
+    original_shots = list(SHOT.finditer(body_match.group(1))) if body_match else []
+    if is_range and len(original_shots) == 1:
+        parts.insert(0, '[Shot 1] One continuous, uninterrupted take. The camera follows the ongoing action smoothly through the timed phases below, preserving the same moment and character positions.')
+    if end >= duration and re.search(r'(?i)disappear|swallows? .*completely|only (?:swirling |rushing )?water|no characters remain', ' '.join(text for _,_,text in selected)):
+        parts.append('ENDING CONTINUITY: Complete the described disappearance. Once subjects leave or are swallowed out of view, the final composition holds the resulting environment alone through the last frame. Reference identities remain available for appearance consistency; they do not require subjects to return to view. Keep the concluding camera movement moving away from the subjects, never cutting back to a closer view.')
     return guide+prefix+'\n\n'.join(parts)+('\n\n'+tail if tail else '')+suffix

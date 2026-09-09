@@ -1,8 +1,6 @@
-"""Portable LM Studio request client, derived from the installed Qwen prompt helper.
-Uses the same native /api/v1/chat payload and image preprocessing.
-Start LM Studio and load the model manually as described in README.
-"""
-import base64, io, json, os, re, socket, struct, urllib.error, urllib.request
+"""Portable LM Studio client; explicit manual server startup, no PC-specific launcher."""
+import base64,io,json,os,re,socket,struct,time,urllib.error,urllib.request
+from pathlib import Path
 import numpy as np
 from PIL import Image
 def _clean_api_base(api_base):
@@ -57,6 +55,107 @@ def _candidate_api_bases(api_base):
             candidates.append(value)
     return candidates
 
+def _post_h3_structured(url, payload, timeout, fields):
+    import time
+    import folder_paths
+    limits = {'subject_definitions':700,'summary':300,'retention_analysis':500,'detailed_description':2400,
+              'integrated_multimodal_description':2600,'overall_soundscape':350,'non_diegetic_music':200}
+    duration_match=re.search(r'lasting ([0-9.]+) seconds',payload['system_prompt'])
+    duration=float(duration_match.group(1)) if duration_match else 15
+    schema = {'type':'object','properties':{f:{'type':'string','minLength':min(1000,max(160,int(duration*40))) if f in ('detailed_description','integrated_multimodal_description') else 1,'maxLength':limits[f]} for f in fields},
+              'required':list(fields),'additionalProperties':False}
+    content = payload['input']
+    if isinstance(content,list):
+        content = [{'type':'text','text':x['content']} if x['type']=='text' else {'type':'image_url','image_url':{'url':x['data_url']}} for x in content]
+    body = {'model':payload['model'],'messages':[{'role':'system','content':payload['system_prompt']},{'role':'user','content':content}],
+            'temperature':payload['temperature'],'top_p':0.8,'top_k':20,'min_p':0.0,'presence_penalty':1.5,'repeat_penalty':1.0,
+            'max_tokens':payload['max_output_tokens'],'stream':True,'reasoning_effort':'none',
+            'chat_template_kwargs':{'enable_thinking':False},
+            'response_format':{'type':'json_schema','json_schema':{'name':'h3_prompt','strict':True,'schema':schema}}}
+    endpoint = url.split('/api/v1/chat')[0]+'/v1/chat/completions'
+    req=urllib.request.Request(endpoint,data=json.dumps(body,ensure_ascii=False).encode(),headers={'Content-Type':'application/json','Authorization':'Bearer lm-studio'})
+    parts=[]; ended=False; finish=None; started=last=time.monotonic(); reasoning_chars=0
+    repeat_request=re.sub(r'繰り返さ(?:ない|ず)|繰り返し(?:なし|無し)|(?:do not|never|don.t|no)\s+repeat\w*', '', str(payload['input']), flags=re.I)
+    allow_repeat=bool(re.search(r'繰り返|繰返|何度|\brepeat\b',repeat_request,re.I))
+    last_checked=0
+    with urllib.request.urlopen(req,timeout=timeout) as response:
+        for raw in response:
+            if time.monotonic()-started > max(900,min(1800,int(timeout)*3)): raise RuntimeError('H3 structured conversion total time limit exceeded')
+            line=raw.decode().strip()
+            if not line.startswith('data:'): continue
+            data=line[5:].strip()
+            if data=='[DONE]': ended=True; break
+            event=json.loads(data)
+            if 'error' in event: raise RuntimeError(str(event['error']))
+            for choice in event.get('choices',[]):
+                delta=choice.get('delta',{}); parts.append(delta.get('content') or '')
+                reasoning_chars+=len(delta.get('reasoning_content') or delta.get('reasoning') or '')
+                if choice.get('finish_reason'): finish=choice['finish_reason']
+            joined=''.join(parts)
+            if not allow_repeat and len(joined)-last_checked>=120:
+                last_checked=len(joined)
+                compact=re.sub(r'\s+',' ',joined[-3000:])
+                if re.search(r'(.{40,200}?)\1{3}',compact,re.S):
+                    print('[H3 structured] Repeated long passage detected; discard and request rewrite.')
+                    ended=True; finish='repetition'; break
+            if time.monotonic()-last>=30:
+                print(f'[H3 structured] elapsed={time.monotonic()-started:.0f}s chars={sum(map(len,parts))} reasoning_chars={reasoning_chars}')
+                last=time.monotonic()
+    if not ended: raise RuntimeError('H3 structured stream ended prematurely')
+    raw_text=''.join(parts)
+    audit=Path(folder_paths.get_temp_directory())/'h3_lm_validation'; audit.mkdir(parents=True,exist_ok=True)
+    (audit/f'structured-{time.time_ns()}.json').write_text(json.dumps({'text':raw_text,'finish':finish,'reasoning_chars':reasoning_chars},ensure_ascii=False),encoding='utf-8')
+    try:
+        parsed=json.loads(raw_text)
+        if finish!='stop' or set(parsed)!=set(fields) or any(not isinstance(parsed[f],str) or not 0<len(parsed[f])<=limits[f] for f in fields):
+            raise ValueError('incomplete or oversized fields')
+        prompt='\n\n'.join(f+': '+parsed[f] for f in fields)
+    except (ValueError,TypeError):
+        prompt='INVALID_STRUCTURED_OUTPUT: Rewrite within all field limits. '+raw_text[:2000]
+    print(f'[H3 structured] completed in {time.monotonic()-started:.1f}s finish={finish} reasoning_chars={reasoning_chars}')
+    return {'output':[{'type':'message','content':prompt}]}
+
+def _post_json_stream(url, payload, timeout):
+    """LM native SSE: timeout means inactivity; only accept a final chat.end."""
+    import time
+    request = urllib.request.Request(url, data=json.dumps({**payload, 'stream': True}, ensure_ascii=False).encode('utf-8'),
+        headers={'Content-Type':'application/json','Authorization':'Bearer lm-studio'}, method='POST')
+    started = last_report = time.monotonic()
+    limit = max(900, min(1800, int(timeout)*3))
+    message_chars = reasoning_chars = 0
+    data_lines = []
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        for raw in response:
+            now = time.monotonic()
+            if now-started > limit:
+                raise RuntimeError(f'LM Studio stream exceeded total limit {limit}s; incomplete output rejected')
+            line = raw.decode('utf-8').rstrip('\r\n')
+            if line.startswith('data:'):
+                data_lines.append(line[5:].lstrip())
+                continue
+            if line or not data_lines:
+                continue
+            event = json.loads('\n'.join(data_lines)); data_lines = []
+            kind = event.get('type','')
+            if kind == 'error':
+                raise RuntimeError('LM Studio stream error: '+str(event.get('error')))
+            if kind == 'message.delta': message_chars += len(event.get('content',''))
+            if kind == 'reasoning.delta': reasoning_chars += len(event.get('content',''))
+            if now-last_report >= 30:
+                print(f'[H3 LM stream] elapsed={now-started:.0f}s message_chars={message_chars} reasoning_chars={reasoning_chars}; event={kind}')
+                last_report = now
+            if kind == 'chat.end':
+                result = event.get('result')
+                if not isinstance(result,dict): raise RuntimeError('Missing final LM Studio result')
+                import folder_paths
+                audit_dir = Path(folder_paths.get_temp_directory()) / 'h3_lm_validation'
+                audit_dir.mkdir(parents=True, exist_ok=True)
+                audit_file = audit_dir / f'response-{time.time_ns()}.json'
+                audit_file.write_text(json.dumps(result, ensure_ascii=False), encoding='utf-8')
+                print(f'[H3 LM stream] completed in {now-started:.1f}s; stats={result.get("stats",{})}; audit={audit_file}')
+                return result
+    raise RuntimeError('LM Studio stream ended without chat.end; incomplete output rejected')
+
 def _post_json(url, payload, timeout):
     request = urllib.request.Request(
         url,
@@ -110,7 +209,7 @@ def _native_chat_url(api_base):
     return base[: -len("/v1")] + "/api/v1/chat"
 
 def _auto_start_lm_studio(timeout_seconds):
-    return False, 'LM StudioのDeveloper画面でサーバーと画像対応モデルを起動し、モデル名と接続先を確認してください。配布版は個人用自動起動スクリプトを実行しません。'
+    return False, 'LM StudioのDeveloper画面でサーバーと画像対応モデルを起動し、モデル名と接続先を確認してください。配布版は自動起動やPC設定変更を行いません。'
 
 class LocalLMHelper:
     SYSTEM_PROMPT = ''
@@ -189,11 +288,14 @@ class LocalLMHelper:
             "store": False,
         }
 
+        if getattr(self, 'H3_SAMPLING', False):
+            payload.update(top_p=0.8, top_k=20, min_p=0.0, repeat_penalty=1.1)
+
         def request_prompt(request_timeout, bases=None):
             request_errors = []
             for base in (bases or _candidate_api_bases(api_base)):
                 try:
-                    data = _post_json(_native_chat_url(base), payload, int(request_timeout))
+                    data = _post_h3_structured(_native_chat_url(base), payload, int(request_timeout), self.H3_FIELDS) if getattr(self, 'H3_FIELDS', None) else (_post_json_stream if getattr(self, 'STREAM_RESPONSE', False) else _post_json)(_native_chat_url(base), payload, int(request_timeout))
                     prompt = "\n".join(
                         item.get("content", "").strip()
                         for item in data.get("output", [])

@@ -1,37 +1,35 @@
 # ComfyUI H3 Workflows
-<img width="2533" height="1095" alt="1788846005-el6s4Jn5qwcZfK9jvUEYGN3I" src="https://github.com/user-attachments/assets/fbb0f478-c638-4c2f-ae50-b31e44df2eb7" />
-Version / バージョン: v1.0.0
 
-T2V, I2V and Ref2V workflows for MiniMax H3: four-step video generation, two-step audio refinement, variable duration and optional Japanese-to-English prompt conversion with LM Studio.
+Version / バージョン: **v1.1.0**
 
-MiniMax H3で文章・開始画像・参照画像から音声付き動画を作るComfyUIワークフローです。映像4ステップ、音声再精錬2ステップ、可変尺、日本語のLM Studio変換と完成英語の直接入力に対応します。
+Portable T2V, I2V and Ref2V workflows for MiniMax H3. The distribution contains the five required custom-node packages, four-step video generation, two-step audio refinement, variable duration, and optional Japanese-to-English conversion through a locally started LM Studio server.
 
-[日本語の詳しい操作説明 / Detailed Japanese guide](README_JA.md) · [Dependencies / 依存ノード導入](docs/DEPENDENCIES.md) · [Models / モデル](docs/MODELS.md) · [Validation / 検証範囲](VALIDATION.md) · [Changelog / 更新履歴](CHANGELOG.md)
+MiniMax H3で文章・開始画像・参照画像から音声付き動画を作る可搬版です。必要な5カスタムノードを収録し、映像4ステップ、音声再精錬2ステップ、可変尺、日本語のLM Studio変換、完成英語の直接入力に対応します。
 
-## Overview / 概要
+## Distribution / 配布内容
 
-| Workflow / ワークフロー | Input / 入力 | Purpose / 用途 |
+| Workflow | Input | Purpose |
 | --- | --- | --- |
-| `T2V_4step.json` | Text / 文章 | Generate video and sound without an input image. / 画像を使わず映像と音声を生成。 |
-| `I2V_4step.json` | Text + one starting image / 文章＋開始画像1枚 | Animate from a first frame. / 開始フレームから動かす。 |
-| `Ref2V_4step.json` | Text + 1–5 references / 文章＋参照画像1〜5枚 | Reference character appearance and clothing for a new scene. / 人物や衣装を参照して場面を生成。 |
+| `T2V_4step_…_v1.1.0.json` | text | Generate video and sound without an image. / 画像なしで映像と音声を生成。 |
+| `I2V_4step_…_v1.1.0.json` | text + first frame | Animate from a starting image. / 開始画像から動かす。 |
+| `Ref2V_4step_…_v1.1.0.json` | text + 1–5 references | Use reference appearance in a new scene. / 参照画像の人物や服装を新しい場面で使う。 |
 
-This is a workflow and prompt-helper project, not a model-weight distribution. The custom prompt helper is an original contribution. Four separately installed node projects provide generation, audio refinement, SLA and text display. Compatibility patches preserve the supplied workflow's required interfaces; installing unpatched upstream versions is insufficient.
+The ZIP contains the three workflows, all five custom-node folders, model metadata, licenses, validation notes, an offline verifier, and a SHA-256 manifest. It does not contain model weights, images, generated media, credentials, private dictionaries, PC-specific paths, or startup scripts.
 
-モデル重みの配布は行いません。独自のプロンプト補助ノードとワークフローを収録し、生成・音声再精錬・SLA・確認表示を担う4つの依存ノードは上流から別途取得します。元の配布ワークフローに必要な機能を保つ互換パッチを添付しているため、上流版の導入だけでは不足します。
+ZIPには3ワークフロー、5カスタムノード、モデル情報、ライセンス、検証範囲、オフライン検査器、SHA-256マニフェストを収録します。モデル本体、画像、生成物、認証情報、私用辞書、個人PCのパスや起動スクリプトは収録しません。
 
-## Package / 配布内容
+## Installation / 導入
 
-- `workflows/`: three graphs with inline Japanese instructions / 画面内説明付きの3ワークフロー。
-- `custom_nodes/comfyui-h3-standard-prompt/`: input routing, LM conversion and duration planning / 入力切替・LM変換・尺計画。
-- `dependencies.lock.json`, `patches/`: pinned upstream revisions, compatibility changes and reconstructed-file hashes / 上流固定コミット・互換差分・復元後ハッシュ。
-- `models.json`: four model filenames, destinations, URLs, sizes and hashes / 4モデルの名前・配置先・取得情報。
-- `licenses/`, `THIRD_PARTY_NOTICES.md`: preserved third-party terms / 第三者ライセンスと出典。
-- `verify_package.py`, `SHA256SUMS.json`: offline package checks / オフライン内容検査。
+1. Prepare a CUDA-capable ComfyUI version that supports MiniMax H3, ResolutionSelector and the V3 node API.
+2. Copy all five folders from `custom_nodes/` into ComfyUI's `custom_nodes/`; do not create nested duplicate folders.
+3. Install `requirements.txt` with ComfyUI's own Python, add the four named model files to the listed model directories, then restart ComfyUI.
+4. Open one workflow. I2V and Ref2V require your own image before queueing. For Japanese conversion, start LM Studio and load the configured model first.
 
-No model weights, full third-party node trees, private images, generated videos or API credentials are bundled. Patches contain third-party code context and remain subject to the indicated licenses.
+詳しい導入・操作は [README_JA.md](README_JA.md)、検証範囲は [VALIDATION.md](VALIDATION.md)、変更履歴は [CHANGELOG.md](CHANGELOG.md)、ライセンスは [LICENSES_AND_NOTICES.md](LICENSES_AND_NOTICES.md) を参照してください。
 
-モデル本体、第三者ノードのフォルダー一式、私有画像、生成動画、API資格情報は同梱しません。パッチには第三者コードの文脈が含まれ、そのライセンスを維持します。
+## Verification / 検証
+
+Run `python verify_package.py` after extracting the ZIP. It checks the three graphs, mandatory routes, the 4+2 configuration, model metadata, empty private inputs, package licenses, Python syntax, and the manifest. This is an offline package check, not a claim of GPU generation on every PC.
 
 ## Requirements / 動作環境
 

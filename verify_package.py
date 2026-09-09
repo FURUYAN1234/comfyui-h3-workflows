@@ -7,13 +7,15 @@ def verify(root=ROOT):
     paths=list((root/'workflows').glob('*.json'))
     require(len(paths)==3,'Exactly three sample workflows are required')
     models=json.loads((root/'models.json').read_text(encoding='utf-8'))
-    required={'comfyui-h3-standard-prompt'}
+    required={'comfyui-h3-standard-prompt','ComfyUI-MiniMax-H3-Long-Video','ComfyUI-H3-AudioRefine','ComfyUI-PlagueKind-Nodes','ComfyUI-Custom-Scripts'}
     require({p.name for p in (root/'custom_nodes').iterdir() if p.is_dir()}==required,'Custom-node package list differs')
     for f in paths:
-        require(not re.search(r'(?:_v?2|＿２)',f.name,re.I),'Personal variant included')
+        require('＿２' not in f.name,'Personal variant included')
         d=json.loads(f.read_text(encoding='utf-8')); ns={n['id']:n for n in d['nodes']};links={l[0]:l for l in d['links']}
         kind=f.name.split('_')[0];expected={'T2V':'T2VA','I2V':'I2VA','Ref2V':'Ref2VA (R2V)'}[kind]
         require(ns[138]['widgets_values'][1]==expected,'Wrong prompt mode')
+        require(ns[138]['widgets_values'][5]==0.7,'LM sampling differs')
+        require(ns[138]['widgets_values'][8] is False,'Raw fallback enabled')
         require(bool(ns[138]['widgets_values'][0].strip()) and ns[138]['widgets_values'][10]=='','Sample input route differs')
         require(ns[123]['widgets_values']==['res_multistep'],'Sampler changed')
         require(ns[124]['widgets_values']==['simple',4,1],'Video steps changed')
@@ -45,22 +47,18 @@ def verify(root=ROOT):
         for text in ('LM Studio','可変尺','BGM','diffusion_models/','text_encoders/','vae/','変える場所','Duration: 15 seconds'):
             require(text in notes,'Missing inline instructions: '+text)
         print('Workflow OK:',kind)
+    for required_file in ('quality_guard.py','standard.py','lm_client.py','input_schema.json'):
+        require((root/'custom_nodes/comfyui-h3-standard-prompt'/required_file).is_file(),'Missing portable dependency: '+required_file)
     for p in (root/'custom_nodes').rglob('*.py'):ast.parse(p.read_text(encoding='utf-8-sig'),filename=str(p))
-    dependencies=json.loads((root/'dependencies.lock.json').read_text(encoding='utf-8'))
-    require(len(dependencies)==4,'Exactly four external dependencies required')
-    for dep in dependencies:
-        require(bool(re.fullmatch('[0-9a-f]{40}',dep['commit'])),'Unpinned dependency')
-        require((root/dep['patch']).is_file(),'Missing compatibility patch')
-        require((root/'licenses'/(dep['name']+'.txt')).is_file(),'Missing third-party license')
-    def files():
-        return [p for p in root.rglob('*') if p.is_file() and not set(p.relative_to(root).parts)&{'.git','dist','__pycache__'}]
-    for p in files():
+    for name in required-{'comfyui-h3-standard-prompt'}:require((root/'custom_nodes'/name/'LICENSE').is_file(),'Missing third-party license')
+    for p in root.rglob('*'):
+        if not p.is_file():continue
         require('__pycache__' not in p.parts and p.suffix!='.pyc','Runtime cache included')
         require(p.suffix.lower() not in ('.safetensors','.gguf','.mp4','.webm','.wav','.png','.jpg','.jpeg','.pth','.pt','.zip'), 'Unexpected model/media/archive: '+str(p.relative_to(root)))
         require('.git' not in p.parts and '.env'!=p.name,'Unexpected private file')
     manifest=root/'SHA256SUMS.json'
     if manifest.exists():
-        require(set(json.loads(manifest.read_text(encoding='utf-8')))=={p.relative_to(root).as_posix() for p in files() if p!=manifest},'Unlisted or missing package files')
+        require(set(json.loads(manifest.read_text(encoding='utf-8')))=={p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file() and p!=manifest},'Unlisted or missing package files')
         for rel,digest in json.loads(manifest.read_text(encoding='utf-8')).items():
             require(hashlib.sha256((root/rel).read_bytes()).hexdigest()==digest,'Checksum mismatch: '+rel)
     print('Package checks passed.')

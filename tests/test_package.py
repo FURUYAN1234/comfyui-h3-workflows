@@ -10,7 +10,6 @@ import tempfile
 import unittest
 
 from verify_package import verify
-from verify_dependencies import verify as verify_dependencies
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
@@ -18,23 +17,48 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 class PackageTests(unittest.TestCase):
     def copy_package(self, folder):
         target = pathlib.Path(folder) / 'package'
-        shutil.copytree(ROOT, target, ignore=shutil.ignore_patterns('.git', 'dist', '__pycache__'))
+        root_exclusions = {
+            '.gitattributes', '.gitignore', 'CHANGELOG.md', 'LICENSE',
+            'README.md', 'VERSION', 'THIRD_PARTY_NOTICES.md',
+            'build_package.py', 'dependencies.lock.json',
+            'verify_dependencies.py'
+        }
+
+        def ignore_payload(directory, names):
+            relative = pathlib.Path(directory).relative_to(ROOT)
+            excluded_dirs = {'.git', 'dist', '__pycache__', 'docs', 'patches', 'tests'}
+            ignored = {name for name in names if name in excluded_dirs}
+            if relative == pathlib.Path('.'):
+                ignored |= set(names) & root_exclusions
+            return ignored
+
+        shutil.copytree(
+            ROOT,
+            target,
+            ignore=ignore_payload
+        )
         return target
 
     def test_current_package(self):
-        with contextlib.redirect_stdout(io.StringIO()):
-            verify(ROOT)
-
-    def test_missing_dependency_fails(self):
         with tempfile.TemporaryDirectory() as folder:
-            with self.assertRaisesRegex(AssertionError, 'Missing dependency file'):
-                verify_dependencies(folder)
+            with contextlib.redirect_stdout(io.StringIO()):
+                verify(self.copy_package(folder))
+
+    def test_missing_portable_module_fails(self):
+        with tempfile.TemporaryDirectory() as folder:
+            target = self.copy_package(folder)
+            (target / 'custom_nodes' / 'comfyui-h3-standard-prompt' / 'quality_guard.py').unlink()
+            with contextlib.redirect_stdout(io.StringIO()):
+                with self.assertRaisesRegex(AssertionError, 'Missing portable dependency'):
+                    verify(target)
 
     def test_tampering_fails(self):
         with tempfile.TemporaryDirectory() as folder:
             target = self.copy_package(folder)
-            path = target / 'VERSION'
-            path.write_text('9.9.9\n', encoding='utf-8')
+            path = target / 'VERSION.json'
+            payload = json.loads(path.read_text(encoding='utf-8'))
+            payload['version'] = '9.9.9'
+            path.write_text(json.dumps(payload), encoding='utf-8')
             with contextlib.redirect_stdout(io.StringIO()):
                 with self.assertRaisesRegex(AssertionError, 'Checksum mismatch'):
                     verify(target)
@@ -50,7 +74,7 @@ class PackageTests(unittest.TestCase):
     def test_broken_graph_rejected(self):
         with tempfile.TemporaryDirectory() as folder:
             target = self.copy_package(folder)
-            path = target / 'workflows' / 'T2V_4step.json'
+            path = next((target / 'workflows').glob('T2V_4step_*.json'))
             graph = json.loads(path.read_text(encoding='utf-8'))
             next(n for n in graph['nodes'] if n['id'] == 124)['widgets_values'][1] = 9
             path.write_text(json.dumps(graph), encoding='utf-8')
