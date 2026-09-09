@@ -57,6 +57,10 @@ def verify(root=ROOT):
         require(p.suffix.lower() not in ('.safetensors','.gguf','.mp4','.webm','.wav','.png','.jpg','.jpeg','.pth','.pt','.zip'), 'Unexpected model/media/archive: '+str(p.relative_to(root)))
         require('.git' not in p.parts and '.env'!=p.name,'Unexpected private file')
     manifest=root/'SHA256SUMS.json'
+    require(manifest.is_file(),'Missing SHA256SUMS.json')
+    version=json.loads((root/'VERSION.json').read_text(encoding='utf-8'))
+    require(set(version['workflow_files'])=={p.name for p in paths},'Version workflow inventory differs')
+    require(all('_v'+version['version']+'.json' in p.name for p in paths),'Workflow version differs')
     if manifest.exists():
         require(set(json.loads(manifest.read_text(encoding='utf-8')))=={p.relative_to(root).as_posix() for p in root.rglob('*') if p.is_file() and p!=manifest},'Unlisted or missing package files')
         for rel,digest in json.loads(manifest.read_text(encoding='utf-8')).items():

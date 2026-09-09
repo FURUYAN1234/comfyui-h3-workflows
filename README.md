@@ -1,6 +1,6 @@
 # ComfyUI H3 Workflows
 
-Version / バージョン: **v1.1.1**
+Version / バージョン: **v1.1.2**
 
 Portable T2V, I2V and Ref2V workflows for MiniMax H3. The distribution contains the five required custom-node packages, four-step video generation, two-step audio refinement, variable duration, and optional Japanese-to-English conversion through a locally started LM Studio server.
 
@@ -10,9 +10,9 @@ MiniMax H3で文章・開始画像・参照画像から音声付き動画を作�
 
 | Workflow | Input | Purpose |
 | --- | --- | --- |
-| `T2V_4step_…_v1.1.1.json` | text | Generate video and sound without an image. / 画像なしで映像と音声を生成。 |
-| `I2V_4step_…_v1.1.1.json` | text + first frame | Animate from a starting image. / 開始画像から動かす。 |
-| `Ref2V_4step_…_v1.1.1.json` | text + 1–5 references | Use reference appearance in a new scene. / 参照画像の人物や服装を新しい場面で使う。 |
+| `T2V_4step_…_v1.1.2.json` | text | Generate video and sound without an image. / 画像なしで映像と音声を生成。 |
+| `I2V_4step_…_v1.1.2.json` | text + first frame | Animate from a starting image. / 開始画像から動かす。 |
+| `Ref2V_4step_…_v1.1.2.json` | text + 1–5 references | Use reference appearance in a new scene. / 参照画像の人物や服装を新しい場面で使う。 |
 
 The ZIP contains the three workflows, all five custom-node folders, model metadata, licenses, validation notes, an offline verifier, and a SHA-256 manifest. It does not contain model weights, images, generated media, credentials, private dictionaries, PC-specific paths, or startup scripts.
 
@@ -44,6 +44,8 @@ H3用4ファイルは合計約40.44GBです。LM Studio用モデル、中間潜�
 ## Installation / 導入
 
 ### Choose your environment / 最初に環境を選ぶ
+
+> **v1.1.2 installation notice / 導入の注意:** The v1.1.2 portable ZIP already contains all five required custom-node folders. Follow the current Japanese guide, [README_JA.md](README_JA.md), and copy all five folders as stated in the first installation section above. The historical single-node/dependency-patch narrative below is retained only as background for older releases and must not be applied to v1.1.2. / v1.1.2は必要な5フォルダーを同梱しています。導入は上の手順と最新の[README_JA.md](README_JA.md)に従い、下記の旧版向け依存ノード・パッチ説明はv1.1.2へ適用しないでください。
 
 The recorded GPU runs used WSL2 Ubuntu. Native Windows commands below explain folder and interpreter handling, but do not constitute a native-Windows success report. If you already have a working ComfyUI, keep it intact and prepare a separate installation for this package when possible. / 元のGPU検証はWSL2 Ubuntuです。以下のWindowsコマンドは配置とPythonの使い分けの説明で、Windowsネイティブの動作確認報告ではありません。既存の稼働環境は残し、可能なら別のComfyUIで導入してください。
 

@@ -1,12 +1,12 @@
 {
-  "version": "1.1.1",
-  "built_at_jst": "20260909123500",
+  "version": "1.1.2",
+  "built_at_jst": "20260909141419",
   "timestamp_format": "yyyyMMddHHmmss",
   "workflow_files": [
-    "Ref2V_4step_20260909123500_v1.1.1.json",
-    "I2V_4step_20260909123500_v1.1.1.json",
-    "T2V_4step_20260909123500_v1.1.1.json"
+    "I2V_4step_20260909141419_v1.1.2.json",
+    "Ref2V_4step_20260909141419_v1.1.2.json",
+    "T2V_4step_20260909141419_v1.1.2.json"
   ],
   "scope": "Portable T2V, I2V, Ref2V; 5 custom-node packages",
-  "source_release": "2026-09-08 portable edition"
+  "source_release": "1.1.1 portable edition + accepted 2026-09-09 runtime fixes"
 }

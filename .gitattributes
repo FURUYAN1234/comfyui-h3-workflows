@@ -1,9 +1,9 @@
-* text=auto eol=lf
-*.patch -text -whitespace
-*.json -text whitespace=-blank-at-eol
-*.zip -text
-*.md whitespace=-blank-at-eol
-licenses/* -whitespace
-custom_nodes/** -text whitespace=-blank-at-eol,-blank-at-eof
-LICENSES_AND_NOTICES.md -text whitespace=-blank-at-eol
-requirements.txt -text whitespace=-blank-at-eol
+* -text
+custom_nodes/** -text
+*.json -text
+**/*.json -text
+LICENSE* -text
+**/LICENSE* -text
+licenses/** -text
+requirements*.txt -text
+**/requirements*.txt -text

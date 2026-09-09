@@ -20,14 +20,14 @@ class PackageTests(unittest.TestCase):
         root_exclusions = {
             '.gitattributes', '.gitignore', 'CHANGELOG.md', 'LICENSE',
             'README.md', 'VERSION', 'THIRD_PARTY_NOTICES.md',
-            'build_package.py', 'dependencies.lock.json',
+            'build_package.py', 'build_release.py', 'dependencies.lock.json',
             'verify_dependencies.py'
         }
 
         def ignore_payload(directory, names):
             relative = pathlib.Path(directory).relative_to(ROOT)
             excluded_dirs = {'.git', 'dist', '__pycache__', 'docs', 'patches', 'tests'}
-            ignored = {name for name in names if name in excluded_dirs}
+            ignored = {name for name in names if name in excluded_dirs or name.endswith('.pyc')}
             if relative == pathlib.Path('.'):
                 ignored |= set(names) & root_exclusions
             return ignored
@@ -57,7 +57,7 @@ class PackageTests(unittest.TestCase):
             target = self.copy_package(folder)
             path = target / 'VERSION.json'
             payload = json.loads(path.read_text(encoding='utf-8'))
-            payload['version'] = '9.9.9'
+            payload['built_at_jst'] = '20990101000000'
             path.write_text(json.dumps(payload), encoding='utf-8')
             with contextlib.redirect_stdout(io.StringIO()):
                 with self.assertRaisesRegex(AssertionError, 'Checksum mismatch'):

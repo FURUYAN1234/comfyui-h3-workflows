@@ -1,5 +1,11 @@
 # Changelog / 更新履歴
 
+## v1.1.2 — 2026-09-09
+
+- Generate a 16–20 second request as one H3 pass instead of introducing an artificial 15-second seam. Longer requests retain segmented continuation. / 16〜20秒の指定は15秒位置で不要に分割せず、H3の1区間で生成。20秒超は従来どおり継続区間で生成。
+- Require timed phases not to straddle a real generation boundary, retain completed sound events as context rather than replaying them, and repair missing Japanese dialogue language tags. / 実際の区間境界をまたぐ時間範囲を変換時に拒否し、完了済み音響イベントの再発を防ぎ、日本語台詞の言語タグ欠落を補正。
+- Make source ZIP reconstruction deterministic across Windows and Unix by fixing the ZIP creator metadata; the repository rebuild is byte-identical to the reviewed v1.1.2 asset. / ZIP作成者メタデータを固定し、Windows・Unix間でも再構築ZIPをバイト一致させる。
+
 ## v1.1.1 — 2026-09-09
 
 - Preserve byte-identical portable-package source files in Git so the tagged source rebuild passes its own manifest check. The v1.1.0 release asset remains unchanged. / Gitの改行変換を避け、タグ付きソースから再構築してもマニフェスト検査を通るようにした修正版。v1.1.0の公開ZIPアセットは変更しません。

@@ -17,6 +17,10 @@ def load_module(name, path):
 
 standard = load_module('h3_standard', PROMPT_NODE / 'standard.py')
 guard = load_module('h3_quality_guard', PROMPT_NODE / 'quality_guard.py')
+timeline_module = load_module(
+    'h3_timeline',
+    ROOT / 'custom_nodes' / 'ComfyUI-MiniMax-H3-Long-Video' / 'minimax_h3_long_video' / 'timeline.py'
+)
 
 
 class PromptContractTests(unittest.TestCase):
@@ -57,6 +61,30 @@ overall_soundscape: Quiet room.
 non_diegetic_music: N/A'''
         errors = guard.conversion_errors(prompt, '人物が部屋を歩く。', [], 15)
         self.assertTrue(any('Untranslated Japanese production prose' in error for error in errors))
+
+    def test_20_seconds_or_less_is_one_pass_for_both_context_sizes(self):
+        for duration in (5, 10, 15, 16, 20, 30, 60):
+            for context_frames in (22, 39):
+                requested = round(duration * 24)
+                grid = timeline_module._h3_grid_frames(requested)
+                max_raw = grid if 15 < duration <= 20 else 362
+                segments = timeline_module.plan_segments(
+                    grid, context_frames, False, max_raw,
+                    exact_output_frames=requested,
+                )
+                self.assertEqual(sum(segment.output_frames for segment in segments), requested)
+                self.assertEqual(len(segments) == 1, duration <= 20)
+
+    def test_phase_crossing_a_generation_boundary_is_rejected(self):
+        straddling = '''Duration: 30 seconds
+
+integrated_multimodal_description: [Shot 1] [00:00.000-00:30.000] A traveler walks from the gate to the distant tree without restarting.
+
+overall_soundscape: Wind.
+
+non_diegetic_music: N/A'''
+        errors = standard.boundary_errors(straddling, 30, [15])
+        self.assertTrue(any('15.000' in error for error in errors))
 
 
 if __name__ == '__main__':

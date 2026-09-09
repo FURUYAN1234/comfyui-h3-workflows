@@ -8,9 +8,12 @@ import unicodedata
 
 import folder_paths
 from .lm_client import LocalLMHelper
-from .standard import timing, timeline, segment_prompt, normalize_lm_fields, reference_format_errors
+from .standard import timing, timeline, segment_prompt, normalize_lm_fields, reference_format_errors, boundary_errors
 from .quality_guard import conversion_errors, VOCAL_REQUEST
 
+
+# Validated per-pass frame budget; independent of story, cast and source images.
+SINGLE_PASS_LIMIT_SECONDS = 20.0
 
 DEFAULT_EXTRA_RULES = '''話し言葉・会話・台詞・ナレーション・歌詞は、ユーザーが別の言語を明示しない限り日本語にする。H3プロンプトでは日本語の発話を必ず <d>[Japanese] ...</d> として、話者ごとに固定IDを付ける。
 引用符内またはユーザーが明示した台詞は一字も変更せず、指定回数がなければ一度だけ発声させる。同じ台詞・同じ意味の相づち・発声を繰り返さず、二重発声させない。台詞が明示されていないが場面上必要なら、短く自然な日本語を一度だけ創作してよい。無言・台詞なし・発声なしの指定では人声を追加しない。
@@ -130,6 +133,9 @@ def normalize_reference_labels(prompt):
 
 def enforce_dialogue_locality(prompt, brief):
     """Clean empty markup without moving dialogue or inventing speakers."""
+    # Missing language markup is a repairable form difference, not bad dialogue.
+    if not _OTHER_LANGUAGE_RE.search(brief or ''):
+        prompt = re.sub(r'<d>(.*?)</d>', lambda m: '<d>'+ (m.group(1).strip() if m.group(1).strip().startswith('[') else '[Japanese] '+m.group(1).strip())+'</d>', prompt, flags=re.I|re.S)
     result = re.sub(r'<d>\s*\[[^\]]+\]\s*</d>', '', prompt, flags=re.I)
     return re.sub(r'(["“])\s*(["”])', '', result)
 
@@ -236,12 +242,13 @@ def long_timeline():
     return sys.modules[name]
 
 
-def system_prompt(mode, duration):
+def system_prompt(mode, duration, boundaries=()):
     fields = 'subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music' if 'Ref2' in mode else 'integrated_multimodal_description, overall_soundscape, non_diegetic_music'
-    return f'''Rewrite the brief as a MiniMax H3 {mode} video lasting {duration:g} seconds. Return only JSON with these string keys: {fields}. The JSON schema enforces field limits. Aim for 350-450 words TOTAL. End immediately after the JSON object.
+    boundary_rule = ('Generation boundaries: '+', '.join(f'{b:g} seconds' for b in boundaries)+'. No action time range may cross a boundary. At each boundary keep the current camera framing and subject positions; the next range advances the already-reached state, without restaging the action onset. Describe each side separately. ') if boundaries else ''
+    return f'''{boundary_rule}Rewrite the brief as a MiniMax H3 {mode} video lasting {duration:g} seconds. Return only JSON with these string keys: {fields}. The JSON schema enforces field limits. Aim for 350-450 words TOTAL. End immediately after the JSON object.
 All visual prose is English. Translate the production instructions into visible actions in their original order; NEVER read them aloud or discuss rendering, software, or the rewrite process. Only actual dialogue/lyrics and requested visible lettering retain their original language. Exact user-supplied words must remain unchanged. Default voice language is Japanese. Screams, breaths and gasps are short NONVERBAL sounds, not narration. Describe them in English as Japanese female screams, without Japanese phonetic spellings or invented dialogue.
-The main description MUST contain the complete beginning, middle, and ending, spanning the entire requested duration. Never put later actions only in the summary. The main description uses explicit [MM:SS-MM:SS] ranges for successive phases. Cover 00:00 through the requested final second, putting the requested ending in the final range. Keep the action progressing throughout; do not finish the story early and pad the rest with black screen. These ranges are mandatory even for one continuous shot. They are timing phases, not cuts. Maintain continuous action and camera movement unless the user requests cuts; never repeat an establishing view or reset the actors between phases. Keep all requested actions, characters, camera movements and sound. Do not add people, narration, captions or music without a request. Speech uses (S1) <d>[Japanese] actual words</d> once with natural pauses. No speech text in soundscape or music.
-For references: subject_definitions gives separate <Subject 1>, <Subject 2> etc with appearance and correct <Picture N> source. One image may contain multiple people. Retention states fully_preserved/partially_preserved/attribute_transfer/weak_reference relationships. Use the same Subject labels in the action timeline. Ref2VA images define identity, not compulsory first frames. In I2VA, state <Picture 1> is the first frame at 0.00 seconds.
+The main description MUST contain the complete beginning, middle, and ending, spanning the entire requested duration. Never put later actions only in the summary. The main description uses explicit [MM:SS-MM:SS] ranges for successive phases. Cover 00:00 through the requested final second, putting the requested ending in the final range. Keep the action progressing throughout; do not finish the story early and pad the rest with black screen. These ranges are mandatory even for one continuous shot. They are timing phases, not cuts. Maintain continuous action and camera movement unless the user requests cuts; never repeat an establishing view or reset the actors between phases. Keep all requested actions, characters, camera movements and sound. Preserve causal order: an initiating event must happen before its consequences, never reappear in the final phase. Allocate the final phase solely to completing the requested ending state. At each boundary explicitly state the already-reached position and ongoing movement, not a fresh start. Do not add people, narration, captions or music without a request. Speech uses (S1) <d>[Japanese] actual words</d> once with natural pauses. No speech text in soundscape or music.
+For references: subject_definitions contains ONLY stable appearance, never the starting location, pose or action. The detailed description owns all changing locations and poses. Soundscape contains only continuous ambience; put one-off growls, attacks, screams and thunder onsets in their timed action ranges. For references: subject_definitions gives separate <Subject 1>, <Subject 2> etc with appearance and correct <Picture N> source. One image may contain multiple people. Retention states fully_preserved/partially_preserved/attribute_transfer/weak_reference relationships. Use the same Subject labels in the action timeline. Ref2VA images define identity, not compulsory first frames. In I2VA, state <Picture 1> is the first frame at 0.00 seconds.
 Soundscape contains environmental and nonverbal sounds. Music is N/A unless requested. Preserve deliberate silence and requested BGM.
 '''
 
@@ -277,11 +284,16 @@ class H3StandardPrompt:
         # The two fields are alternate input routes. A stale pasted example
         # must not become an implicit draft or override a new Japanese brief.
         duration, origin = timing(brief if brief else source, duration_seconds)
+        tl = long_timeline()
+        # Up to 20 seconds can be one continuous H3 pass; avoid an artificial seam at 15s.
+        max_raw = tl._h3_grid_frames(max(1, round(duration*24))) if 15 < duration <= SINGLE_PASS_LIMIT_SECONDS else 362
+        planned = tl.plan_segments(tl._h3_grid_frames(max(1, round(duration*24))), int(context_frames), False, max_raw, exact_output_frames=max(1, round(duration*24)))
+        boundaries = [s.output_start/24 for s in planned[1:]]
         prompt = source
         status = '直接入力：LM Studio・外部API呼出しなし'
         if brief:
             helper = LocalLMHelper()
-            helper.SYSTEM_PROMPT = system_prompt(mode, duration)
+            helper.SYSTEM_PROMPT = system_prompt(mode, duration, boundaries)
             helper.STREAM_RESPONSE = True
             helper.H3_SAMPLING = True
             images = [x for x in (reference_image_1,reference_image_2,reference_image_3,reference_image_4,reference_image_5) if x is not None]
@@ -302,6 +314,7 @@ class H3StandardPrompt:
                 errors += conversion_errors(prompt, brief, _supplied_dialogue_lines(brief), duration)
                 errors += reference_format_errors(prompt,len(images)) if 'Ref2' in mode else []
                 errors += dialogue_format_errors(prompt, brief)
+                errors += boundary_errors(prompt, duration, boundaries)
                 if not errors:
                     status += f' / content checks passed (attempt {attempt + 1}/3)'
                     break
@@ -317,7 +330,7 @@ class H3StandardPrompt:
         tl = long_timeline()
         count_frames = max(1, round(duration*24))
         length = tl._h3_grid_frames(count_frames)
-        max_raw = 362  # Native 15-second pass; padding/guide frames are internal.
+        # max_raw was selected before conversion so planning and validation agree.
         context = int(context_frames)
         segments = tl.plan_segments(length, context, False, max_raw, exact_output_frames=count_frames)
         plan = {

@@ -17,7 +17,7 @@ ROOT = pathlib.Path(__file__).resolve().parent
 EXCLUDED = {'.git', 'dist', '__pycache__', 'docs', 'patches', 'tests'}
 DEVELOPMENT_ROOT_FILES = {
     '.gitattributes', '.gitignore', 'CHANGELOG.md', 'LICENSE', 'README.md',
-    'VERSION', 'THIRD_PARTY_NOTICES.md', 'build_package.py',
+    'VERSION', 'THIRD_PARTY_NOTICES.md', 'build_package.py', 'build_release.py',
     'dependencies.lock.json', 'verify_dependencies.py'
 }
 
@@ -26,6 +26,7 @@ def payload_paths():
     return sorted(
         path for path in ROOT.rglob('*')
         if path.is_file()
+        and path.suffix != '.pyc'
         and not set(path.relative_to(ROOT).parts) & EXCLUDED
         and not (len(path.relative_to(ROOT).parts) == 1 and path.name in DEVELOPMENT_ROOT_FILES)
         and path.name != 'SHA256SUMS.json'
@@ -72,11 +73,12 @@ def main():
             manifest.write_text(manifest_text, encoding='utf-8', newline='\n')
         verify(payload)
         timestamp = tuple(map(int, (built_at[0:4], built_at[4:6], built_at[6:8], built_at[8:10], built_at[10:12], built_at[12:14])))
-        with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED) as archive:
+        with zipfile.ZipFile(destination, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
             for path in sorted(payload.rglob('*')):
                 if not path.is_file():
                     continue
                 info = zipfile.ZipInfo('ComfyUI_H3_Workflows/' + path.relative_to(payload).as_posix(), timestamp)
+                info.create_system = 3
                 info.compress_type = zipfile.ZIP_DEFLATED
                 info.external_attr = 0o100644 << 16
                 archive.writestr(info, path.read_bytes())

@@ -189,12 +189,29 @@ def segment_prompt(prompt, duration, segment, count):
         definition = re.search(r'(?is)(subject_definitions\s*:.*?)(?=\n\s*(?:summary|retention_analysis|detailed_description)\s*:)',prefix)
         field = 'detailed_description:' if 'detailed_description' in prefix else 'integrated_multimodal_description:'
         prefix = (definition.group(1)+'\n\n' if definition else '')+field
+    if start:
+        suffix = re.sub(r'(?is)(overall_soundscape\s*:).*?(?=non_diegetic_music\s*:|$)',
+            r'\1 Continue the environmental ambience already audible in the preceding context. Add only sounds explicitly occurring in the local timed description; completed attacks, impacts, dialogue and vocal onsets are not new events.\n\n', suffix)
     # Bracket-range normalization consumes the enclosing Shot marker. Preserve
     # its single-take meaning for H3 rather than sending a bare list of phases.
     body_match = re.search(r'(?:detailed_description|integrated_multimodal_description)\s*:(.*?)(?=overall_soundscape\s*:|$)', prompt, re.I|re.S)
     original_shots = list(SHOT.finditer(body_match.group(1))) if body_match else []
     if is_range and len(original_shots) == 1:
         parts.insert(0, '[Shot 1] One continuous, uninterrupted take. The camera follows the ongoing action smoothly through the timed phases below, preserving the same moment and character positions.')
-    if end >= duration and re.search(r'(?i)disappear|swallows? .*completely|only (?:swirling |rushing )?water|no characters remain', ' '.join(text for _,_,text in selected)):
+    if end >= duration and re.search(r'(?i)\b(?:disappear|vanish)\w*\b|no (?:characters|subjects|people) remain|(?:leave|leaves|leaving|exit|exits|exiting) (?:the )?(?:frame|view)', ' '.join(text for _,_,text in selected)):
         parts.append('ENDING CONTINUITY: Complete the described disappearance. Once subjects leave or are swallowed out of view, the final composition holds the resulting environment alone through the last frame. Reference identities remain available for appearance consistency; they do not require subjects to return to view. Keep the concluding camera movement moving away from the subjects, never cutting back to a closer view.')
     return guide+prefix+'\n\n'.join(parts)+('\n\n'+tail if tail else '')+suffix
+
+
+def boundary_errors(prompt, duration, boundaries):
+    """A spanning paragraph replays its beginning when copied to both passes."""
+    if not boundaries:
+        return []
+    parsed = timeline(prompt, duration)
+    if parsed is None:
+        return ['Use explicit time ranges with generation boundaries: '+', '.join(clock(b) for b in boundaries)]
+    errors = []
+    for boundary in boundaries:
+        if any(a < boundary-1e-6 and b > boundary+1e-6 for a,b,_ in parsed[2]):
+            errors.append('Split the action phase at '+clock(boundary)+'. No range may straddle this generation boundary. Before it, establish the ongoing action; after it, describe only its further progression from the reached position/scale, never its onset or a fresh camera move.')
+    return errors
