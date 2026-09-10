@@ -3,3 +3,5 @@ Pillow
 av
 safetensors
 requests
+transformers>=4.46
+lmstudio

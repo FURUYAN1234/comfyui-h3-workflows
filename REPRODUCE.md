@@ -1,14 +1,7 @@
-# タグからの再構築
+# v1.1.7 再構築
 
-同じ保存先の v1.1.5_source.bundle は既存公開履歴を引き継いだGitタグ v1.1.5 を含みます。
+GitHubの `v1.1.7` タグを開き、GitHubが提供する Source code (zip) を取得します。この配布ZIPはその公開Git ZIPと同一のバイト列です。ZIP内の VERSION.json に日時と版、ワークフロー名、配布ルートを記録しています。
 
-Python 3 と Git が必要です。次を新規ディレクトリーで実行してください。
+配布前には、GitHubから取得したSource code (zip)のSHA-256と配布ZIPのSHA-256が一致することを確認します。
 
-```
-git clone <同じ保存先のv1.1.5_source.bundleへのパス> source
-cd source
-git checkout --detach v1.1.5
-python build_release.py ../rebuilt.zip
-```
-
-ZIPを新規フォルダーに展開し、ComfyUI_H3_Workflows/verify_package.py を実行してください。公開予定ZIPと再構築ZIPの展開後の全ファイル相対パスとSHA256を比較します。SHA256SUMS.json自身もZIP間比較に含めます。外部RELEASE_CHECKS.jsonにタグ・コミット・比較結果を記録します。
+新規展開先で `python verify_package.py` を実行。SHA256SUMS.jsonに列挙された全ファイルの一致と、未列挙の余分なファイルがないことを確認します。公開操作はこのビルドには含みません。配布ZIPとクリーンタグ再構築ZIPの全相対パス・SHA256一致を配布作業で確認します。

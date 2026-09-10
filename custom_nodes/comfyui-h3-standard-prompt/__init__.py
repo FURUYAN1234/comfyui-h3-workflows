@@ -5,15 +5,16 @@ from pathlib import Path
 import re
 import sys
 import unicodedata
+from .lm_device import prompt_gpu_session, ensure_cpu_for_video
 
 import folder_paths
 from .lm_client import LocalLMHelper
-from .standard import timing, timeline, segment_prompt, normalize_lm_fields, reference_format_errors, boundary_errors
+from .standard import timing, timeline, segment_prompt, normalize_lm_fields, reference_format_errors, boundary_errors, segment_frame_budget
 from .quality_guard import conversion_errors, VOCAL_REQUEST
 
 
-# Validated per-pass frame budget; independent of story, cast and source images.
-SINGLE_PASS_LIMIT_SECONDS = 20.0
+# Three-mode quality policy. A continuation guide counts toward the raw H3 window.
+THREE_MODE_POLICY = "three-mode-continuity-v1"
 
 DEFAULT_EXTRA_RULES = '''話し言葉・会話・台詞・ナレーション・歌詞は、ユーザーが別の言語を明示しない限り日本語にする。H3プロンプトでは日本語の発話を必ず <d>[Japanese] ...</d> として、話者ごとに固定IDを付ける。
 引用符内またはユーザーが明示した台詞は一字も変更せず、指定回数がなければ一度だけ発声させる。同じ台詞・同じ意味の相づち・発声を繰り返さず、二重発声させない。台詞が明示されていないが場面上必要なら、短く自然な日本語を一度だけ創作してよい。無言・台詞なし・発声なしの指定では人声を追加しない。
@@ -25,11 +26,36 @@ _DIALOGUE_TAG_RE = re.compile(r'<d>\[([^\]]+)\]\s*(.*?)</d>', re.IGNORECASE | re
 _SPEAKER_ID_RE = re.compile(r'\(S\d+(?:\s*,\s*S\d+)*\)')
 _SPEECH_REQUEST_RE = re.compile(r'話す|喋る|しゃべる|言う|台詞|セリフ|会話|ナレーション|歌う|歌詞|発声|掛け声')
 _NO_SPEECH_RE = re.compile(
-    r'無言|人声なし|喋らない|しゃべらない|話さない|'
+    r'無言|(?:人声|声)(?:は|を)?\s*(?:なし|無し|不要)|喋らない|しゃべらない|話さない|'
     r'(?:台詞|セリフ|会話|ナレーション|発声|掛け声|歌声|歌詞)'
     r'(?:[・、,／/\s]*(?:台詞|セリフ|会話|ナレーション|発声|掛け声|歌声|歌詞))*'
-    r'[・、,／/\s]*(?:なし|無し|不要|入れない|追加しない)'
+    r'(?:は|を)?[・、,／/\s]*(?:なし|無し|不要|入れない|追加しない)'
 )
+
+
+def requests_global_silence(brief):
+    """Recognize global silence without promoting a local/extra-voice ban.
+
+    Quoted dialogue and visible lettering are content. A ban on narration or
+    unscripted additions does not prohibit separately requested character lines.
+    """
+    directions = unicodedata.normalize('NFKC', brief or '')
+    directions = re.sub(r'「[^」]*」|『[^』]*』|“[^”]*”|"[^"\n]*"', ' ', directions)
+    for match in _NO_SPEECH_RE.finditer(directions):
+        value = match.group()
+        if not re.search(r'無言|人声|(?:^声)|喋らない|しゃべらない|話さない|台詞|セリフ|会話|発声', value):
+            continue  # Singing/narration alone is a distinct audio category.
+        clause = re.split(r'[。.!?！？\n;；]', directions[:match.start()])[-1]
+        # A later clause may give a genuine global ban, so never return False
+        # early merely because an earlier scoped ban was found.
+        if re.search(r'(?:以外|ほか|他|余計|余分|不要な|無用|追加の|指定外|未指定|アドリブ|勝手な|不明|二重|重複)[^、,]{0,24}$', clause):
+            continue
+        if re.search(r'(?:(?:前半|後半|冒頭|最後|この区間|発話中|台詞中|それ以降|その後|言った後|話した後)(?:は|では|の間)?|\d+(?:\.\d+)?秒(?:間|時点)?(?:は|では|から|まで|以降|の間)?)\s*$', clause):
+            continue
+        return True
+    return False
+
+
 _OTHER_LANGUAGE_RE = re.compile(r'英語|中国語|韓国語|フランス語|ドイツ語|スペイン語|イタリア語|ロシア語|ポルトガル語|English|Chinese|Korean|French|German|Spanish|Italian|Russian|Portuguese', re.IGNORECASE)
 _MUSIC_REQUEST_RE = re.compile(r'BGM|背景音楽|音楽|劇伴|サウンドトラック|background\s+music|soundtrack', re.IGNORECASE)
 _NO_MUSIC_RE = re.compile(
@@ -39,7 +65,7 @@ _NO_MUSIC_RE = re.compile(
 )
 _SPEECH_CLAIM_RE = re.compile(r'\b(?:says?|speaks?|shouts?|whispers?|narrates?|sings?|utters?|dialogue|narration|spoken\s+(?:line|words?|phrase)|human\s+voice)\b', re.IGNORECASE)
 _SPOKEN_QUOTE_RE = re.compile(
-    r'\b(?:says?|speaks?|shouts?|whispers?|narrates?|sings?|utters?)\b[^\n.!?]{0,160}["“]([^"”]+)["”]',
+    r'\b(?:says?|speaks?|shouts?|whispers?|narrates?|sings?|utters?)\b[^\n.!?"“”<>]{0,160}?["“]([^"”]+)["”]',
     re.IGNORECASE,
 )
 
@@ -136,6 +162,21 @@ def enforce_dialogue_locality(prompt, brief):
     # Missing language markup is a repairable form difference, not bad dialogue.
     if not _OTHER_LANGUAGE_RE.search(brief or ''):
         prompt = re.sub(r'<d>(.*?)</d>', lambda m: '<d>'+ (m.group(1).strip() if m.group(1).strip().startswith('[') else '[Japanese] '+m.group(1).strip())+'</d>', prompt, flags=re.I|re.S)
+    def quoted_speech(match):
+        words = match.group(1)
+        prefix = prompt[max(0,match.start()-24):match.start()]
+        if not re.search(r'[ぁ-んァ-ヶ一-龯]',words) or re.search(r'\b(?:never|not|no|without)\b[^.!?]*$',prefix,re.I):
+            return match.group()
+        return match.group().replace('"'+words+'"','<d>[Japanese] '+words+'</d>').replace('“'+words+'”','<d>[Japanese] '+words+'</d>')
+    prompt = _SPOKEN_QUOTE_RE.sub(quoted_speech,prompt)
+    # A Japanese LM may translate the scene imperfectly yet keep exact speech
+    # in Japanese quotation marks. Only a following speech verb makes it speech;
+    # quoted signs, timers and other visible lettering remain untouched.
+    japanese_quote = re.compile(r'「([^」]+)」(?=(?:と|って)[^。！？!\n「」]{0,20}?(?:言(?:う|い|った)|話(?:す|し|した)|告げ|叫(?:ぶ|び)|尋ね|答え|呟(?:く|き)))')
+    pieces = re.split(r'(<d>.*?</d>)', prompt, flags=re.I|re.S)
+    for i in range(0, len(pieces), 2):
+        pieces[i] = japanese_quote.sub(lambda q: '<d>[Japanese] '+q.group(1)+'</d>', pieces[i])
+    prompt = ''.join(pieces)
     result = re.sub(r'<d>\s*\[[^\]]+\]\s*</d>', '', prompt, flags=re.I)
     return re.sub(r'(["“])\s*(["”])', '', result)
 
@@ -157,7 +198,7 @@ def enforce_no_unscripted_speech(prompt, brief):
     main = _main_description(prompt)
     if _DIALOGUE_TAG_RE.search(main):
         return prompt
-    if (_SPEECH_REQUEST_RE.search(brief or '') or VOCAL_REQUEST.search(brief or '')) and not _NO_SPEECH_RE.search(brief or ''):
+    if (_SPEECH_REQUEST_RE.search(brief or '') or VOCAL_REQUEST.search(brief or '')) and not requests_global_silence(brief):
         return prompt
     main_clause = (
         ' No character speaks. No dialogue, narration, singing, chanting, intelligible words, '
@@ -206,7 +247,7 @@ def dialogue_format_errors(prompt, brief):
     tags = list(_DIALOGUE_TAG_RE.finditer(main))
     supplied = _supplied_dialogue_lines(brief)
     explicit_other_language = bool(_OTHER_LANGUAGE_RE.search(brief or ''))
-    no_speech = bool(_NO_SPEECH_RE.search(brief or ''))
+    no_speech = requests_global_silence(brief)
     requests_speech = bool(_SPEECH_REQUEST_RE.search(brief or '')) and not no_speech
     positive_main = re.sub(r'\b(?:no|without)\b[^.\n]*', '', main, flags=re.I)
     claims_speech = bool(_SPEECH_CLAIM_RE.search(positive_main))
@@ -246,15 +287,21 @@ def system_prompt(mode, duration, boundaries=()):
     fields = 'subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music' if 'Ref2' in mode else 'integrated_multimodal_description, overall_soundscape, non_diegetic_music'
     boundary_rule = ('Generation boundaries: '+', '.join(f'{b:g} seconds' for b in boundaries)+'. No action time range may cross a boundary. At each boundary keep the current camera framing and subject positions; the next range advances the already-reached state, without restaging the action onset. Describe each side separately. ') if boundaries else ''
     return f'''{boundary_rule}Rewrite the brief as a MiniMax H3 {mode} video lasting {duration:g} seconds. Return only JSON with these string keys: {fields}. The JSON schema enforces field limits. Aim for 350-450 words TOTAL. End immediately after the JSON object.
-All visual prose is English. Translate the production instructions into visible actions in their original order; NEVER read them aloud or discuss rendering, software, or the rewrite process. Only actual dialogue/lyrics and requested visible lettering retain their original language. Exact user-supplied words must remain unchanged. Default voice language is Japanese. Screams, breaths and gasps are short NONVERBAL sounds, not narration. Describe them in English as Japanese female screams, without Japanese phonetic spellings or invented dialogue.
-The main description MUST contain the complete beginning, middle, and ending, spanning the entire requested duration. Never put later actions only in the summary. The main description uses explicit [MM:SS-MM:SS] ranges for successive phases. Cover 00:00 through the requested final second, putting the requested ending in the final range. Keep the action progressing throughout; do not finish the story early and pad the rest with black screen. These ranges are mandatory even for one continuous shot. They are timing phases, not cuts. Maintain continuous action and camera movement unless the user requests cuts; never repeat an establishing view or reset the actors between phases. Keep all requested actions, characters, camera movements and sound. Preserve causal order: an initiating event must happen before its consequences, never reappear in the final phase. Allocate the final phase solely to completing the requested ending state. At each boundary explicitly state the already-reached position and ongoing movement, not a fresh start. Do not add people, narration, captions or music without a request. Speech uses (S1) <d>[Japanese] actual words</d> once with natural pauses. No speech text in soundscape or music.
+All visual prose is English. Translate the production instructions into visible actions in their original order; NEVER read them aloud or discuss rendering, software, or the rewrite process. Only actual dialogue/lyrics and requested visible lettering retain their original language. Exact user-supplied words must remain unchanged. Default voice language is Japanese. Screams, breaths and gasps are short NONVERBAL sounds, not narration. Describe them in English as short wordless sounds by the assigned subject, preserving the requested voice; do not impose a female voice on every subject or invent phonetic dialogue.
+The main description MUST contain the complete beginning, middle, and ending, spanning the entire requested duration. Never put later actions only in the summary. The main description uses explicit [MM:SS-MM:SS] ranges for successive phases. Cover 00:00 through the requested final second, putting the requested ending in the final range. Keep the action progressing throughout; do not finish the story early and pad the rest with black screen. These ranges are mandatory even for one continuous shot. They are timing phases, not cuts. Maintain continuous action and camera movement unless the user requests cuts; never repeat an establishing view or reset the actors between phases. Keep all requested actions, characters, camera movements and sound. Preserve causal order: an initiating event must happen before its consequences, never reappear in the final phase. Allocate the final phase solely to completing the requested ending state. At each boundary explicitly state the already-reached position and ongoing movement, not a fresh start. Every spoken turn belongs to exactly one timed phase and must finish before that phase ends; put a short natural pause at each generation boundary. Never split a sentence or copy its full text into both phases. Do not add people, narration, captions or music without a request. Speech uses (S1) <d>[Japanese] actual words</d> once with natural pauses. No speech text in soundscape or music.
 For references: subject_definitions contains ONLY stable appearance, never the starting location, pose or action. The detailed description owns all changing locations and poses. Soundscape contains only continuous ambience; put one-off growls, attacks, screams and thunder onsets in their timed action ranges. For references: subject_definitions gives separate <Subject 1>, <Subject 2> etc with appearance and correct <Picture N> source. One image may contain multiple people. Retention states fully_preserved/partially_preserved/attribute_transfer/weak_reference relationships. Use the same Subject labels in the action timeline. Ref2VA images define identity, not compulsory first frames. In I2VA, state <Picture 1> is the first frame at 0.00 seconds.
 Soundscape contains environmental and nonverbal sounds. Music is N/A unless requested. Preserve deliberate silence and requested BGM.
 '''
 
 
 def split_conversion_issues(errors, prompt, image_count):
-    """Tolerate mixed-language prose and incomplete metadata; never discard content."""
+    """Tolerate minor mixed-language metadata, not an untranslated visual draft."""
+    visual_match = re.search(r'(?:integrated_multimodal_description|detailed_description)\s*:\s*(.*?)(?=\n(?:overall_soundscape|non_diegetic_music)\s*:|\Z)', prompt, re.S | re.I)
+    visual = visual_match.group(1) if visual_match else prompt
+    # Dialogue and visible lettering may legitimately be entirely Japanese.
+    visual = re.sub(r'<d>.*?</d>|「[^」]*」|『[^』]*』|["“][^"”]*["”]', '', visual, flags=re.S | re.I)
+    japanese_count = len(re.findall(r'[\u3040-\u30ff\u3400-\u9fff]', visual))
+    untranslated_visual = japanese_count >= 80 and japanese_count > len(re.findall(r'[A-Za-z]', visual))
     warnings, blocking = [], []
     used = {int(n) for n in re.findall(r'<Picture\s+(\d+)>', prompt, re.I)}
     for error in errors:
@@ -266,6 +313,8 @@ def split_conversion_issues(errors, prompt, image_count):
             'Untranslated Japanese production prose remains',
             'retention_analysis must state reference preservation relationships',
         ))
+        if error.startswith('Untranslated Japanese production prose remains') and untranslated_visual:
+            minor = False
         if error.startswith('Bind the connected image sources '):
             # Missing labels are metadata omissions; nonexistent image IDs are not.
             minor = used.issubset(set(range(1, image_count + 1)))
@@ -285,7 +334,11 @@ class H3StandardPrompt:
             display_name='LM Studioの基本ルール（通常はこのまま）',
         )
         schema['optional']['context_frames'] = (['22','39'],{'default':'39'})
-        return {section: {name: tuple(value) for name, value in fields.items()} for section, fields in schema.items()}
+        schema['optional']['auto_gpu_for_prompt'] = ('BOOLEAN', {'default': False, 'display_name': 'LLM変換時にGPUを使用し、動画生成前にCPUへ戻す', 'tooltip': 'このPCのLM Studio用。モデル・量子化・コンテキスト長・並列数を維持して切替。変換失敗時もCPUへ戻します。'})
+        return schema
+
+    ensure_cpu_for_video = staticmethod(ensure_cpu_for_video)
+    local_lm_helper = LocalLMHelper
 
     RETURN_TYPES = ('STRING','STRING','INT','INT','MINIMAX_H3_LONG_PROMPT_PLAN')
     RETURN_NAMES = ('H3_PROMPT','実行計画','総フレーム数','内部区間フレーム数','区間プロンプト計画')
@@ -296,7 +349,7 @@ class H3StandardPrompt:
                 temperature, max_tokens, timeout_seconds, fallback_to_japanese,
                 extra_rules='', source_h3_prompt='', external_h3_prompt='',
                 reference_image_1=None, reference_image_2=None, reference_image_3=None,
-                reference_image_4=None, reference_image_5=None, context_frames='39'):
+                reference_image_4=None, reference_image_5=None, context_frames='39', auto_gpu_for_prompt=False):
         brief = (japanese_instruction or '').strip()
         source = external_h3_prompt if (external_h3_prompt or '').strip() else source_h3_prompt
         if not brief and not (source or '').strip():
@@ -305,13 +358,13 @@ class H3StandardPrompt:
         # must not become an implicit draft or override a new Japanese brief.
         duration, origin = timing(brief if brief else source, duration_seconds)
         tl = long_timeline()
-        # Up to 20 seconds can be one continuous H3 pass; avoid an artificial seam at 15s.
-        max_raw = tl._h3_grid_frames(max(1, round(duration*24))) if 15 < duration <= SINGLE_PASS_LIMIT_SECONDS else 362
+        max_raw = segment_frame_budget(duration, int(context_frames), tl)
         planned = tl.plan_segments(tl._h3_grid_frames(max(1, round(duration*24))), int(context_frames), False, max_raw, exact_output_frames=max(1, round(duration*24)))
         boundaries = [s.output_start/24 for s in planned[1:]]
         prompt = source
         tolerated_warnings = []
         status = '直接入力：LM Studio・外部API呼出しなし'
+        device_report = {'enabled': False}
         if brief:
             helper = LocalLMHelper()
             helper.SYSTEM_PROMPT = system_prompt(mode, duration, boundaries)
@@ -322,35 +375,54 @@ class H3StandardPrompt:
             helper.H3_FIELDS = expected
             extra_rules = extra_rules.replace(DEFAULT_EXTRA_RULES, '').strip()
             instruction = brief
-            for attempt in range(3):
-                print(f'[H3] LLM conversion attempt {attempt + 1}/3; unconverted fallback disabled.')
-                # Always false, including old workflows that still serialize true.
-                prompt, status = helper.convert(instruction,model,api_base,temperature,max_tokens,
-                    timeout_seconds,False,extra_rules,input_images=images,reasoning='off')
-                prompt, valid = normalize_lm_fields(prompt, expected)
-                if 'Ref2' in mode:
-                    prompt = normalize_reference_labels(prompt)
-                prompt = enforce_dialogue_locality(prompt, brief)
-                errors = [] if valid else ['Return the complete ordered H3 fields with nonempty English visual descriptions.']
-                errors += conversion_errors(prompt, brief, _supplied_dialogue_lines(brief), duration)
-                errors += reference_format_errors(prompt,len(images)) if 'Ref2' in mode else []
-                errors += dialogue_format_errors(prompt, brief)
-                errors += boundary_errors(prompt, duration, boundaries)
-                errors, tolerated_warnings = split_conversion_issues(errors, prompt, len(images))
-                if not errors:
-                    status += f' / blocking checks passed (attempt {attempt + 1}/3)'
-                    if tolerated_warnings:
-                        print('[H3] Continuing with nonblocking conversion warnings: ' + '; '.join(tolerated_warnings))
-                    break
-                reasons = '; '.join(dict.fromkeys(errors))
-                print(f'[H3] Rejected conversion {attempt + 1}/3: {reasons}')
-                if attempt == 2:
-                    raise RuntimeError('H3変換が内容検査に3回不合格となりました。原文は動画へ渡しません。理由: ' + reasons)
-                instruction = (brief + '\n\nREWRITE_CORRECTION: Generate a fresh conversion. '
-                    'Rewrite the ORIGINAL brief above, preserving its actions, references, duration and exact supplied dialogue. '
-                    'Fix these errors: ' + reasons)
+            best_candidate = None
+            with prompt_gpu_session(helper, model, api_base, auto_gpu_for_prompt) as device_report:
+                for attempt in range(3):
+                    print(f'[H3] LLM conversion attempt {attempt + 1}/3; unconverted fallback disabled.')
+                    # Always false, including old workflows that still serialize true.
+                    prompt, status = helper.convert(instruction,model,api_base,temperature,max_tokens,
+                        timeout_seconds,False,extra_rules,input_images=images,reasoning='off')
+                    prompt, valid = normalize_lm_fields(prompt, expected)
+                    if 'Ref2' in mode:
+                        prompt = normalize_reference_labels(prompt)
+                    prompt = enforce_dialogue_locality(prompt, brief)
+                    errors = [] if valid else ['Return the complete ordered H3 fields with nonempty English visual descriptions.']
+                    errors += conversion_errors(prompt, brief, _supplied_dialogue_lines(brief), duration)
+                    errors += reference_format_errors(prompt,len(images)) if 'Ref2' in mode else []
+                    errors += dialogue_format_errors(prompt, brief)
+                    errors += boundary_errors(prompt, duration, boundaries)
+                    errors, tolerated_warnings = split_conversion_issues(errors, prompt, len(images))
+                    boundary_warnings = [w for w in tolerated_warnings if w.startswith(('Split the action phase at ', 'Use explicit time ranges with generation boundaries:', 'Soundscape contains spoken words', 'The user requests speech. Put every spoken line', 'Untranslated Japanese production prose'))]
+                    if not errors and (best_candidate is None or len(tolerated_warnings) < len(best_candidate[2])):
+                        best_candidate = (prompt, status, list(tolerated_warnings), attempt + 1)
+                    if not errors and boundary_warnings and attempt < 2:
+                        instruction = (brief + '\n\nREWRITE_CORRECTION: Minimally repair the content-complete draft below. '
+                            'Preserve every exact spoken line, its speaker and requested action. Repair the flagged timing/markup and translate any flagged visual prose into English; keep dialogue verbatim. '
+                            + '; '.join(boundary_warnings) + '\n\nCONTENT_COMPLETE_DRAFT:\n' + prompt)
+                        print('[H3] Repairing continuation timing within the existing 3-attempt limit.')
+                        continue
+                    if not errors:
+                        prompt, status, tolerated_warnings, selected_attempt = best_candidate
+                        status += f' / blocking checks passed (selected attempt {selected_attempt}/3)'
+                        if tolerated_warnings:
+                            print('[H3] Continuing with nonblocking conversion warnings: ' + '; '.join(tolerated_warnings))
+                        break
+                    reasons = '; '.join(dict.fromkeys(errors))
+                    print(f'[H3] Rejected conversion {attempt + 1}/3: {reasons}')
+                    if attempt == 2:
+                        if best_candidate is not None:
+                            prompt, status, tolerated_warnings, selected_attempt = best_candidate
+                            status += f' / blocking checks passed (retained attempt {selected_attempt}/3; optional rewrite regressed)'
+                            print('[H3] Retaining the content-complete candidate; later optional rewrites lost required content.')
+                            break
+                        raise RuntimeError('H3変換が内容検査に3回不合格となりました。原文は動画へ渡しません。理由: ' + reasons)
+                    instruction = (brief + '\n\nREWRITE_CORRECTION: Generate a fresh conversion. '
+                        'Rewrite the ORIGINAL brief above, preserving its actions, references, duration and exact supplied dialogue. '
+                        'Fix these errors: ' + reasons)
             prompt = enforce_music_policy(prompt, brief)
             prompt = enforce_no_unscripted_speech(prompt, brief)
+        if not brief:
+            prompt = enforce_dialogue_locality(prompt, '')
         tl = long_timeline()
         count_frames = max(1, round(duration*24))
         length = tl._h3_grid_frames(count_frames)
@@ -361,11 +433,18 @@ class H3StandardPrompt:
             'schema':tl.PROMPT_PLAN_SCHEMA_VERSION,'length_input':length,
             'delivered_length':count_frames,'requested_output_frames':count_frames,
             'preserve_generated_audio':True,
+            'quality_policy':THREE_MODE_POLICY,
             'max_raw_frames':max_raw,'context_frames':context,'has_initial_latent':False,
             'segments':[{**tl._segment_record(s),'prompt':segment_prompt(prompt,duration,s,len(segments))} for s in segments],
         }
+        if device_report.get('enabled'):
+            plan['lm_device_guard'] = {'api_base': device_report['api_base'], 'identifier': model}
         report = {'route':status,'mode':mode,'duration_source':origin,'duration_seconds':count_frames/24,
                   'segment_count':len(segments),'dialogue_count_changes_duration':False,
+                  'quality_policy':THREE_MODE_POLICY,
+                  'llm_device':device_report,
+                  'raw_segment_seconds':[s.raw_frames/24 for s in segments],
+                  'audio_content_audit':'Local Japanese scripted-speech guard runs when configured in Long Video; full audio quality still requires listening. LM Studio visual inspection cannot verify speech.',
                   'warnings':dialogue_format_warnings(prompt) + tolerated_warnings,
                   'windows':[[s.output_start/24,(s.output_start+s.output_frames)/24] for s in segments]}
         return prompt,json.dumps(report,ensure_ascii=False,indent=2),length,max_raw,plan

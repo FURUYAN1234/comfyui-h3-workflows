@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from dataclasses import dataclass
 
 
@@ -168,6 +169,16 @@ def _normalize_visual_conditioning_text(value):
     return re.sub(r"[ \t]+\n", "\n", normalized).strip()
 
 
+def normalize_silent_dialogue(value):
+    """Punctuation-only dialogue denotes a pause, never invented speech."""
+    def replace(match):
+        body = re.sub(r'^\s*\[[^\]]+\]\s*', '', match.group(1)).strip()
+        if not body or all(unicodedata.category(c)[0] in 'PZ' or c.isspace() for c in body):
+            return 'a silent reaction with closed lips and no spoken words'
+        return match.group(0)
+    return _RAW_DIALOGUE_TAG.sub(replace, value or '')
+
+
 def normalize_dialogue_language_tags(value, default_language="Japanese"):
     """Canonicalize provider dialogue tags so H3 always receives a language.
 
@@ -182,7 +193,7 @@ def normalize_dialogue_language_tags(value, default_language="Japanese"):
             return match.group(0)
         return "<d>[{}] {}</d>".format(default_language, body)
 
-    return _RAW_DIALOGUE_TAG.sub(replace, value or "")
+    return _RAW_DIALOGUE_TAG.sub(replace, normalize_silent_dialogue(value))
 
 
 def _canonicalize_bare_s_subjects(value):
@@ -329,25 +340,54 @@ def _silent_continuation_context(value):
     )))
 
 
-def _nearest_dialogue_identity(prefix):
-    """Use the last explicit identity token, never prefer a distant subject.
+def _speaker_bindings(prompt):
+    """Resolve explicit Subject/Speaker pairs, never assume matching numbers."""
+    definitions=re.split(r'(?im)^\s*(?:summary|detailed_description|integrated_multimodal_description)\s*:',prompt,maxsplit=1)[0]
+    bindings={};ambiguous=set()
+    for row in re.finditer(r'(?im)^\s*<Subject\s+(\d+)>[^\n]*',definitions):
+        subject=int(row.group(1))
+        for label in re.findall(r'\(S(\d+)\)',row.group(0),re.I):
+            sid=int(label)
+            if sid in bindings and bindings[sid]!=subject:ambiguous.add(sid)
+            bindings[sid]=subject
+    return {sid:subject for sid,subject in bindings.items() if sid not in ambiguous}
 
-    A visual description can list other Subjects before the actual (Sx)
-    speaking tag. Subject IDs and speaker IDs are separate namespaces.
-    Preserve the chosen namespace for the model's subject definitions.
-    """
-    tokens = list(re.finditer(
-        r"(?i)<Subject\s+([1-9]\d*)>|(?<![\w])S([1-9]\d*)\b", prefix))
-    if not tokens:
-        return None, None
-    token = tokens[-1]
-    if token.group(1):
-        return int(token.group(1)), None
-    return None, int(token.group(2))
+
+def _nearest_dialogue_identity(prefix, speaker_bindings=None):
+    """Keep both namespaces when an explicit definition associates them."""
+    tokens=list(re.finditer(r'(?i)<Subject\s+([1-9]\d*)>|(?<![\w])S([1-9]\d*)\b',prefix))
+    if not tokens:return None,None
+    token=tokens[-1];bindings=speaker_bindings or {}
+    if token.group(2):
+        sid=int(token.group(2));return bindings.get(sid),sid
+    subject=int(token.group(1))
+    speakers=[sid for sid,value in bindings.items() if value==subject]
+    return subject,speakers[0] if len(speakers)==1 else None
+
+
+def _speaker_label(subject_id, speaker_id):
+    labels=[]
+    if subject_id is not None:labels.append('<Subject {}>'.format(subject_id))
+    if speaker_id is not None:labels.append('(S{})'.format(speaker_id))
+    return ' '.join(labels) or 'the established visible speaker'
+
+
+def _is_offscreen_dialogue(prefix):
+    clause = re.split(r'[.!?\n]', prefix)[-1]
+    return bool(re.search(r'(?i)off[- ]screen|voice[- ]over|narrator', clause))
+
+
+def _speaker_visibility_guard(subject_id):
+    if subject_id is None:return ''
+    return ('The face and speaking mouth of <Subject {0}> remain clearly identifiable '
+            'while this line is spoken, within the requested composition. Other visible '
+            'characters react silently with closed mouths; their foreground position or '
+            'expressive reactions do not transfer this voice to them. Do not create an '
+            'extra copy of the speaker for a reaction shot. ').format(subject_id)
 
 
 def _spread_one_dialogue_per_segment(parsed, segment_count,
-                                     timeline_duration_seconds):
+                                     timeline_duration_seconds, speaker_bindings=None):
     """Expand a dialogue-dense shot into one complete turn per long segment.
 
     Cloud prompt writers sometimes put several speakers into one five-second
@@ -364,20 +404,28 @@ def _spread_one_dialogue_per_segment(parsed, segment_count,
         return parsed
 
     events = []
+    leading_silent = []
     dialogue_counts = []
     for _, source_start, text in parsed:
         matches = list(_DIALOGUE_TAG.finditer(text))
         dialogue_counts.append(len(matches))
+        if not matches:
+            if events:
+                events[-1]["source_text"] += " " + text
+            else:
+                leading_silent.append(text)
         for match in matches:
             lookback = text[max(0, match.start() - 320):match.start()]
-            subject_id, speaker_id = _nearest_dialogue_identity(lookback)
+            subject_id, speaker_id = _nearest_dialogue_identity(lookback, speaker_bindings)
             events.append({
-                "source_text": text,
+                "source_text": " ".join(leading_silent + [text]),
                 "dialogue": match.group(0).strip(),
                 "subject_id": subject_id,
                 "speaker_id": speaker_id,
+                "offscreen": _is_offscreen_dialogue(lookback),
                 "source_start": source_start,
             })
+            leading_silent.clear()
 
     if not events or len(events) > int(segment_count):
         return parsed
@@ -398,7 +446,7 @@ def _spread_one_dialogue_per_segment(parsed, segment_count,
         and max(explicit_turn_starts)
         <= float(timeline_duration_seconds) - 2 * segment_duration
     )
-    fills_every_segment = one_turn_per_shot and len(events) == int(segment_count)
+    fills_every_segment = len(events) == int(segment_count)
     if not dense_shot and not early_packed and not fills_every_segment:
         return parsed
 
@@ -406,11 +454,17 @@ def _spread_one_dialogue_per_segment(parsed, segment_count,
     for index, event in enumerate(events):
         visual_context = _strip_nonlocal_dialogue(event["source_text"])
         visual_context = re.sub(r"(?im)^\s*Pause,?\s+then\s*:\s*$", "", visual_context).strip()
-        if event["subject_id"] is not None:
+        if event["offscreen"]:
             speech = (
-                "<Subject {subject}> is the only moving mouth and says, {dialogue} "
+                "Off-screen {speaker} says, {dialogue} "
+                "All visible subjects remain silent; do not add an on-screen speaker."
+            ).format(speaker=_speaker_label(event["subject_id"], event["speaker_id"]),
+                     dialogue=event["dialogue"])
+        elif event["subject_id"] is not None:
+            speech = (
+                "{speaker} is the only moving mouth and says, {dialogue} "
                 "All other visible subjects keep their lips closed."
-            ).format(subject=event["subject_id"], dialogue=event["dialogue"])
+            ).format(speaker=_speaker_label(event["subject_id"],event["speaker_id"]), dialogue=event["dialogue"])
         elif event["speaker_id"] is not None:
             speech = (
                 "The already established visible speaker associated with (S{speaker}) "
@@ -429,6 +483,8 @@ def _spread_one_dialogue_per_segment(parsed, segment_count,
             "The speaker finishes the complete sentence, closes their mouth immediately "
             "after the final punctuation, and holds a silent natural reaction."
         )
+        if event["offscreen"]:
+            ending = "The off-screen voice finishes the complete sentence and then falls silent."
         text = " ".join(
             item for item in (visual_context, speech, ending) if item
         )
@@ -459,7 +515,7 @@ def _local_dialogue_guard():
 
 def has_tagged_dialogue(prompt):
     """Return whether a local H3 prompt contains an explicit dialogue event."""
-    return bool(_DIALOGUE_TAG.search(prompt or ""))
+    return bool(_DIALOGUE_TAG.search(normalize_silent_dialogue(prompt)))
 
 
 def count_timeline_dialogue_turns(prompt):
@@ -482,7 +538,7 @@ def count_timeline_dialogue_turns(prompt):
 
 
 def _prioritize_local_dialogue(timeline, dialogue_deadline_seconds,
-                               clock_offset_seconds=0.0):
+                               clock_offset_seconds=0.0, speaker_bindings=None):
     """Move one local speech event to the start of its shot with a hard deadline.
 
     H3 tends to perform prose in written order. If a five-second camera move is
@@ -495,13 +551,8 @@ def _prioritize_local_dialogue(timeline, dialogue_deadline_seconds,
         return timeline
     match = matches[0]
     lookback = timeline[max(0, match.start() - 360):match.start()]
-    subject_id, speaker_id = _nearest_dialogue_identity(lookback)
-    if subject_id is not None:
-        speaker = "<Subject {}>".format(subject_id)
-    elif speaker_id is not None:
-        speaker = "(S{})".format(speaker_id)
-    else:
-        speaker = "the established visible speaker"
+    subject_id, speaker_id = _nearest_dialogue_identity(lookback, speaker_bindings)
+    speaker = _speaker_label(subject_id, speaker_id)
     clock_offset = max(0.0, float(clock_offset_seconds))
     start = clock_offset + 0.15
     deadline = clock_offset + max(0.5, float(dialogue_deadline_seconds))
@@ -517,13 +568,28 @@ def _prioritize_local_dialogue(timeline, dialogue_deadline_seconds,
         deadline=format_timestamp(deadline),
         dialogue=match.group(0).strip(),
     )
+    if _is_offscreen_dialogue(lookback):
+        speech_lock = (
+            "SPEECH-FIRST TIMING LOCK: At packed-pass time {start}, off-screen {speaker} "
+            "begins speaking and completes the utterance by packed-pass time {deadline}: "
+            "{dialogue} All visible subjects remain silent. Preserve the requested "
+            "off-screen voice; do not add or reveal a speaker solely for this line. "
+        ).format(start=format_timestamp(start), deadline=format_timestamp(deadline),
+                 speaker=speaker, dialogue=match.group(0).strip())
+    else:
+        speech_lock += _speaker_visibility_guard(subject_id)
     without_dialogue = (timeline[:match.start()] + timeline[match.end():]).strip()
-    first_marker = _SHOT.search(without_dialogue)
+    # Keep the speech in its own shot, never move it to an earlier silent shot.
+    preceding_markers = list(_SHOT.finditer(timeline[:match.start()]))
+    first_marker = preceding_markers[-1] if preceding_markers else None
     if first_marker is None:
         return speech_lock + without_dialogue
     marker = "[Shot {}]".format(first_marker.group(1))
-    if clock_offset:
-        marker += " At {},".format(format_timestamp(clock_offset))
+    shot_start = parse_timestamp(first_marker.group(2)) if first_marker.group(2) else clock_offset
+    if shot_start:
+        marker += " At {},".format(format_timestamp(shot_start))
+    if shot_start > clock_offset:
+        speech_lock = speech_lock.replace(format_timestamp(start), format_timestamp(shot_start + 0.15))
     return (
         without_dialogue[:first_marker.start()]
         + marker
@@ -548,7 +614,7 @@ def _dialogue_timing_guard(start_seconds, end_seconds, context_seconds,
     if has_local_dialogue:
         speech = (
             "The single tagged spoken line must be completed by packed-pass time {}. "
-            "Use a brisk but natural Japanese delivery of about 8-10 mora per second "
+            "Use the speaker's natural conversational pace, without rushing, "
             "while preserving the speaker's pitch, timbre, emotion, and intelligibility. "
             "Never split, truncate, or cut off a syllable, word, or sentence at the "
             "segment boundary. After the final spoken punctuation, close the mouth and "
@@ -640,6 +706,10 @@ def _segment_scope(start_seconds, master_end_seconds, context_seconds,
 
 def _scope_reference_prefix(prefix, start_seconds, master_end_seconds,
                             context_seconds, generated_end_seconds):
+    if start_seconds:
+        # Identity inventory is not a command to reintroduce the entire story/cast.
+        definitions = re.search(r'(?is)(subject_definitions\s*:.*?)(?=\n\s*(?:summary|retention_analysis)\s*:|$)', prefix)
+        return definitions.group(1).strip() if definitions else prefix
     match = _SUMMARY.search(prefix)
     if match is None:
         return prefix
@@ -654,7 +724,15 @@ def _scope_reference_prefix(prefix, start_seconds, master_end_seconds,
             "beats outside this segment."
         ).format(scope)
     else:
-        scoped_summary = "{}\n{}".format(match.group(2).rstrip(), scope)
+        # Authoring metadata can still count silent punctuation as dialogue.
+        # The actual local sampling window owns duration; retain other summary details.
+        summary = re.sub(
+            r"(?i)\bduration\s*[:：]\s*\d+(?:\.\d+)?\s*(?:seconds?|secs?|s|秒)"
+            r"(?:[ \t]*[（(][^）)\r\n]*[）)])?",
+            "Duration: {:.3f} seconds for this local pass".format(
+                max(0.0, generated_end_seconds - start_seconds)),
+            match.group(2).rstrip())
+        scoped_summary = "{}\n{}".format(summary, scope)
     suffix = prefix[match.end(2):].lstrip()
     return prefix[:match.start(2)] + scoped_summary + "\n\n" + suffix
 
@@ -688,9 +766,11 @@ def _localize_audio(value, kind, start_seconds):
         return value
     if kind == "soundscape":
         continuity = (
-            "Continue the soundscape established by the supplied AV guide without "
-            "restarting it. Follow only sound events in the local Shot timeline."
+            "Continue the environmental ambience established by the preceding AV guide. "
+            "Only the local timeline determines new speech and action sounds. "
+            "A silent reaction has no intelligible words; do not replay previous dialogue."
         )
+        return continuity
     else:
         continuity = (
             "Continue the already-playing master score seamlessly from the supplied AV "
@@ -733,12 +813,14 @@ def _fallback_prompt(prompt, start_seconds, context_seconds):
 def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
                  segment_index=None, segment_count=None,
                  timeline_duration_seconds=None, preserve_input_prompt=False):
+    prompt = normalize_silent_dialogue(prompt)
     if preserve_input_prompt and segment_count == 1 and not context_seconds:
         return prompt
     if not preserve_input_prompt:
         prompt = normalize_dialogue_language_tags(prompt)
         prompt = _normalize_visual_conditioning_text(_strip_outer_code_fence(prompt))
         prompt = _canonicalize_bare_s_subjects(prompt)
+    speaker_bindings = _speaker_bindings(prompt)
     has_dialogue = bool(_DIALOGUE_TAG.search(prompt))
     subject_count = _defined_subject_count(prompt)
     master_end_seconds = end_seconds
@@ -785,7 +867,7 @@ def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
         parsed.append((int(match.group(1)), start, body[match.end():text_end].strip()))
 
     parsed = _spread_one_dialogue_per_segment(
-        parsed, segment_count, timeline_duration_seconds)
+        parsed, segment_count, timeline_duration_seconds, speaker_bindings)
 
     shot_numbers = [number for number, _, _ in parsed]
     if shot_numbers != list(range(1, len(parsed) + 1)):
@@ -891,6 +973,8 @@ def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
             "Do not restart or repeat any action already shown."
         )
 
+    if start_seconds:
+        common_intro = ""
     if start_seconds and prefix:
         prefix = _KEYFRAME_ALIGNMENT.sub("", prefix).rstrip()
     if field_name == "detailed_description" and prefix:
@@ -906,7 +990,7 @@ def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
     dialogue_deadline = max(0.0, local_duration - 0.5)
     if not preserve_input_prompt:
         timeline = _prioritize_local_dialogue(
-            timeline, dialogue_deadline, context_seconds)
+            timeline, dialogue_deadline, context_seconds, speaker_bindings)
     if wrapped:
         if field_name == "integrated_multimodal_description":
             common_intro = "{}\n{}".format(

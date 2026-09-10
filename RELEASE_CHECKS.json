@@ -1,0 +1,36 @@
+{
+  "product": "H3_T2V-I2V-Ref2V",
+  "version": "1.1.7",
+  "baseline": "v1.1.5",
+  "regression": {
+    "long_video": 88,
+    "standard_prompt_and_lm_device": 57,
+    "package_and_setup": 11
+  },
+  "runtime_import": "all5bundledpackages loaded with real ComfyUI modules in CPU process, no HTTP listening",
+  "plans": "T2VA/I2VA/Ref2VA all requested720frames,13+13+4 seconds",
+  "local_lm_api": {
+    "image_native_chat": "pass: identified navy/blue jacket and white shirt",
+    "japanese_structured_conversion": "pass: request/response and5second execution plan; rawLMprose included a conflicting17second range. Native timing plan retains requested5; semantic perfection is not claimed."
+  },
+  "model_metadata": "all4loader selections map to models.json; graph-specific firstframe/reference links checked",
+  "privacy": "weights/media/keys/private paths/dictionaries excluded; runtime UI preferences excluded",
+  "seams": "newestT2Vactualrun preserved first26s checkpoint hashes then onlygenerated tail",
+  "full_generation": "3modes executed in development environment; no new GPUgeneration from packagedcopy",
+  "unverified": [
+    "other-PC GPUexecution",
+    "native-Windows GPUexecution",
+    "complete elimination of short vocal filler or subtitles"
+  ],
+  "reproduction": "local tag and clean clone rebuild are required; final comparison recorded in delivery verification report",
+  "tested_dependency_versions": {
+    "transformers": "5.15.1",
+    "lmstudio": "1.5.0",
+    "torch": "2.13.0+cu130",
+    "numpy": "2.2.6",
+    "Pillow": "11.3.0",
+    "av": "17.1.0",
+    "safetensors": "0.8.0",
+    "requests": "2.32.5"
+  }
+}

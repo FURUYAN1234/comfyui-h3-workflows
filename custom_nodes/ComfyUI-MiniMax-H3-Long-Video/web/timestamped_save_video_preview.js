@@ -1,4 +1,3 @@
-// Distribution change 2026-09-08: use a neutral extension identifier.
 import { app } from "../../scripts/app.js";
 
 const TARGET_NODE = "TimestampedSaveVideo";
@@ -29,7 +28,7 @@ function forceLatestVideoPreview(node, item) {
 }
 
 app.registerExtension({
-  name: "h3_portable.timestamped_save_video_preview_refresh",
+  name: "super_furu.timestamped_save_video_preview_refresh",
   beforeRegisterNodeDef(nodeType, nodeData) {
     if (nodeData.name !== TARGET_NODE) return;
     const originalOnExecuted = nodeType.prototype.onExecuted;
