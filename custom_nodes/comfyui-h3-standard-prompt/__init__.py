@@ -452,3 +452,6 @@ class H3StandardPrompt:
 
 NODE_CLASS_MAPPINGS = {'H3StandardPrompt':H3StandardPrompt}
 NODE_DISPLAY_NAME_MAPPINGS = {'H3StandardPrompt':'通常H3プロンプト：直接入力／日本語LM変換・指定尺'}
+
+# Browser extension for Japanese prompt conversion status.
+WEB_DIRECTORY = "./web"

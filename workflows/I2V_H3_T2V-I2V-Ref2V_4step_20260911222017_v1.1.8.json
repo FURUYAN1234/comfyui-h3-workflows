@@ -1197,7 +1197,7 @@
       "title": "はじめに・使い方",
       "properties": {},
       "widgets_values": [
-        "# I2V｜4ステップ Fused＋SLA\n\n画像1が最初のフレームです。画像をアップロードしてから実行します。開始構図を保って動かしたい用途です。\n\n## 最初に行うこと\n1. ZIPのREADME_JA.mdに沿ってComfyUIとカスタムノードを準備します。\n2. 右側の「必須モデル」から4ファイルを取得し、階層図の位置へ保存します。\n3. 日本語変換と区間AI検査には、LM Studioで画像対応モデルとサーバーを起動します。完成H3文章の直接入力では変換を省略しますが、区間AI検査がONならLMを使います。\n4. このワークフローを開き、必要な画像をアップロードします。画像は同梱していません。\n5. 「① 動画指示…」の上欄を自分の内容へ書き換え、比率と秒数を選び「実行する」を押します。\n6. 「H3最終プロンプト」と「実行計画」、右端の完成動画を確認します。\n\n初期状態は上欄に日本語サンプル、下欄は空欄です。生成結果や個人の画像・プロンプトは含みません。\n\n映像4ステップ／音声再精錬2ステップ／SLA音声保護ON。モデル・サンプラー・配線は初期設定のまま使えます。\n\n配布版 H3_T2V-I2V-Ref2V 20260910224500 v1.1.7\n区間ごとに累計最大5回。合格区間は保持。stop_after_segment（0始まり、-1は全区間）で確認用の停止位置を指定。30秒は継続39フレームで13+13+4秒。音声検査にはWhisper設定が必要。LM Studioは手動で起動し、変換時GPU・動画前CPU切替を使用。"
+        "# I2V｜4ステップ Fused＋SLA\n\n画像1が最初のフレームです。画像をアップロードしてから実行します。開始構図を保って動かしたい用途です。\n\n## 最初に行うこと\n1. ZIPのREADME_JA.mdに沿ってComfyUIとカスタムノードを準備します。\n2. 右側の「必須モデル」から4ファイルを取得し、階層図の位置へ保存します。\n3. 日本語変換と区間AI検査には、LM Studioで画像対応モデルとサーバーを起動します。完成H3文章の直接入力では変換を省略しますが、区間AI検査がONならLMを使います。\n4. このワークフローを開き、必要な画像をアップロードします。画像は同梱していません。\n5. 「① 動画指示…」の上欄を自分の内容へ書き換え、比率と秒数を選び「実行する」を押します。\n6. 「H3最終プロンプト」と「実行計画」、右端の完成動画を確認します。\n\n初期状態は上欄に日本語サンプル、下欄は空欄です。生成結果や個人の画像・プロンプトは含みません。\n\n映像4ステップ／音声再精錬2ステップ／SLA音声保護ON。モデル・サンプラー・配線は初期設定のまま使えます。\n\n配布版 H3_T2V-I2V-Ref2V 20260911222017 v1.1.8\n区間ごとに累計最大5回。合格区間は保持。stop_after_segment（0始まり、-1は全区間）で確認用の停止位置を指定。30秒は継続39フレームで13+13+4秒。音声検査にはWhisper設定が必要。LM Studioは手動で起動し、変換時GPU・動画前CPU切替を使用。"
       ],
       "color": "#243645",
       "bgcolor": "#17232d"
@@ -1317,7 +1317,7 @@
       "title": "LM Studioの導入と変換の仕組み",
       "properties": {},
       "widgets_values": [
-        "## LM Studioの役割\n①の日本語＋②の基本ルール＋接続した画像\n→ ローカルのLM Studioが内容を解釈\n→ H3向けの英語文章（日本語台詞は保持）\n→ H3が映像と音声を生成\n\nLM Studioは動画を作るモデルではなく、動画用文章を作る担当です。下の③だけを使う場合、この変換工程を省略します。\n\n## 導入\n1. [LM Studio公式サイト](https://lmstudio.ai/)からインストールします。この配布ノードは `/v1/chat/completions` に対応するLM Studioを使用します。\n2. アプリ内のモデル検索で **Qwen3.5-9B** のGGUF版（例：Q4_K_M）を取得します。I2V・Ref2Vの日本語変換は画像も送るため、画像認識対応モデルと必要なVisionファイルを揃えます。\n3. Developer画面でモデルをロードし、サーバーをStart、ポート1234にします。詳しくは[公式サーバー手順](https://lmstudio.ai/docs/developer/core/server)。\n4. この枠の「LM Studioのモデル名」をDeveloper画面に表示されるモデル識別子に合わせます。`qwen-prompt-ja`は任意の別名です。CLIなら `lms load qwen/qwen3.5-9b --identifier qwen-prompt-ja --context-length 16384 --gpu off` で設定できます。取得したモデルのキーが違う場合は置き換えます。\n5. 同じOS上なら接続先は `http://127.0.0.1:1234/v1`。ComfyUIがWSL・LM StudioがWindowsなら、READMEのWSL接続手順を使います。\n\n日本語変換時にGPUを使い、動画生成前にCPUへ戻す設定はONです。同じモデル設定を保持します。手動CPU運用ではこの切替設定をOFFにします。\n\n接続・モデル名を変える場所はプロンプト枠の小さな設定欄です。出力上限4096は「文字数」ではなくトークン数です。通信の無応答タイムアウトは初期値360秒です。ストリーム受信中は最大18分まで継続します。内容不備は理由を付けて最大2回再試行し、未解決なら止めます。原文の制作指示をそのままH3へ渡しません。\n\n配布版は個人PC用の自動起動スクリプトを含みません。LM Studioは事前に起動してください。H3のテキストエンコーダーsafetensorsをLM Studioへ読み込むわけではありません。\n\nLM Studioの自動アンロードやTTLでモデルが解除されると、サーバーが起動中でもモデル指定が404になる場合があります。Developer画面で同じ識別子のモデルを再ロードし、長い作業では保持時間も確認してください。"
+        "## LM Studioの役割\n①の日本語＋②の基本ルール＋接続した画像\n→ ローカルのLM Studioが内容を解釈\n→ H3向けの英語文章（日本語台詞は保持）\n→ H3が映像と音声を生成\n\nLM Studioは動画を作るモデルではなく、動画用文章を作る担当です。下の③だけを使う場合、この変換工程を省略します。\n\n## 導入\n1. [LM Studio公式サイト](https://lmstudio.ai/)からインストールします。この配布ノードは `/v1/chat/completions` に対応するLM Studioを使用します。\n2. アプリ内のモデル検索で **Qwen3.5-9B** のGGUF版（例：Q4_K_M）を取得します。I2V・Ref2Vの日本語変換は画像も送るため、画像認識対応モデルと必要なVisionファイルを揃えます。\n3. Developer画面でモデルをロードし、サーバーをStart、ポート1234にします。詳しくは[公式サーバー手順](https://lmstudio.ai/docs/developer/core/server)。\n4. この枠の「LM Studioのモデル名」をDeveloper画面に表示されるモデル識別子に合わせます。`qwen-prompt-ja`は任意の別名です。CLIなら `lms load qwen/qwen3.5-9b --identifier qwen-prompt-ja --context-length 16384 --gpu off` で設定できます。取得したモデルのキーが違う場合は置き換えます。\n5. 同じOS上なら接続先は `http://127.0.0.1:1234/v1`。ComfyUIがWSL・LM StudioがWindowsなら、READMEのWSL接続手順を使います。\n\n日本語変換時にGPUを使い、動画生成前にCPUへ戻す設定はONです。同じモデル設定を保持します。手動CPU運用ではこの切替設定をOFFにします。\n\n接続・モデル名を変える場所はプロンプト枠の小さな設定欄です。出力上限4096は「文字数」ではなくトークン数です。通信の無応答タイムアウトは初期値360秒です。ストリーム受信中は最大18分まで継続します。内容不備は理由を付けて最大2回再試行し、未解決なら止めます。原文の制作指示をそのままH3へ渡しません。\n\n配布版は個人PC用の自動起動スクリプトを含みません。LM Studioは事前に起動してください。H3のテキストエンコーダーsafetensorsをLM Studioへ読み込むわけではありません。\n\nLM Studioの自動アンロードやTTLでモデルが解除されると、サーバーが起動中でもモデル指定が404になる場合があります。Developer画面で同じ識別子のモデルを再ロードし、長い作業では保持時間も確認してください。\n\nv1.1.8：日本語入力では画面上部に受付・LM処理中の経過秒・完了・エラーを表示。接続、GPU切替、変換、CPU復帰を含む経過時間で、完了率や残り時間の予測ではありません。更新後は保存して画面を再読み込みしてください。"
       ],
       "color": "#243645",
       "bgcolor": "#17232d"
@@ -1389,7 +1389,7 @@
       "title": "英語を直接使うサンプル",
       "properties": {},
       "widgets_values": [
-        "①を空欄にし、次の本文を③へコピーしてください。`Duration: 15 seconds`を変えると尺が変わります。LM Studioは不要です。\n\n```text\nDuration: 15 seconds\n\nintegrated_multimodal_description: [Shot 1] For the target video, at 0.00 seconds into the target video, <Picture 1> is fully referenced. Preserve the person, clothing, scene and visual style of the first frame. A gentle breeze moves their hair and clothing. They blink once naturally while the camera moves slowly closer in a continuous shot. No speech or on-screen text.\n\noverall_soundscape: Gentle wind and quiet natural ambience.\n\nnon_diegetic_music: N/A\n```"
+        "①を空欄にし、次の本文を③へコピーしてください。`Duration: 15 seconds`を変えると尺が変わります。文章変換ではLM Studioを使いません。区間AI検査がONならLM Studioが必要です。\n\n```text\nDuration: 15 seconds\n\nintegrated_multimodal_description: [Shot 1] For the target video, at 0.00 seconds into the target video, <Picture 1> is fully referenced. Preserve the person, clothing, scene and visual style of the first frame. A gentle breeze moves their hair and clothing. They blink once naturally while the camera moves slowly closer in a continuous shot. No speech or on-screen text.\n\noverall_soundscape: Gentle wind and quiet natural ambience.\n\nnon_diegetic_music: N/A\n```"
       ],
       "color": "#243645",
       "bgcolor": "#17232d"
@@ -1620,7 +1620,7 @@
       "product": "H3_T2V-I2V-Ref2V",
       "mode": "I2V",
       "version": "1.1.7",
-      "built_at_jst": "20260910224500"
+      "built_at_jst": "20260911222017"
     }
   },
   "version": 0.4

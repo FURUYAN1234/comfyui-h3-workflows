@@ -5,3 +5,5 @@ custom_nodes/** -text
 LICENSE* -text
 **/LICENSE* -text
 licenses/** -text
+requirements*.txt -text
+**/requirements*.txt -text

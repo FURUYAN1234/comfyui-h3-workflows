@@ -64,7 +64,7 @@ def verify(root=ROOT):
         for text in ('LM Studio','可変尺','BGM','diffusion_models/','text_encoders/','vae/','変える場所','Duration: 15 seconds'):
             require(text in notes,'Missing inline instructions: '+text)
         print('Workflow OK:',kind)
-    for required_file in ('quality_guard.py','standard.py','lm_client.py','input_schema.json','lm_device.py'):
+    for required_file in ('web/lm_studio_execution_status.js','quality_guard.py','standard.py','lm_client.py','input_schema.json','lm_device.py'):
         require((root/'custom_nodes/comfyui-h3-standard-prompt'/required_file).is_file(),'Missing portable dependency: '+required_file)
     for p in (root/'custom_nodes').rglob('*.py'):ast.parse(p.read_text(encoding='utf-8-sig'),filename=str(p))
     for name in required-{'comfyui-h3-standard-prompt'}:require((root/'custom_nodes'/name/'LICENSE').is_file(),'Missing third-party license')

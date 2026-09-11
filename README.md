@@ -1,4 +1,4 @@
-# H3 T2V・I2V・Ref2V — v1.1.7
+# H3 T2V・I2V・Ref2V — v1.1.8
 
 MiniMax H3の3方式セット。四コマプロジェクトとは別製品です。v1.1.5を基準に長尺の区間処理、日本語音声検査、衣装検査と区間再試行を更新しました。
 
@@ -10,3 +10,9 @@ Copy all five folders from `custom_nodes/` into ComfyUI's `custom_nodes/`.
 映像Fused4＋SLA、音声追加2ステップ・0.5、可変尺を維持します。区間ごとの試行は初回を含む累計最大5回。5回を必ず使うのではなく、合格したら先へ進みます。検査が短い不要発声を見落とすことがあるため、最終動画を試聴してください。
 
 3方式の実生成は開発環境で実施済み。今回の可搬化は別途、展開物の読み込みとローカルAPI、回帰検査、タグ再構築で確認します。他PCそのもののGPU実行は未確認です。検証の内訳は [VALIDATION.md](VALIDATION.md)。
+
+## v1.1.8 / 2026-09-11
+
+Adds Japanese-prompt execution status and elapsed seconds to H3StandardPrompt. GPU/CPU handoff and video/audio generation settings remain unchanged. Save your workflow, restart ComfyUI and reload the browser after updating. No new GPU video generation was performed for this UI release. See VALIDATION.md for the exact scope.
+
+Download the named ZIP from the v1.1.8 release, extract it, run python -B verify_package.py, then follow README_JA.md. Models, private inputs and personal configuration are excluded. The package includes source, third-party licenses, model URLs, speech-audit setup and deterministic build_release.py.

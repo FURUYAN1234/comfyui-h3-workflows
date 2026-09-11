@@ -1,4 +1,4 @@
-# H3 T2V・I2V・Ref2V v1.1.7 導入と操作
+# H3 T2V・I2V・Ref2V v1.1.8 導入と操作
 
 ## 配布対象
 
@@ -13,6 +13,12 @@
 
 同名ノードを別名で二重配置しないでください。既存フォルダーはComfyUIの外へ退避します。このZIPに四コマ用ワークフロー、NanoBananaのクラウドAPI設定、個人用Qwenノードは含みません。
 
+## v1.1.8（2026-09-11）の変更
+
+H3StandardPromptの日本語変換に進捗表示を追加しました。実行受付、処理中の経過秒、完了、エラーを画面上部へ表示します。経過秒は接続・GPU切替・文章変換・CPU復帰を含み、完了率や残り時間ではありません。直接入力の文章変換表示は出しません。GPU→CPU切替、モデル、生成ステップ、尺、候補検査・再開はv1.1.7から維持します。
+
+更新後はComfyUIを再起動し、未保存ワークフローを保存したうえでブラウザーを再読み込みしてください。個人用qwen_rapid_jpを追加する必要はありません。
+
 ## 1. 環境・配置
 
 NVIDIA CUDA版PyTorchとMiniMax H3、V3ノードAPI、ResolutionSelectorに対応したComfyUIが必要です。開発時の実生成はWSL2 Ubuntu・RTX5080 16GB・ComfyUI0.34.0・フロントエンド1.51.9で行いました。WindowsネイティブでのGPU動作は未検証です。
@@ -22,7 +28,7 @@ ComfyUI本体の準備は https://docs.comfy.org/installation/system_requirement
 1. ZIP展開直後に `python verify_package.py` を実行します（モデルもGPUも不要）。
 2. 5パッケージを配置し、ComfyUIのPythonで `python -m pip install -r requirements.txt` を実行します。Portable版は通常 `python_embeded/python.exe`、WSL/LinuxはComfyUIのvenv内Pythonを使用します。
 3. SLA用に使用中PyTorchと互換のTritonを用意します。Windowsは https://github.com/woct0rdho/triton-windows 、Linux/WSLはPyTorch対応のTritonを確認してください。`python -c "import torch,triton; print(torch.cuda.is_available(),triton.__version__)"` で確認できます。
-4. FFmpeg/ffprobeをPATHへ用意します。ワークフローJSONは `user/default/workflows/02_動画/13_動画_MiniMax-H3/配布版_T2V-I2V-Ref2V_v1.1.7/` へ置くか、画面から読み込みます。現行タブの未保存内容は先に保存・退避してください。
+4. FFmpeg/ffprobeをPATHへ用意します。ワークフローJSONは `user/default/workflows/02_動画/13_動画_MiniMax-H3/配布版_T2V-I2V-Ref2V_v1.1.8/` へ置くか、画面から読み込みます。現行タブの未保存内容は先に保存・退避してください。
 
 ## 2. H3用4モデル
 
