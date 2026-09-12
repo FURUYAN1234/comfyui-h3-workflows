@@ -1,4 +1,448 @@
-# MiniMax H3 T2V・I2V・Ref2V Workflows for ComfyUI — v1.1.8
+# MiniMax H3 T2V / I2V / Ref2V Workflows for ComfyUI — v1.1.8
+
+[English](#english) | [日本語](#日本語)
+
+<!-- bilingual-readme: start english -->
+<a id="english"></a>
+
+## English
+
+This ComfyUI distribution generates video with MiniMax H3 in three modes: **text to video (T2V)**, **video from a starting image (I2V)**, and **video guided by reference images (Ref2V)**. It generates video and audio together and supports Japanese instructions, variable durations beyond 15 seconds, per-segment review and regeneration, and resuming an interrupted long-video run.
+
+This README walks first-time users through choosing a workflow, installing every required component, placing the files correctly, and running the first generation. See the [Japanese section](#日本語) for the same information in Japanese, [README_JA.md](README_JA.md) for additional node-level details and examples, and [VALIDATION.md](VALIDATION.md) for the exact validation scope and remaining unverified areas.
+
+> [!IMPORTANT]
+> This project is specifically for H3 T2V, I2V, and Ref2V. It is a separate product from [Super FURU AI 4-koma System](https://github.com/FURUYAN1234/nano-banana-pro). For a first installation, use the named ZIP under Assets on the [latest Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest), not the GitHub source archive or an individual workflow JSON file.
+
+[![Latest release](https://img.shields.io/github/v/release/FURUYAN1234/comfyui-h3-workflows?label=release)](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest)
+[![ComfyUI](https://img.shields.io/badge/ComfyUI-workflow-2b2b2b)](https://github.com/comfyanonymous/ComfyUI)
+[![Local processing](https://img.shields.io/badge/LM%20%2F%20speech-local-2ea44f)](#configure-lm-studio)
+
+### What you can do
+
+| Mode | Required input | Best suited for |
+|---|---|---|
+| **T2V** | No image | Create characters, backgrounds, and action from text; also the best first-run check |
+| **I2V** | One starting image | Use an existing image as the first frame and animate its composition |
+| **Ref2V** | One to five reference images | Reference a character, face, hairstyle, clothing, or other visual details while creating a different scene or composition |
+
+Key features:
+
+- Fused 4-step video generation with SLA; 2 additional audio-refinement steps at denoise 0.5
+- Local conversion of Japanese instructions into an H3 prompt through LM Studio
+- A direct-input path for a finished English H3 prompt
+- Variable duration rather than a fixed 15 seconds; long videos are generated and joined in segments
+- Per-segment visual review, Japanese speech review, and up to five total attempts per segment including the first attempt
+- Resume from intermediate data and regenerate from a selected segment
+- Model download URLs, destinations, sizes, and SHA-256 hashes in [`models.json`](models.json)
+- No cloud API key; Japanese conversion, visual review, and speech review all run locally
+
+The system does not always use all five attempts. It advances as soon as a segment passes. If the limit is reached, it selects the best candidate that meets the applicable conditions. Because AI review can still miss problems, always watch and listen to the finished video.
+
+### Changes in v1.1.8
+
+The Japanese-input path that uses LM Studio now shows execution progress at the top of the screen.
+
+- Shows that execution was accepted
+- Updates elapsed seconds while processing
+- Stops the counter on completion or error
+- The elapsed time includes connection, moving the LM model to the GPU, prompt conversion, and returning the model to the CPU
+
+The displayed time is **not a completion percentage or remaining-time estimate**. The conversion indicator does not appear when you directly use a finished English prompt and skip conversion. After updating, fully restart ComfyUI, save the workflow, and reload the browser.
+
+### Package contents
+
+The Release ZIP contains:
+
+```text
+H3_T2V-I2V-Ref2V_20260911222017_v1.1.8/
+├─ workflows/                 # Three T2V, I2V, and Ref2V workflows
+├─ custom_nodes/              # Five required custom-node packages
+├─ requirements.txt           # Python dependencies
+├─ models.json                # Model names, destinations, URLs, and hashes
+├─ configure_audio_audit.py   # Local Whisper setup helper
+├─ verify_package.py          # Extracted-package verifier
+├─ README.md / README_JA.md
+├─ VALIDATION.md
+├─ LICENSES_AND_NOTICES.md
+└─ SHA256SUMS.json
+```
+
+It does not contain model weights, input images, generated videos, API keys, personal prompts, pronunciation dictionaries, or path settings from the development machine.
+
+### Requirements
+
+#### Required
+
+- [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with the MiniMax H3 and V3 node APIs and `ResolutionSelector` support
+- An NVIDIA CUDA build of PyTorch
+- A Triton build compatible with the installed PyTorch; use a compatible `triton-windows` build on native Windows
+- `ffmpeg` and `ffprobe` available on `PATH`
+- Four H3 model files, approximately 40.44 GB in total
+- LM Studio and a vision-capable local model when using Japanese conversion or per-segment AI review
+- A Transformers-format Whisper model when using Japanese speech review
+
+The validated development environment is WSL2 Ubuntu with an NVIDIA RTX 5080 16 GB. A 16 GB GPU is neither a minimum requirement nor a guarantee for every resolution and duration. Keep substantially more free storage than the model size for the H3 models, LM Studio model, intermediate data, and completed videos.
+
+> [!NOTE]
+> GPU generation on native Windows, other GPUs, and other PCs has not been verified. Start with the distributed settings: **5 seconds, 16:9, and 0.4 MP**.
+
+### Installation
+
+#### 1. Download and extract the Release ZIP
+
+1. Open the [latest Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest).
+2. Download `H3_T2V-I2V-Ref2V_20260911222017_v1.1.8.zip` from Assets.
+3. Extract the entire ZIP. Do not take only a workflow JSON out of the archive.
+4. If custom nodes with the same names are already installed, move those existing folders outside ComfyUI first.
+
+#### 2. Verify the extracted package
+
+Run the following command in the extracted directory. Models and a GPU are not required for this check.
+
+```bash
+python -B verify_package.py
+```
+
+If `python` is unavailable on Windows, use the command that matches your installed Python, such as `py -B verify_package.py`. A valid package finishes with:
+
+```text
+Workflow OK: I2V
+Workflow OK: Ref2V
+Workflow OK: T2V
+Package checks passed.
+```
+
+#### 3. Install the five custom-node folders
+
+Copy all five folders under `custom_nodes/` in the extracted ZIP into ComfyUI's `custom_nodes/` directory.
+
+```text
+ComfyUI/
+└─ custom_nodes/
+   ├─ comfyui-h3-standard-prompt/
+   ├─ ComfyUI-MiniMax-H3-Long-Video/
+   ├─ ComfyUI-H3-AudioRefine/
+   ├─ ComfyUI-PlagueKind-Nodes/
+   └─ ComfyUI-Custom-Scripts/
+```
+
+Each folder must have `__init__.py` directly inside it. Do not create a duplicated nested folder such as:
+
+```text
+# Incorrect
+ComfyUI/custom_nodes/ComfyUI-H3-AudioRefine/ComfyUI-H3-AudioRefine/__init__.py
+```
+
+The four externally sourced packages are already included in the Release ZIP. Do not mix them with separately downloaded or older versions.
+
+#### 4. Install the Python dependencies
+
+Install the dependencies into **the Python interpreter actually used by ComfyUI**.
+
+For ComfyUI Portable on Windows, run this from the Portable root:
+
+```powershell
+.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_T2V-I2V-Ref2V_20260911222017_v1.1.8\requirements.txt"
+```
+
+For a Linux or WSL venv installation, run this from the ComfyUI directory:
+
+```bash
+.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V_20260911222017_v1.1.8/requirements.txt"
+```
+
+Install the Triton build required by SLA separately, matching your OS, PyTorch, and CUDA combination. For native Windows guidance, see [triton-windows](https://github.com/woct0rdho/triton-windows).
+
+Check CUDA and Triton using ComfyUI's Python:
+
+```bash
+python -c "import torch,triton; print(torch.__version__, torch.cuda.is_available(), triton.__version__)"
+```
+
+If `torch.cuda.is_available()` is `False`, check the NVIDIA CUDA PyTorch build and driver first. Replace `python` above with `python_embeded/python.exe` for Portable or `.venv/bin/python` for a venv installation.
+
+Also check FFmpeg:
+
+```bash
+ffmpeg -version
+ffprobe -version
+```
+
+### Install the four H3 model files
+
+The models total approximately 40.44 GB. Review each model's license terms before downloading it.
+
+| Type | File and download | Destination | Approx. size |
+|---|---|---|---:|
+| Video generation model | [`minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors`](https://huggingface.co/MATLOWAI/minimax-h3-fused-turbo-int8-convrot/resolve/main/diffusion_models/minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors) | `ComfyUI/models/diffusion_models/` | 20.98 GB |
+| H3 text encoder | [`qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors`](https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors) | `ComfyUI/models/text_encoders/` | 15.69 GB |
+| Video VAE | [`minimax_h3_video_vae_int8_convrot.safetensors`](https://huggingface.co/Kijai/MiniMax-H3-experimental/resolve/main/minimax_h3_video_vae_int8_convrot.safetensors) | `ComfyUI/models/vae/` | 3.17 GB |
+| Audio VAE | [`minimax_h3_audio_vae_fp32.safetensors`](https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors) | `ComfyUI/models/vae/` | 0.61 GB |
+
+After installation, the layout is:
+
+```text
+ComfyUI/
+└─ models/
+   ├─ diffusion_models/
+   │  └─ minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors
+   ├─ text_encoders/
+   │  └─ qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+   └─ vae/
+      ├─ minimax_h3_video_vae_int8_convrot.safetensors
+      └─ minimax_h3_audio_vae_fp32.safetensors
+```
+
+Do not place models under `workflows/` or `custom_nodes/`. A similarly named model may use a different quantization method or be incompatible with these loaders. Use the listed files for the first run. Exact byte counts and SHA-256 hashes are in [`models.json`](models.json).
+
+<a id="configure-lm-studio"></a>
+
+### Configure LM Studio
+
+LM Studio is not the video generation model. It reads Japanese video instructions and input images and prepares an English prompt for H3. If per-segment AI review is enabled, LM Studio is also used during review even when the final prompt is entered directly in English.
+
+1. Install [LM Studio](https://lmstudio.ai/).
+2. Download a vision-capable local model. Validation used **Qwen3.5-9B**.
+3. For I2V and Ref2V, install the Vision-related files needed to accept image input.
+4. Load the model in the Developer view and start the local server.
+5. Set the workflow's "LM Studio model name" to the same identifier used by LM Studio.
+
+The distributed example settings are:
+
+```text
+Endpoint: http://127.0.0.1:1234/v1
+Model identifier: qwen-prompt-ja
+```
+
+`qwen-prompt-ja` is only an example identifier. If you use another identifier in LM Studio, change the workflow to match. See [LM Studio Server](https://lmstudio.ai/docs/developer/core/server) for detailed server operation.
+
+#### Return the LM model from GPU to CPU
+
+To enable "load the LM model onto the GPU only for conversion, then return it to the CPU before video generation," add LM Studio's bundled `lms` CLI to `PATH` and install the `lmstudio` package into ComfyUI's Python. If returning the model to the CPU fails, video generation will not start, which avoids a VRAM conflict.
+
+If this automatic switch is unavailable, turn it off and load the LM model on the CPU from the beginning. Prompt conversion will be slower, but the model will not compete with H3 for VRAM.
+
+#### Connect from WSL to LM Studio on Windows
+
+When ComfyUI runs in WSL and LM Studio runs on Windows, WSL may not reach Windows through `127.0.0.1`. In that case, configure an address for the Windows host that is reachable from WSL.
+
+```text
+http://reachable-host-address:1234/v1
+```
+
+Check it from the OS running ComfyUI:
+
+```bash
+curl http://host-address:1234/api/v1/models
+```
+
+You do not need to expose the LM Studio port to the public internet.
+
+### Configure Whisper for Japanese speech review
+
+Speech review uses [Whisper large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) in **Transformers format**, not GGUF. Put the model weights, `config.json`, `preprocessor_config.json`, tokenizer files, and related required files in the same folder.
+
+In the extracted Release ZIP directory, run this with ComfyUI's Python:
+
+```bash
+python configure_audio_audit.py --comfyui "path/to/ComfyUI" --whisper-model "path/to/Whisper-model"
+```
+
+Example for ComfyUI Portable on Windows:
+
+```powershell
+C:\ComfyUI_windows_portable\python_embeded\python.exe configure_audio_audit.py --comfyui "C:\ComfyUI_windows_portable\ComfyUI" --whisper-model "D:\AI_Models\whisper-large-v3-turbo"
+```
+
+The helper writes `local_audio_audit.json` inside the Long-Video node installed in ComfyUI and backs up an existing setting. You can alternatively use the `H3_LOCAL_WHISPER_MODEL` environment variable.
+
+Speech review runs on the CPU and does not send audio to an external service. It also does not download a model automatically. If review is enabled without a configured model, execution stops. It may still miss short grunts or similar sounds, so always listen to the finished video.
+
+### Generate the first video
+
+Start with T2V and a short duration so the environment is easier to check.
+
+1. Fully restart ComfyUI.
+2. Load `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260911222017_v1.1.8.json`.
+3. Confirm that no missing node is shown in red.
+4. Confirm that each of the four model loaders selects the specified file.
+5. Start the LM Studio server and load its model if you use Japanese input or per-segment AI review.
+6. Set duration to **5 seconds**, aspect ratio to **16:9**, and pixel target to **0.4 MP**.
+7. If the prompt body also states a duration, use either "5 seconds total" or `Duration: 5 seconds` so both settings agree.
+8. Queue the workflow, then inspect the final prompt, execution plan, and completed video.
+
+The first model load can take time. After T2V works, move to I2V or Ref2V as appropriate.
+
+#### Use I2V
+
+Open `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260911222017_v1.1.8.json` and upload one image to "Starting image." For the first run, match the source image and video aspect ratios so cropping or resizing effects are easy to identify.
+
+#### Use Ref2V
+
+Open `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260911222017_v1.1.8.json` and place an image in "Reference image 1," which is required. To use images 2 through 5, add them in order, select the corresponding nodes, and enable each with `Ctrl+B`. Enabling an empty image node stops execution before generation.
+
+When using multiple images, describe each role in the prompt:
+
+```text
+Image 1 is the reference for the character's face and hairstyle.
+Image 2 is the clothing reference.
+Image 3 is the reference for the background atmosphere.
+Only one character appears in the finished video.
+```
+
+### Choose the correct prompt field
+
+The large prompt node has three fields with different roles.
+
+| Field | Content | Behavior |
+|---|---|---|
+| ① Top | Video instructions written in Japanese or another language | Converted by LM Studio into an H3-oriented prompt |
+| ② Middle | Base rules sent to LM Studio | Normally leave unchanged |
+| ③ Bottom | Finished English H3 prompt | Used directly when field ① is empty |
+
+When field ① contains text, it takes priority and LM Studio performs the conversion. To use field ③ directly, leave field ① completely empty. Execution is unavailable if both fields ① and ③ are empty.
+
+Minimal T2V example using direct English input:
+
+```text
+Duration: 5 seconds
+
+integrated_multimodal_description: Soft anime style. One adult traveler stands on a quiet park path, waves once slowly at the camera, then rests their hand and smiles. A gentle breeze moves their hair and jacket. One continuous shot with a fixed camera. No speech or on-screen text.
+
+overall_soundscape: Soft wind, rustling leaves and distant birds.
+
+non_diegetic_music: N/A
+```
+
+The displayed "Prompt sent to H3" and execution plan are read-only confirmation outputs. To change the next run, edit field ① or ③.
+
+### Default duration, resolution, and audio settings
+
+| Item | Distributed setting |
+|---|---|
+| Duration | 15 seconds; 5 seconds recommended for the first check |
+| Frame rate | 24 fps |
+| Aspect ratio | 16:9 |
+| Pixel target | 0.4 MP |
+| Example actual output | 864×480 |
+| Video | `res_multistep` / `simple` / 4 steps |
+| SLA | 0.9 |
+| Audio refinement | 2 steps / denoise 0.5 |
+| Segment attempts | Up to five total, including the first; ends early when accepted |
+
+If the prompt body states `Duration: 30 seconds` or "30 seconds total," that explicit duration overrides the numeric field. Use only one duration statement in the prompt body. After queueing, check `duration_seconds` and `segment_count` in the execution plan.
+
+Long videos are generated in segments. A 30-second configuration with a 39-frame continuation context uses 13 + 13 + 4-second segments and joins them into 720 frames at 24 fps. For longer durations, describing what happens in the first and second halves helps reduce unnatural repetition of the same action.
+
+Specify BGM in the prompt. For no BGM, write `non_diegetic_music: N/A`. This tells H3 whether to generate music; it is not a feature for adding a local music file afterward.
+
+### Output locations
+
+Completed videos are saved below ComfyUI's `output` directory:
+
+```text
+ComfyUI/output/video/MiniMax_H3/H3_T2V-I2V-Ref2V/T2V/
+ComfyUI/output/video/MiniMax_H3/H3_T2V-I2V-Ref2V/I2V/
+ComfyUI/output/video/MiniMax_H3/H3_T2V-I2V-Ref2V/Ref2V/
+```
+
+Intermediate data is saved under:
+
+```text
+ComfyUI/output/h3_long_video/H3_T2V-I2V-Ref2V/<mode>/<cache>/
+```
+
+Longer videos create more segment data, prompts, and latent data. Check available disk space regularly.
+
+### Resume or regenerate from a segment
+
+When resuming, keep these values consistent with the original run:
+
+- `cache_name`: fix it to the exact cache name that was created
+- Model, input images, seed, and requested duration: keep them the same as the first run
+- `noise_seed`: `fixed`
+- `resume`: ON
+- `reroll_from_segment`: first segment to regenerate, using a **zero-based index**
+- `stop_after_segment`: set a segment number only when stopping partway; use `-1` to continue through the end
+- `reroll_feedback`: optional description of what should be corrected in the current segment
+
+For a 30-second video split into 13 + 13 + 4 seconds, `reroll_from_segment=1` regenerates everything from 13–26 seconds onward, while `2` regenerates only 26–30 seconds. A different `cache_name` cannot inherit the previous attempts or intermediate state.
+
+### Troubleshooting
+
+| Symptom | What to check |
+|---|---|
+| A node is red or reported missing | Check that all five folders are installed directly, no duplicated nesting exists, dependencies were installed into ComfyUI's Python, and the startup log has no `ImportError` |
+| A model is absent from the list | Check filename, extension, destination, and download completion, then refresh the model list or restart ComfyUI |
+| CUDA is unavailable | Run `torch.cuda.is_available()` with ComfyUI's Python and check the NVIDIA CUDA PyTorch build and driver |
+| Triton error | Confirm that Triton matches PyTorch, CUDA, and the OS; for native Windows, check the `triton-windows` compatibility table |
+| `ffmpeg` or `ffprobe` is missing | Confirm that both commands run from `PATH` |
+| Cannot connect to LM Studio | Confirm that the server is running, the model is loaded, and the identifier and endpoint match; from WSL, use an address that can reach Windows |
+| LM Studio server responds with 404 | Confirm that the model with the configured identifier is still loaded and was not unloaded by TTL or another setting |
+| Stops while returning the LM model to CPU | Check the `lms` CLI and `lmstudio` package; if automatic switching is unavailable, turn it off and load the LM model on CPU |
+| Stops during speech review | Configure a Transformers-format Whisper folder and confirm that all required files are together |
+| I2V or Ref2V stops before generation | Add the required image and make sure an empty optional image node is not enabled |
+| Out of memory | Return to 0.4 MP and 5 seconds, and move the LM Studio model to CPU; shortening duration may not fix memory needed just to load the models |
+| Changing the numeric duration has no effect | Check whether `Duration` or an explicit total duration in the prompt body is overriding it |
+| The same action repeats | Describe the action for each part of the long video, then inspect the final prompt and execution plan |
+| BGM or speech differs from the request | Inspect `overall_soundscape`, `non_diegetic_music`, and dialogue instructions in the exact final prompt sent to H3 |
+
+### Validated scope and limitations
+
+- T2V, I2V, and Ref2V generation were run in the development environment
+- For a 30-second T2V run, the ending was resumed from a cache generated through the middle, reaching 30 seconds and 720 frames
+- For v1.1.8, the three workflow JSON files, five package imports, 30-second plan, Japanese conversion accepted/elapsed/completed/error states, and Release ZIP reconstruction were checked
+- No new GPU video generation was performed specifically for the v1.1.8 progress-display change
+- GPU execution on another PC and on native Windows remains unverified
+
+The generation model and automated review have limits. They do not guarantee identical characters or clothing in every frame, seamless long-video transitions, exact dialogue pronunciation, or complete removal of unwanted sounds and subtitles. Earlier validation videos included examples with minor subtitles or short grunts. Play the completed video and check both picture and sound.
+
+See [VALIDATION.md](VALIDATION.md) for detailed validation conditions and [REPRODUCE.md](REPRODUCE.md) for rebuilding the identical package.
+
+### Privacy and network access
+
+- No cloud API key is required.
+- LM Studio communication goes to a local server.
+- Whisper speech review runs locally on the CPU and does not send audio externally.
+- The Release ZIP excludes input images, generated outputs, credentials, personal paths, and personal settings.
+- A local WSL-to-Windows connection does not require exposing a port to the public internet.
+
+### Licenses
+
+This distribution contains components under several licenses.
+
+| Package | License |
+|---|---|
+| `ComfyUI-MiniMax-H3-Long-Video` | GPL-3.0-only |
+| `ComfyUI-H3-AudioRefine` | MIT |
+| `ComfyUI-PlagueKind-Nodes` | MIT |
+| `ComfyUI-Custom-Scripts` | MIT |
+| `comfyui-h3-standard-prompt` | Original portions are MIT; see the bundled documents for the combined distribution's conditions |
+
+When redistributing or modifying the package, review [LICENSES_AND_NOTICES.md](LICENSES_AND_NOTICES.md) and the `LICENSE` file in each folder, and retain copyright notices and license text.
+
+The model weights are governed by their respective distributors' terms. MiniMax H3 is covered by the [MiniMax H3 Community License Agreement](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE), which includes terms related to region, use, commercial use, and redistribution. Before use, read the original agreement and confirm that your region and intended use qualify.
+
+### Related documentation
+
+- [Japanese section in this README](#日本語): the same setup and usage guidance in Japanese
+- [README_JA.md](README_JA.md): additional node-level installation and usage details in Japanese
+- [VALIDATION.md](VALIDATION.md): completed validation and unverified areas
+- [REPRODUCE.md](REPRODUCE.md): deterministic Release ZIP reconstruction
+- [LICENSES_AND_NOTICES.md](LICENSES_AND_NOTICES.md): licenses and redistribution notices
+- [`models.json`](models.json): model downloads, destinations, sizes, and SHA-256 hashes
+- [Japanese note article](https://note.com/happy_duck780/n/n15e732b3147b)：screen guide, input examples, installation, and detailed operation
+- [GitHub Releases](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases): distribution ZIP files and release history
+
+<!-- bilingual-readme: end english -->
+
+---
+
+<!-- bilingual-readme: start japanese -->
+<a id="日本語"></a>
+
+## 日本語
 
 MiniMax H3で、**文章から動画（T2V）**、**開始画像から動画（I2V）**、**参照画像から動画（Ref2V）**を生成するComfyUI向け配布セットです。映像と音声を一緒に生成し、日本語の指示、15秒を超える可変尺、区間ごとの検査と再生成、途中再開に対応します。
 
@@ -425,8 +869,4 @@ ComfyUI/output/h3_long_video/H3_T2V-I2V-Ref2V/<方式>/<キャッシュ>/
 - [note解説記事](https://note.com/happy_duck780/n/n15e732b3147b)：画面の見方、入力例、導入と操作の詳しい説明
 - [GitHub Releases](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases)：配布ZIPと更新履歴
 
-## English quick start
-
-This package provides three local ComfyUI workflows for MiniMax H3: T2V from text, I2V from one starting image, and Ref2V from one to five reference images. Download the named ZIP from the [latest release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest), extract it, run `python -B verify_package.py`, copy all five folders under `custom_nodes/` into `ComfyUI/custom_nodes/`, and install `requirements.txt` with the Python interpreter used by ComfyUI.
-
-Download the four model files listed above and place them under `models/diffusion_models`, `models/text_encoders`, and `models/vae`. A compatible NVIDIA CUDA/PyTorch/Triton environment and FFmpeg are required. LM Studio is used locally for Japanese prompt conversion and visual segment review; a local Transformers-format Whisper model is used for Japanese speech review. No cloud API key is required. Start with the T2V workflow at 5 seconds, 16:9, and 0.4MP. Hardware outside the documented development environment has not been verified.
+<!-- bilingual-readme: end japanese -->

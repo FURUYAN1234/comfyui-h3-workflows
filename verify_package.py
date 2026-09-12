@@ -3,7 +3,49 @@ import ast,hashlib,json,pathlib,re,sys
 ROOT=pathlib.Path(__file__).resolve().parent
 def require(value,message):
     if not value:raise AssertionError(message)
+def verify_bilingual_readme_text(readme):
+    markers=(
+        '<!-- bilingual-readme: start english -->',
+        '<!-- bilingual-readme: end english -->',
+        '<!-- bilingual-readme: start japanese -->',
+        '<!-- bilingual-readme: end japanese -->',
+    )
+    require(all(readme.count(marker)==1 for marker in markers),'README bilingual section markers are missing or duplicated')
+    positions=[readme.index(marker) for marker in markers]
+    require(positions==sorted(positions),'README bilingual sections are out of order')
+    require('[English](#english) | [日本語](#日本語)' in readme,'README language navigation is missing')
+    english=readme[positions[0]:positions[1]]
+    japanese=readme[positions[2]:positions[3]]
+    require(len(english)>=12000 and len(japanese)>=12000,'README language section is unexpectedly short')
+    paired_headings=(
+        ('### What you can do','## できること'),
+        ('### Changes in v1.1.8','## v1.1.8の変更点'),
+        ('### Package contents','## 配布内容'),
+        ('### Requirements','## 必要な環境'),
+        ('### Installation','## インストール'),
+        ('### Install the four H3 model files','## H3モデル4ファイルを配置する'),
+        ('### Configure LM Studio','## LM Studioを設定する'),
+        ('### Configure Whisper for Japanese speech review','## 日本語音声検査用Whisperを設定する'),
+        ('### Generate the first video','## 最初の動画を生成する'),
+        ('### Choose the correct prompt field','## プロンプト入力欄の使い分け'),
+        ('### Default duration, resolution, and audio settings','## 秒数・解像度・音の既定値'),
+        ('### Output locations','## 保存先'),
+        ('### Resume or regenerate from a segment','## 途中から再開・区間を再生成する'),
+        ('### Troubleshooting','## よくあるトラブル'),
+        ('### Validated scope and limitations','## 検証済みの範囲と制限'),
+        ('### Privacy and network access','## プライバシーと通信'),
+        ('### Licenses','## ライセンス'),
+        ('### Related documentation','## 関連ドキュメント'),
+    )
+    for en_heading,ja_heading in paired_headings:
+        require(en_heading in english,'Missing English README section: '+en_heading)
+        require(ja_heading in japanese,'Missing Japanese README section: '+ja_heading)
+    for token in ('T2V','I2V','Ref2V','requirements.txt','models.json','LM Studio','Whisper','verify_package.py','VALIDATION.md','LICENSES_AND_NOTICES.md'):
+        require(token in english and token in japanese,'README language parity token missing: '+token)
+def verify_bilingual_readme(root):
+    verify_bilingual_readme_text((root/'README.md').read_text(encoding='utf-8'))
 def verify(root=ROOT):
+    verify_bilingual_readme(root)
     paths=list((root/'workflows').glob('*.json'))
     require(len(paths)==3,'Exactly three sample workflows are required')
     version=json.loads((root/'VERSION.json').read_text(encoding='utf-8'))
