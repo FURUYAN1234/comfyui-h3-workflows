@@ -1,4 +1,4 @@
-# MiniMax H3 T2V / I2V / Ref2V Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2Vワークフロー — v1.1.8
+# MiniMax H3 T2V / I2V / Ref2V Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2Vワークフロー — v1.1.9
 
 <!-- bilingual-readme: paired english-japanese -->
 
@@ -34,16 +34,15 @@ Key features: / 主な機能は次のとおりです。
 
 The system does not always use all five attempts. It advances as soon as a segment passes. If the limit is reached, it selects the best candidate that meets the applicable conditions. Because AI review can still miss problems, always watch and listen to the finished video. / 区間試行は必ず5回行う仕組みではありません。合格した時点で次の区間へ進み、上限に達した場合は条件に合う候補から最良のものを使用します。AI検査にも見落としがあるため、完成動画は最後に目と耳で確認してください。
 
-## Changes in v1.1.8 / v1.1.8の変更点
+## Changes in v1.1.9 / v1.1.9の変更点
 
-The Japanese-input path that uses LM Studio now shows execution progress at the top of the screen. / 日本語入力からLM Studioを使う処理に、画面上部の進捗表示を追加しました。
+Prompt validation now rejects an explicit visual timeline that extends beyond the requested duration, including a single-segment 5-second request. / 5秒の単一区間を含め、明示された映像タイムラインが指定尺を超える場合にプロンプト変換を不合格にするよう修正しました。
 
-- Shows that execution was accepted / 実行を受け付けたことを表示
-- Updates elapsed seconds while processing / 処理中は経過秒を更新
-- Stops the counter on completion or error / 完了またはエラーでカウントを停止
-- The elapsed time includes connection, moving the LM model to the GPU, prompt conversion, and returning the model to the CPU / 経過秒には、接続、LMモデルのGPU切替、文章変換、CPU復帰を含む
+A mixed prohibition such as `台詞・歌・音楽はなし` is now parsed as one complete list, so a bare `歌` between other banned items can no longer let an unintended voice through. / `台詞・歌・音楽はなし` のような混合禁止指定をリスト全体として解析し、途中の裸の `歌` が原因で不要な発声を許す問題を修正しました。
 
-The displayed time is **not a completion percentage or remaining-time estimate**. The conversion indicator does not appear when you directly use a finished English prompt and skip conversion. After updating, fully restart ComfyUI, save the workflow, and reload the browser. / 表示される秒数は**完了率や残り時間ではありません**。完成済み英語プロンプトを直接使い、文章変換を行わない場合は、この変換表示は出ません。更新後はComfyUIを完全に再起動し、ワークフローを保存してブラウザーを再読み込みしてください。
+T2V, I2V, and Ref2V were regenerated through the normal ComfyUI path after the fixes. Each validation output was 5.000 seconds at 864×480 and 24 fps with H.264/AAC, and each segment audit passed. The local scripted-speech guard passed; a complete human listening verdict is not claimed. / 修正後にT2V・I2V・Ref2Vを通常のComfyUI経路から再生成しました。各検証出力は5.000秒、864×480、24fps、H.264/AACで、区間監査に合格しました。ローカルの台詞検査は合格しましたが、人による全編試聴まで確認済みとはしていません。
+
+The LM Studio progress indicator introduced in v1.1.8 is retained. After updating, fully restart ComfyUI, save the workflow, and reload the browser. / v1.1.8で追加したLM Studio進捗表示は維持しています。更新後はComfyUIを完全に再起動し、ワークフローを保存してブラウザーを再読み込みしてください。
 
 ## Package contents / 配布内容
 
@@ -52,7 +51,7 @@ The Release ZIP contains: / Release ZIPには次のファイルが入ってい�
 **English / 英語**
 
 ```text
-H3_T2V-I2V-Ref2V_20260911222017_v1.1.8/
+H3_T2V-I2V-Ref2V_20260922064317_v1.1.9/
 ├─ workflows/                 # Three T2V, I2V, and Ref2V workflows
 ├─ custom_nodes/              # Five required custom-node packages
 ├─ requirements.txt           # Python dependencies
@@ -68,7 +67,7 @@ H3_T2V-I2V-Ref2V_20260911222017_v1.1.8/
 **Japanese / 日本語**
 
 ```text
-H3_T2V-I2V-Ref2V_20260911222017_v1.1.8/
+H3_T2V-I2V-Ref2V_20260922064317_v1.1.9/
 ├─ workflows/                 # T2V・I2V・Ref2Vのワークフロー3本
 ├─ custom_nodes/              # 導入に必要なカスタムノード5パッケージ
 ├─ requirements.txt           # Python依存ライブラリ
@@ -105,7 +104,7 @@ The validated development environment is WSL2 Ubuntu with an NVIDIA RTX 5080 16 
 ### 1. Download and extract the Release ZIP / 1. Release ZIPを取得して展開する
 
 1. Open the [latest Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest). / [最新Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest)を開きます。
-2. Download `H3_T2V-I2V-Ref2V_20260911222017_v1.1.8.zip` from Assets. / Assetsから `H3_T2V-I2V-Ref2V_20260911222017_v1.1.8.zip` を取得します。
+2. Download `H3_T2V-I2V-Ref2V_20260922064317_v1.1.9.zip` from Assets. / Assetsから `H3_T2V-I2V-Ref2V_20260922064317_v1.1.9.zip` を取得します。
 3. Extract the entire ZIP. Do not take only a workflow JSON out of the archive. / ZIPをすべて展開します。ZIPの中からJSONだけを取り出さないでください。
 4. If custom nodes with the same names are already installed, move those existing folders outside ComfyUI first. / 既に同名のカスタムノードを使っている場合は、ComfyUIの外へ退避します。
 
@@ -167,13 +166,13 @@ For ComfyUI Portable on Windows, run this from the Portable root: / Windows Port
 **English / 英語**
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_T2V-I2V-Ref2V_20260911222017_v1.1.8\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_T2V-I2V-Ref2V_20260922064317_v1.1.9\requirements.txt"
 ```
 
 **Japanese / 日本語**
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V_20260911222017_v1.1.8\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V_20260922064317_v1.1.9\requirements.txt"
 ```
 
 For a Linux or WSL venv installation, run this from the ComfyUI directory: / Linux・WSLのvenv版では、ComfyUIフォルダーから実行します。
@@ -181,13 +180,13 @@ For a Linux or WSL venv installation, run this from the ComfyUI directory: / Lin
 **English / 英語**
 
 ```bash
-.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V_20260911222017_v1.1.8/requirements.txt"
+.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V_20260922064317_v1.1.9/requirements.txt"
 ```
 
 **Japanese / 日本語**
 
 ```bash
-.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V_20260911222017_v1.1.8/requirements.txt"
+.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V_20260922064317_v1.1.9/requirements.txt"
 ```
 
 Install the Triton build required by SLA separately, matching your OS, PyTorch, and CUDA combination. For native Windows guidance, see [triton-windows](https://github.com/woct0rdho/triton-windows). / SLAに必要なTritonはOSとPyTorchの組み合わせに合わせて別途用意します。Windowsネイティブの情報は [triton-windows](https://github.com/woct0rdho/triton-windows) を確認してください。
@@ -364,7 +363,7 @@ Speech review runs on the CPU and does not send audio to an external service. It
 Start with T2V and a short duration so the environment is easier to check. / 環境を確認しやすいT2Vから、短い設定で始めます。
 
 1. Fully restart ComfyUI. / ComfyUIを完全に再起動します。
-2. Load `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260911222017_v1.1.8.json`. / `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260911222017_v1.1.8.json` を読み込みます。
+2. Load `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260922064317_v1.1.9.json`. / `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260922064317_v1.1.9.json` を読み込みます。
 3. Confirm that no missing node is shown in red. / 赤い不足ノードがないことを確認します。
 4. Confirm that each of the four model loaders selects the specified file. / 4つのモデルローダーで、指定ファイルが選択されていることを確認します。
 5. Start the LM Studio server and load its model if you use Japanese input or per-segment AI review. / 日本語入力または区間AI検査を使う場合は、LM Studioのサーバーとモデルを起動します。
@@ -376,11 +375,11 @@ The first model load can take time. After T2V works, move to I2V or Ref2V as app
 
 ### Use I2V / I2Vを使う
 
-Open `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260911222017_v1.1.8.json` and upload one image to "Starting image." For the first run, match the source image and video aspect ratios so cropping or resizing effects are easy to identify. / `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260911222017_v1.1.8.json` を開き、「開始画像」へ画像を1枚アップロードします。入力画像と動画の比率を最初はそろえると、切り抜きやリサイズの影響を確認しやすくなります。
+Open `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260922064317_v1.1.9.json` and upload one image to "Starting image." For the first run, match the source image and video aspect ratios so cropping or resizing effects are easy to identify. / `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260922064317_v1.1.9.json` を開き、「開始画像」へ画像を1枚アップロードします。入力画像と動画の比率を最初はそろえると、切り抜きやリサイズの影響を確認しやすくなります。
 
 ### Use Ref2V / Ref2Vを使う
 
-Open `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260911222017_v1.1.8.json` and place an image in "Reference image 1," which is required. To use images 2 through 5, add them in order, select the corresponding nodes, and enable each with `Ctrl+B`. Enabling an empty image node stops execution before generation. / `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260911222017_v1.1.8.json` を開き、「参照画像1」へ画像を入れます。画像1は必須です。画像2〜5を使う場合は順番に画像を入れ、対象ノードを選択して `Ctrl+B` で有効にします。空の画像ノードを有効にすると実行前に止まります。
+Open `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260922064317_v1.1.9.json` and place an image in "Reference image 1," which is required. To use images 2 through 5, add them in order, select the corresponding nodes, and enable each with `Ctrl+B`. Enabling an empty image node stops execution before generation. / `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260922064317_v1.1.9.json` を開き、「参照画像1」へ画像を入れます。画像1は必須です。画像2〜5を使う場合は順番に画像を入れ、対象ノードを選択して `Ctrl+B` で有効にします。空の画像ノードを有効にすると実行前に止まります。
 
 When using multiple images, describe each role in the prompt: / 複数画像を使う場合は、役割を文章で分けてください。
 
@@ -511,8 +510,8 @@ For a 30-second video split into 13 + 13 + 4 seconds, `reroll_from_segment=1` re
 
 - T2V, I2V, and Ref2V generation were run in the development environment / 開発環境ではT2V・I2V・Ref2Vの実生成を実施済み
 - For a 30-second T2V run, the ending was resumed from a cache generated through the middle, reaching 30 seconds and 720 frames / T2Vの30秒生成で、中盤まで生成したキャッシュから終盤だけ再開し、30秒・720フレームへの到達を確認
-- For v1.1.8, the three workflow JSON files, five package imports, 30-second plan, Japanese conversion accepted/elapsed/completed/error states, and Release ZIP reconstruction were checked / v1.1.8では、3方式のJSON、5パッケージの読み込み、30秒計画、日本語変換の受付・経過秒・完了・エラー、配布ZIPの再構築を検査
-- No new GPU video generation was performed specifically for the v1.1.8 progress-display change / v1.1.8の進捗表示変更に対する新しいGPU動画生成は未実施
+- For v1.1.9, the three workflow JSON files, five package imports, 30-second plan, Japanese conversion accepted/elapsed/completed/error states, and Release ZIP reconstruction were checked / v1.1.9では、3方式のJSON、5パッケージの読み込み、30秒計画、日本語変換の受付・経過秒・完了・エラー、配布ZIPの再構築を検査
+- No new GPU video generation was performed specifically for the v1.1.9 progress-display change / v1.1.9の進捗表示変更に対する新しいGPU動画生成は未実施
 - GPU execution on another PC and on native Windows remains unverified / 別PCとWindowsネイティブでのGPU実行は未確認
 
 The generation model and automated review have limits. They do not guarantee identical characters or clothing in every frame, seamless long-video transitions, exact dialogue pronunciation, or complete removal of unwanted sounds and subtitles. Earlier validation videos included examples with minor subtitles or short grunts. Play the completed video and check both picture and sound. / 生成モデルと自動検査には限界があります。人物や服装の全フレーム一致、長尺の継ぎ目、台詞の正確な発音、不要音や字幕の完全排除を保証するものではありません。過去の確認動画では軽微な字幕や短いうなり声が残った例があります。完成動画を再生し、映像と音声の両方を確認してください。

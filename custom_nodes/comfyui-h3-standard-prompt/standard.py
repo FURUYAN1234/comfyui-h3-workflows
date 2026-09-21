@@ -404,12 +404,23 @@ def segment_prompt(prompt, duration, segment, count):
 
 def boundary_errors(prompt, duration, boundaries):
     """A spanning paragraph replays its beginning when copied to both passes."""
+    main = re.search(
+        r'(?:detailed_description|integrated_multimodal_description)\s*:(.*?)(?=overall_soundscape\s*:|$)',
+        prompt, re.I | re.S)
+    structural = _structural_text(main.group(1)) if main else ''
+    ranges = [tuple(map(seconds, match.groups())) for match in re.finditer(
+        r'\[(' + CLOCK + r')\s*[-–—~〜]\s*(' + CLOCK + r')\]', structural, re.I)]
+    errors = []
+    if ranges and max(end for _, end in ranges) > duration + 1e-6:
+        errors.append(
+            f'Keep every visual timeline range inside the requested {duration:g}-second duration; '
+            f'the current draft extends to {max(end for _, end in ranges):g} seconds.')
     if not boundaries:
-        return []
+        return errors
     parsed = timeline(prompt, duration)
     if parsed is None:
-        return ['Use explicit time ranges with generation boundaries: '+', '.join(clock(b) for b in boundaries)]
-    errors = []
+        errors.append('Use explicit time ranges with generation boundaries: '+', '.join(clock(b) for b in boundaries))
+        return errors
     for boundary in boundaries:
         if any(a < boundary-1e-6 and b > boundary+1e-6 for a,b,_ in parsed[2]):
             errors.append('Split the action phase at '+clock(boundary)+'. No range may straddle this generation boundary. Before it, establish the ongoing action; after it, describe only its further progression from the reached position/scale, never its onset or a fresh camera move.')

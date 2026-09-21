@@ -25,12 +25,12 @@ BGMの有無・種類はユーザー指示を優先する。BGMを入れる場�
 _DIALOGUE_TAG_RE = re.compile(r'<d>\[([^\]]+)\]\s*(.*?)</d>', re.IGNORECASE | re.DOTALL)
 _SPEAKER_ID_RE = re.compile(r'\(S\d+(?:\s*,\s*S\d+)*\)')
 _SPEECH_REQUEST_RE = re.compile(r'話す|喋る|しゃべる|言う|台詞|セリフ|会話|ナレーション|歌う|歌詞|発声|掛け声')
+_BAN_ITEM = r'(?:台詞|セリフ|会話|ナレーション|発声|掛け声|歌声|歌詞|歌|人声|声|BGM|背景音楽|音楽|劇伴|サウンドトラック|字幕|テロップ|文字|ロゴ|効果音|環境音)'
+_LIST_BAN_RE = re.compile(
+    _BAN_ITEM + r'(?:[・、,／/\s]+' + _BAN_ITEM + r')*'
+    r'(?:は|を|の)?\s*(?:なし|無し|不要|入れない|追加しない)', re.IGNORECASE)
 _NO_SPEECH_RE = re.compile(
-    r'無言|(?:人声|声)(?:は|を)?\s*(?:なし|無し|不要)|喋らない|しゃべらない|話さない|'
-    r'(?:台詞|セリフ|会話|ナレーション|発声|掛け声|歌声|歌詞)'
-    r'(?:[・、,／/\s]*(?:台詞|セリフ|会話|ナレーション|発声|掛け声|歌声|歌詞))*'
-    r'(?:は|を)?[・、,／/\s]*(?:なし|無し|不要|入れない|追加しない)'
-)
+    r'無言|喋らない|しゃべらない|話さない|' + _LIST_BAN_RE.pattern, re.IGNORECASE)
 
 
 def requests_global_silence(brief):
@@ -43,7 +43,7 @@ def requests_global_silence(brief):
     directions = re.sub(r'「[^」]*」|『[^』]*』|“[^”]*”|"[^"\n]*"', ' ', directions)
     for match in _NO_SPEECH_RE.finditer(directions):
         value = match.group()
-        if not re.search(r'無言|人声|(?:^声)|喋らない|しゃべらない|話さない|台詞|セリフ|会話|発声', value):
+        if not re.search(r'無言|人声|(?:^|[・、,／/\s])声|喋らない|しゃべらない|話さない|台詞|セリフ|会話|発声', value):
             continue  # Singing/narration alone is a distinct audio category.
         clause = re.split(r'[。.!?！？\n;；]', directions[:match.start()])[-1]
         # A later clause may give a genuine global ban, so never return False

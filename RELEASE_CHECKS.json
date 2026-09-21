@@ -1,12 +1,13 @@
 {
-  "version": "1.1.8",
-  "baseline": "v1.1.7",
-  "scope": "H3 T2V/I2V/Ref2V progress UI and portable documentation",
-  "new_gpu_generation": false,
+  "version": "1.1.9",
+  "baseline": "v1.1.8",
+  "scope": "H3 T2V/I2V/Ref2V duration-bound and mixed audio-ban fixes",
+  "new_gpu_generation": true,
   "paid_api_execution": false,
   "checks": [
     "package graph and settings",
-    "event tests",
+    "duration-bound and mixed-ban regression tests",
+    "three normal-path in-app-browser GPU generations",
     "real ComfyUI CPU import and planning",
     "fresh extraction manifest",
     "clean tag rebuild",

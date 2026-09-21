@@ -11,7 +11,7 @@ def verify_bilingual_readme_text(readme):
     require(len(readme)>=24000,'README bilingual content is unexpectedly short')
     paired_headings=(
         '## What you can do / できること',
-        '## Changes in v1.1.8 / v1.1.8の変更点',
+        '## Changes in v1.1.9 / v1.1.9の変更点',
         '## Package contents / 配布内容',
         '## Requirements / 必要な環境',
         '## Installation / インストール',
