@@ -1,9 +1,9 @@
+
+<img width="1280" height="670" alt="rectangle_large_type_2_09221f4b6e6b5978dca02f3893ea476f" src="https://github.com/user-attachments/assets/790fffee-6618-4d32-a8a1-4cf1c60ee3de" />
+
 <img width="1280" height="670" alt="rectangle_large_type_2_59a7eaa00188c52e187dedbee72c137f" src="https://github.com/user-attachments/assets/1ae01f31-9fda-4863-a060-fbe1f4c8f392" />
+
 # MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.0
-
-![Uploading rectangle_large_type_2_09221f4b6e6b5978dca02f3893ea476f.webp…]()
-![Uploading rectangle_large_type_2_59a7eaa00188c52e187dedbee72c137f.webp…]()
-
 
 <!-- bilingual-readme: paired english-japanese -->
 
