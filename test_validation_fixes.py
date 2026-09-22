@@ -21,6 +21,9 @@ def load_prompt_package():
     folder_paths = types.ModuleType("folder_paths")
     folder_paths.base_path = str(ROOT)
     sys.modules.setdefault("folder_paths", folder_paths)
+    nodes = types.ModuleType("nodes")
+    nodes.NODE_CLASS_MAPPINGS = {}
+    sys.modules.setdefault("nodes", nodes)
     spec = importlib.util.spec_from_file_location(
         "h3_validation_prompt",
         PACKAGE / "__init__.py",

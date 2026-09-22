@@ -357,7 +357,11 @@ def _nearest_dialogue_identity(prefix, speaker_bindings=None):
     """Keep both namespaces when an explicit definition associates them."""
     tokens=list(re.finditer(r'(?i)<Subject\s+([1-9]\d*)>|(?<![\w])S([1-9]\d*)\b',prefix))
     if not tokens:return None,None
-    token=tokens[-1];bindings=speaker_bindings or {}
+    # Explicit voice labels own the turn. Bare Subjects later in the same
+    # direction often describe listeners keeping their mouths closed.
+    speakers=[token for token in tokens if token.group(2)]
+    token=speakers[-1] if speakers else tokens[-1]
+    bindings=speaker_bindings or {}
     if token.group(2):
         sid=int(token.group(2));return bindings.get(sid),sid
     subject=int(token.group(1))
@@ -414,8 +418,9 @@ def _spread_one_dialogue_per_segment(parsed, segment_count,
                 events[-1]["source_text"] += " " + text
             else:
                 leading_silent.append(text)
-        for match in matches:
-            lookback = text[max(0, match.start() - 320):match.start()]
+        for turn_index, match in enumerate(matches):
+            previous_end = matches[turn_index - 1].end() if turn_index else 0
+            lookback = text[previous_end:match.start()]
             subject_id, speaker_id = _nearest_dialogue_identity(lookback, speaker_bindings)
             events.append({
                 "source_text": " ".join(leading_silent + [text]),
@@ -550,11 +555,17 @@ def _prioritize_local_dialogue(timeline, dialogue_deadline_seconds,
     if len(matches) != 1:
         return timeline
     match = matches[0]
-    lookback = timeline[max(0, match.start() - 360):match.start()]
+    preceding_markers = list(_SHOT.finditer(timeline[:match.start()]))
+    lookback_start = preceding_markers[-1].end() if preceding_markers else 0
+    lookback = timeline[lookback_start:match.start()]
     subject_id, speaker_id = _nearest_dialogue_identity(lookback, speaker_bindings)
     speaker = _speaker_label(subject_id, speaker_id)
     clock_offset = max(0.0, float(clock_offset_seconds))
-    start = clock_offset + 0.15
+    # H3 can leak a partial/garbled utterance across the packed continuation
+    # boundary when speech starts almost on top of the guide trim.  Give the
+    # model a short, explicit silent hand-off before the one allowed line.
+    speech_lead_in = 0.5
+    start = clock_offset + speech_lead_in
     deadline = clock_offset + max(0.5, float(dialogue_deadline_seconds))
     speech_lock = (
         "SPEECH-FIRST TIMING LOCK: At packed-pass time {start}, {speaker} begins the "
@@ -562,6 +573,8 @@ def _prioritize_local_dialogue(timeline, dialogue_deadline_seconds,
         "packed-pass time {deadline}: {dialogue} {speaker} is the only moving mouth; all "
         "other visible subjects keep their lips closed. The visual action and camera "
         "motion continue underneath the already-started speech and must never delay it. "
+        "From the packed guide boundary until this exact start time, keep every voice "
+        "silent: do not carry over, warm up, garble, or partially begin the line. "
     ).format(
         speaker=speaker,
         start=format_timestamp(start),
@@ -589,7 +602,8 @@ def _prioritize_local_dialogue(timeline, dialogue_deadline_seconds,
     if shot_start:
         marker += " At {},".format(format_timestamp(shot_start))
     if shot_start > clock_offset:
-        speech_lock = speech_lock.replace(format_timestamp(start), format_timestamp(shot_start + 0.15))
+        speech_lock = speech_lock.replace(
+            format_timestamp(start), format_timestamp(shot_start + speech_lead_in))
     return (
         without_dialogue[:first_marker.start()]
         + marker
@@ -600,17 +614,22 @@ def _prioritize_local_dialogue(timeline, dialogue_deadline_seconds,
 
 
 def _dialogue_timing_guard(start_seconds, end_seconds, context_seconds,
-                           timeline_duration_seconds, has_local_dialogue):
+                           timeline_duration_seconds, has_local_dialogue, speech_deadline_seconds=None):
     local_duration = max(0.0, end_seconds - start_seconds)
     is_final = (
         timeline_duration_seconds is not None
         and _timestamp_millis(end_seconds) >= _timestamp_millis(
             timeline_duration_seconds)
     )
-    # A short reaction tail avoids a hard boundary while leaving H3 enough time
-    # for a natural complete utterance. The backend also recovers the grid tail.
-    tail_seconds = min(local_duration, 0.5)
+    # H3 commonly finishes about half a second later than a requested speech
+    # deadline. Reserve a full second so that this normal timing drift still
+    # leaves decoded room for the last voiced sound to release before the hard
+    # segment boundary. The same rule applies to every line; it is not tied to
+    # any particular transcript.
+    tail_seconds = min(local_duration, 1.0)
     deadline = max(0.0, local_duration - tail_seconds)
+    if speech_deadline_seconds is not None:
+        deadline = min(deadline, max(0.5, float(speech_deadline_seconds)))
     if has_local_dialogue:
         speech = (
             "The single tagged spoken line must be completed by packed-pass time {}. "
@@ -756,7 +775,7 @@ def _validate_reference_labels(prompt, field_name):
         )
 
 
-def _localize_audio(value, kind, start_seconds):
+def _localize_audio(value, kind, start_seconds, context_seconds=None):
     value = value.strip()
     if re.fullmatch(
             r"(?i)(?:N/?A|none|no music)(?:\.\s*No music is audible)?\.?",
@@ -764,6 +783,12 @@ def _localize_audio(value, kind, start_seconds):
         return "N/A. No music is audible." if kind == "music" else "N/A."
     if not start_seconds:
         return value
+    if context_seconds == 0:
+        if kind == "soundscape":
+            return ("Create quiet environmental ambience appropriate to this local scene. "
+                    "Only the local tagged line is speech; no other intelligible voices.")
+        style = value if not _TIMESTAMP.search(value) else "Use the master score's instrumental style."
+        return "Create the specified instrumental accompaniment for this independent clip. " + style
     if kind == "soundscape":
         continuity = (
             "Continue the environmental ambience established by the preceding AV guide. "
@@ -810,9 +835,31 @@ def _fallback_prompt(prompt, start_seconds, context_seconds):
     return rebased
 
 
+def _scope_declared_subjects(prefix, shot_text):
+    """Keep only source-panel identities in explicitly declared local shots.
+
+    Subject IDs remain unchanged so the original reference and voice bindings
+    still apply. Legacy prompts without a declaration retain their full cast.
+    """
+    declarations = re.findall(r'(?m)^Visible subjects:[^\n]*', shot_text)
+    if not declarations:
+        return prefix
+    allowed = set(re.findall(r'<Subject\s+(\d+)>', '\n'.join(declarations)))
+    if not allowed:
+        raise ValueError('Visible subjects declaration has no reference identities')
+    entry = re.compile(r'(?m)^<Subject\s+(\d+)>[^\n]*(?:\n(?!<|[a-z_]+:|\s*$)[^\n]*)*')
+    return entry.sub(lambda m: m.group(0) if m.group(1) in allowed else '', prefix)
+
+
 def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
                  segment_index=None, segment_count=None,
-                 timeline_duration_seconds=None, preserve_input_prompt=False):
+                 timeline_duration_seconds=None, preserve_input_prompt=False,
+                 confirmed_dialogue_timing=False, speech_deadline_seconds=None,
+                 output_duration_seconds=None):
+    # Source shot selection stays on the confirmed script clock. A recovery may
+    # give this selected turn more output time without pulling in the next turn.
+    generated_end_seconds = (end_seconds if output_duration_seconds is None
+                             else start_seconds + output_duration_seconds)
     prompt = normalize_silent_dialogue(prompt)
     if preserve_input_prompt and segment_count == 1 and not context_seconds:
         return prompt
@@ -866,8 +913,11 @@ def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
         text_end = matches[index + 1].start() if index + 1 < len(matches) else len(body)
         parsed.append((int(match.group(1)), start, body[match.end():text_end].strip()))
 
-    parsed = _spread_one_dialogue_per_segment(
-        parsed, segment_count, timeline_duration_seconds, speaker_bindings)
+    # Confirmed variable windows already place each turn at its own boundary.
+    # Uniform redistribution would move long lines into the wrong segment.
+    if not confirmed_dialogue_timing:
+        parsed = _spread_one_dialogue_per_segment(
+            parsed, segment_count, timeline_duration_seconds, speaker_bindings)
 
     shot_numbers = [number for number, _, _ in parsed]
     if shot_numbers != list(range(1, len(parsed) + 1)):
@@ -880,6 +930,8 @@ def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
     ]
     if (any(current[1] <= previous[1] for previous, current in zip(explicit, explicit[1:]))
             or any(start >= (timeline_duration_seconds or master_end_seconds) for _, start in explicit)):
+        if confirmed_dialogue_timing:
+            raise ValueError("確定後のShot時刻が不正です。読み確認から再実行してください。")
         __import__('warnings').warn('Ambiguous shot timing; assigning shots in written order.')
         parsed = [(number, None, text) for number, _, text in parsed]
         explicit = []
@@ -966,6 +1018,15 @@ def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
         else:
             marker = "[Shot {}] At {},".format(
                 shot_number, format_timestamp(local_start))
+        if (confirmed_dialogue_timing and not preserve_input_prompt
+                and not context_seconds and local_start == 0
+                and re.match(r'(?i)^Cut to\s+', text)):
+            # Each hard-cut clip is generated independently. "Cut to" inside its
+            # first Shot can replay the group reference before cutting mid-line.
+            text = re.sub(r'(?i)^Cut to\s+', 'Opening camera setup: ', text, count=1)
+            text += ("\nEstablish this camera view on the FIRST generated frame. "
+                     "Hold this one uninterrupted take through the full utterance and reaction; "
+                     "the editor joins this clip to the previous one.")
         rendered.append("{} {}".format(marker, text).strip())
     if not rendered:
         rendered.append(
@@ -980,14 +1041,22 @@ def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
     if field_name == "detailed_description" and prefix:
         prefix = _scope_reference_prefix(
             prefix, start_seconds, master_end_seconds, context_seconds,
-            end_seconds)
+            generated_end_seconds)
+
+    if confirmed_dialogue_timing and not preserve_input_prompt:
+        prefix = _scope_declared_subjects(prefix, "\n".join(rendered))
 
     parts = []
     if prefix:
         parts.append(prefix)
     timeline = " ".join(rendered)
-    local_duration = max(0.0, end_seconds - start_seconds)
-    dialogue_deadline = max(0.0, local_duration - 0.5)
+    local_duration = max(0.0, generated_end_seconds - start_seconds)
+    # Match the deadline used by _dialogue_timing_guard. Keeping these values
+    # together prevents the speech-first lock from silently granting an extra
+    # half-second that the ending guard has reserved for closure.
+    dialogue_deadline = max(0.0, local_duration - 1.0)
+    if speech_deadline_seconds is not None:
+        dialogue_deadline = min(dialogue_deadline, max(0.5, float(speech_deadline_seconds)))
     if not preserve_input_prompt:
         timeline = _prioritize_local_dialogue(
             timeline, dialogue_deadline, context_seconds, speaker_bindings)
@@ -996,17 +1065,19 @@ def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
             common_intro = "{}\n{}".format(
                 _segment_scope(
                     start_seconds, master_end_seconds, context_seconds,
-                    end_seconds),
+                    generated_end_seconds),
                 common_intro,
             ).strip()
         has_local_dialogue = bool(_DIALOGUE_TAG.search(timeline))
         dialogue_guard = _local_dialogue_guard() if has_dialogue else ""
         timing_guard = _dialogue_timing_guard(
             start_seconds,
-            end_seconds,
+            generated_end_seconds,
             context_seconds,
-            timeline_duration_seconds,
+            (None if timeline_duration_seconds is None else
+             generated_end_seconds + max(0.0, timeline_duration_seconds - end_seconds)),
             has_local_dialogue,
+            speech_deadline_seconds=dialogue_deadline,
         )
         visual_guard = _local_visual_continuity_guard(subject_count)
         if preserve_input_prompt:
@@ -1028,14 +1099,14 @@ def slice_prompt(prompt, start_seconds, end_seconds, context_seconds=0.0,
             parts.append(
                 "overall_soundscape: "
                 + (soundscape.group(1).strip() if preserve_input_prompt else
-                   _localize_audio(soundscape.group(1), "soundscape", start_seconds))
+                   _localize_audio(soundscape.group(1), "soundscape", start_seconds, context_seconds))
             )
         music = _MUSIC.search(prompt)
         if music is not None:
             parts.append(
                 "non_diegetic_music: "
                 + (music.group(1).strip() if preserve_input_prompt else
-                   _localize_audio(music.group(1), "music", start_seconds))
+                   _localize_audio(music.group(1), "music", start_seconds, context_seconds))
             )
     else:
         if common_intro:
@@ -1135,3 +1206,26 @@ def prompt_plan_prompts(prompt_plan, segments, length, max_raw_frames,
             raise ValueError("prompt_plan contains an empty segment prompt")
         prompts.append(local_prompt.strip())
     return prompts
+
+
+def apply_explicit_camera_cuts(segments, prompt):
+    """A reference-backed, explicitly authored new angle must start without the old view.
+
+    Continuations, incidental mentions of cuts, and cuts inside a segment keep
+    their existing guide. Only an affirmative opening instruction at a boundary
+    changes the packing. Output duration and story times are preserved.
+    """
+    _, field = _timeline_field(prompt)
+    content = field.group(1) if field is not None else prompt
+    markers = list(_SHOT.finditer(content))
+    cut_frames = set()
+    for i, marker in enumerate(markers):
+        if marker.group(2) is None:
+            continue
+        body = content[marker.end():markers[i+1].start() if i+1 < len(markers) else len(content)].lstrip()
+        if re.match(r"(?i)(?:hard cut to|cut to|reverse angle(?: on|:)|new camera angle:)[ \t]", body):
+            cut_frames.add(round(parse_timestamp(marker.group(2)) * FPS))
+    return [Segment(item.index, _h3_grid_frames(item.output_frames), 0,
+                    item.output_start, item.output_frames)
+            if item.index > 0 and item.context_frames and item.output_start in cut_frames
+            else item for item in segments]

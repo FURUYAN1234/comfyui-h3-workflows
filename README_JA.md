@@ -1,24 +1,26 @@
-# H3 T2V・I2V・Ref2V v1.1.9 導入と操作
+# H3 T2V・I2V・Ref2V・MV v1.2.0 導入と操作
 
 ## 配布対象
 
-このシリーズのv1.1.5からの更新です。T2V（画像なし）、I2V（開始フレーム1枚）、Ref2V（参照1〜5枚）の3本を同梱。ファイル名のプロジェクト名・方式・14桁日時・版番号で識別できます。
+T2V（画像なし）、I2V（開始フレーム1枚）、Ref2V（参照1〜5枚）に加え、YuE2等の完成曲・歌詞・キャラクター画像から作るMVの計4本を同梱します。ファイル名のプロジェクト名・方式・14桁日時・版番号で識別できます。
 
-`custom_nodes/`内の5フォルダーをComfyUIの`custom_nodes/`へコピーします。
+`custom_nodes/`内の6フォルダーをComfyUIの`custom_nodes/`へコピーします。
 - comfyui-h3-standard-prompt：日本語変換、入力切替、尺計画、GPU/CPU切替、ローカル画像検査用クライアント。
 - ComfyUI-MiniMax-H3-Long-Video：可変尺、区間保存と再開、候補選択、音声・映像検査、MP4保存。
 - ComfyUI-H3-AudioRefine：映像を固定して音声を2ステップ再精錬。
 - ComfyUI-PlagueKind-Nodes：SLA Attention。
 - ComfyUI-Custom-Scripts：最終プロンプトと実行計画の表示。
+- comfyui-mv-workflow：MV素材の検査、字幕時刻合わせ、元曲・タイトル・終了リンク・フェードによる仕上げ。
 
 同名ノードを別名で二重配置しないでください。既存フォルダーはComfyUIの外へ退避します。このZIPに四コマ用ワークフロー、NanoBananaのクラウドAPI設定、個人用Qwenノードは含みません。
 
-## v1.1.9（2026-09-22）の変更
+## v1.2.0（2026-09-22）の変更
 
-- 5秒要求の単一区間でも、明示タイムラインが指定尺を超えた場合に日本語変換を再試行するよう修正。
-- `台詞・歌・音楽はなし` のような混合禁止指定を一つのリストとして解析し、不要な発声を許す問題を修正。
-- 修正後にT2V・I2V・Ref2Vを通常経路から再生成。各5.000秒、864×480、24fps、H.264/AACで区間監査合格を確認。
-- v1.1.8のLM Studio進捗表示、GPU→CPU切替、モデル、映像4step、音声2step・denoise 0.5、可変尺、候補検査・再開を維持。
+- `MV_H3_YuE2-LMStudio_v1.2.0.json` と汎用MVノードを追加。
+- YuE2 v1.6.0が曲完成と同時に作る `output/mv-assets/...` を相対パスで読み、標準LoadImageからキャラクター画像を受ける。
+- 任意秒数／音源末尾まで、字幕ON/OFF、Whisper時刻合わせ、元音源に基づくリップシンク指示、2D・3D・実写の画風維持、タイトル／終了リンク、映像・音声フェードに対応。
+- 通常経路で20.000秒、864×480、24fps、H.264/AAC、字幕4区間、元音源相関0.999712の検証MVを生成。
+- v1.1.9までの尺検査、音声禁止解析、LM Studio進捗、GPU→CPU切替、映像4step、音声2step、可変尺、区間再開を維持。
 
 ローカルの台詞検査は合格しましたが、人による全編試聴まで確認済みとはしていません。更新後はComfyUIを再起動し、未保存ワークフローを保存したうえでブラウザーを再読み込みしてください。
 
@@ -29,9 +31,19 @@ NVIDIA CUDA版PyTorchとMiniMax H3、V3ノードAPI、ResolutionSelectorに対�
 ComfyUI本体の準備は https://docs.comfy.org/installation/system_requirements を参照してください。既存のPyTorchやドライバーをこのZIPが変更する処理はありません。
 
 1. ZIP展開直後に `python verify_package.py` を実行します（モデルもGPUも不要）。
-2. 5パッケージを配置し、ComfyUIのPythonで `python -m pip install -r requirements.txt` を実行します。Portable版は通常 `python_embeded/python.exe`、WSL/LinuxはComfyUIのvenv内Pythonを使用します。
+2. 6パッケージを配置し、ComfyUIのPythonで `python -m pip install -r requirements.txt` を実行します。Portable版は通常 `python_embeded/python.exe`、WSL/LinuxはComfyUIのvenv内Pythonを使用します。
 3. SLA用に使用中PyTorchと互換のTritonを用意します。Windowsは https://github.com/woct0rdho/triton-windows 、Linux/WSLはPyTorch対応のTritonを確認してください。`python -c "import torch,triton; print(torch.cuda.is_available(),triton.__version__)"` で確認できます。
-4. FFmpeg/ffprobeをPATHへ用意します。ワークフローJSONは `user/default/workflows/02_動画/13_動画_MiniMax-H3/配布版_T2V-I2V-Ref2V_v1.1.9/` へ置くか、画面から読み込みます。現行タブの未保存内容は先に保存・退避してください。
+4. FFmpeg/ffprobeをPATHへ用意します。ワークフローJSONは任意の `user/default/workflows/` 以下へ置くか、画面から読み込みます。現行タブの未保存内容は先に保存・退避してください。
+
+## MV連携
+
+![YuE2とMVの関係](docs/assets/workflow-bridge-yue2-to-mv-v1.2.0.png)
+
+YuE2 v1.6.0で曲を作ると、通常の曲フォルダーとは別に `ComfyUI/output/mv-assets/曲名_日時_ID/` が同時にできます。MVワークフローへ `mv-assets/曲名_日時_ID` と入力し、標準LoadImageへキャラクターシートを入れます。
+
+短い確認は尺モードを「任意秒数」、1曲完走は「音源末尾まで（可変尺）」にします。字幕を使う場合はTransformers形式のWhisperを `ComfyUI/models/whisper/whisper-large-v3-turbo/` へ配置し、時刻合わせをONにします。最終ノードはH3の生成音声ではなく元の `master.flac` を戻し、字幕・タイトル・終了リンク・映像音声フェード付き `final.mp4` を `ComfyUI/output/video/MV/` へ保存します。
+
+元画像の2Dアニメ・3D・実写の画風はLM Studio用ルールで維持を指示します。ただしH3の参照は厳密な顔置換ではないため、顔・髪・服装は完成映像を目視し、必要ならシート改善や該当区間の再生成を行ってください。
 
 ## 2. H3用4モデル
 

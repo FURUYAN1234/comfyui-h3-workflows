@@ -1,8 +1,4 @@
 numpy
 Pillow
-av
-safetensors
-requests
 soundfile
 transformers>=4.46
-lmstudio

@@ -34,6 +34,9 @@ from comfy_extras.nodes_audio import vae_decode_audio
 from typing_extensions import override
 
 from . import local_audio_audit
+from .cloud_prompt import MiniMaxH3CloudPrompt
+from .dialogue_timing import (plan_confirmed_windows, validate_timing, validate_local_dialogues,
+                             require_timing_connection, recovery_segments, needs_duration_repair)
 from .continuity_audit import POLICY as THREE_MODE_POLICY, upstream_graph, standard_audit_settings, audit_instruction, appearance_instruction, parse_verdict
 
 from .timeline import (
@@ -45,15 +48,18 @@ from .timeline import (
     dialogue_duration_frames,
     has_tagged_dialogue,
     plan_segments,
+    apply_explicit_camera_cuts,
     prompt_plan_prompts,
     slice_prompt,
 )
 
 
-SCHEMA_VERSION = 25
+SCHEMA_VERSION = 28
 SEGMENT_SEED_STRATEGY = "splitmix64-per-segment-v1"
-AUDIO_CONTINUITY_STRATEGY = "delivered-av-tail-exact-audio-v9"
+AUDIO_CONTINUITY_STRATEGY = "dialogue-video-guide-silent-audio-v11"
 AUDIO_SEAM_CROSSFADE_SECONDS = 0.125
+CONTINUATION_GUIDE_SILENCE_SECONDS = 1.0
+CONTINUATION_GUIDE_FADE_SECONDS = 0.125
 AUDIO_REFINE_STRATEGY = "frozen-video-partial-audio-denoise-v1"
 CAST_AUDIT_MAX_RETRIES = 5
 CAST_AUDIT_MAX_TOKENS = 256
@@ -62,6 +68,7 @@ UPSCALE_SCHEMA_VERSION = 1
 LOOP_UPSCALE_SCHEMA_VERSION = 2
 
 LONG_H3_PROMPT_PLAN = io.Custom("MINIMAX_H3_LONG_PROMPT_PLAN")
+H3_DIALOGUE_TIMING = io.Custom("H3_DIALOGUE_TIMING")
 LONG_H3_UPSCALE_JOB = io.Custom("MINIMAX_H3_LONG_UPSCALE_JOB")
 LONG_H3_SEGMENT = io.Custom("MINIMAX_H3_LONG_SEGMENT")
 LONG_H3_UPSCALE_PROGRESS = io.Custom("MINIMAX_H3_LONG_UPSCALE_PROGRESS")
@@ -495,20 +502,76 @@ def _conditioning(clip, prompt, ref_items, ref_blocks):
     return conditioning
 
 
-def _delivered_audio(audio, segment):
+def _delivered_audio(audio, segment, output_frames=None):
     rate = int(audio["sample_rate"])
     start = round(segment.context_frames / FPS * rate)
-    count = round(segment.output_frames / FPS * rate)
+    frames = segment.output_frames if output_frames is None else int(output_frames)
+    count = round(frames / FPS * rate)
     return dict(audio, waveform=audio["waveform"][..., start:start + count])
 
 
-def _delivered_continuation_guide(previous, source_segment, context_frames, vae, audio_vae):
+def _timeline_audio_segment(audio, segment):
+    """Return the source-audio window matching one delivered video segment.
+
+    The timeline audio starts at target-video time zero.  It is sliced before
+    H3 reference encoding so long songs do not condition every generation pass
+    on the whole track and each pass receives the correct local singing cue.
+    """
+    if not isinstance(audio, dict) or not torch.is_tensor(audio.get("waveform")):
+        raise ValueError("timeline_audio must be a ComfyUI AUDIO value")
+    rate = int(audio.get("sample_rate") or 0)
+    waveform = audio["waveform"]
+    if rate <= 0 or waveform.ndim != 3 or waveform.shape[-1] <= 0:
+        raise ValueError("timeline_audio has an invalid sample rate or waveform")
+    start = round(segment.output_start / FPS * rate)
+    count = round(segment.output_frames / FPS * rate)
+    end = min(waveform.shape[-1], start + count)
+    if start >= waveform.shape[-1] or end <= start:
+        raise ValueError(
+            "timeline_audio is shorter than segment {} starting at {:.3f}s".format(
+                segment.index, segment.output_start / FPS
+            )
+        )
+    sliced = waveform[..., start:end]
+    missing = count - sliced.shape[-1]
+    if missing > round(rate / FPS):
+        raise ValueError(
+            "timeline_audio is too short for segment {} by {:.3f}s".format(
+                segment.index, missing / rate
+            )
+        )
+    if missing > 0:
+        sliced = torch.nn.functional.pad(sliced, (0, missing))
+    return dict(audio, waveform=sliced)
+
+
+def _silence_continuation_audio_tail(audio, silence_seconds=CONTINUATION_GUIDE_SILENCE_SECONDS,
+                                    fade_seconds=CONTINUATION_GUIDE_FADE_SECONDS):
+    """End a conditioning-only audio guide in silence without changing delivered audio."""
+    rate = int(audio["sample_rate"])
+    waveform = audio["waveform"].clone()
+    total = waveform.shape[-1]
+    silence = min(total, max(0, round(float(silence_seconds) * rate)))
+    fade = min(total - silence, max(0, round(float(fade_seconds) * rate)))
+    if fade:
+        ramp = torch.linspace(1.0, 0.0, fade, device=waveform.device, dtype=waveform.dtype)
+        waveform[..., total - silence - fade:total - silence] *= ramp
+    if silence:
+        waveform[..., total - silence:] = 0
+    return dict(audio, waveform=waveform)
+
+
+def _delivered_continuation_guide(previous, source_segment, context_frames, vae, audio_vae,
+                                  silence_audio=False, output_frames=None):
     """Anchor the actual delivered tail, excluding unsaved grid padding."""
     video, _ = _streams(previous)
     images = vae.decode(video)
     if images.ndim == 5:
         images = images.reshape(-1, *images.shape[-3:])
-    end = source_segment.context_frames + source_segment.output_frames
+    delivered_frames = source_segment.output_frames if output_frames is None else int(output_frames)
+    if delivered_frames < context_frames or delivered_frames > source_segment.output_frames:
+        raise ValueError("delivered predecessor cannot supply the requested continuation guide")
+    end = source_segment.context_frames + delivered_frames
     start = end - context_frames
     if start < 0 or images.shape[0] < end:
         raise ValueError("delivered predecessor is shorter than its continuation guide")
@@ -516,6 +579,12 @@ def _delivered_continuation_guide(previous, source_segment, context_frames, vae,
     audio = vae_decode_audio(audio_vae, previous)
     rate = int(audio["sample_rate"])
     audio = dict(audio, waveform=audio["waveform"][..., round(start / FPS * rate):round(end / FPS * rate)])
+    # The guide is conditioning only.  A guaranteed silent boundary prevents
+    # late speech from the preceding segment being replayed, garbled or doubled
+    # at the beginning of the next segment.  The saved/delivered predecessor is
+    # untouched, so complete final syllables remain audible in the master.
+    silence_seconds = context_frames / FPS if silence_audio else CONTINUATION_GUIDE_SILENCE_SECONDS
+    audio = _silence_continuation_audio_tail(audio, silence_seconds=silence_seconds)
     audio_guide, _ = h3._encode_ref_audio(audio_vae, audio)
     return {"resolved_frame_index": 0, "latent": video_guide,
             "audio_latent": audio_guide}
@@ -633,7 +702,7 @@ def _generation_fingerprint(graph_prompt, unique_id, model, audio_refine_model,
                             audio_refine_steps, audio_refine_denoise,
                             clip, sampler, sigmas,
                             ref_image_size, initial_latent, ref_images, ref_videos,
-                            ref_video_audios, ref_audios):
+                            ref_video_audios, ref_audios, timeline_audio=None):
     payload = {
         "schema": SCHEMA_VERSION,
         "graph": _prompt_graph_signature(graph_prompt, unique_id),
@@ -654,7 +723,8 @@ def _generation_fingerprint(graph_prompt, unique_id, model, audio_refine_model,
             ("ref_images", ref_images),
             ("ref_videos", ref_videos),
             ("ref_video_audios", ref_video_audios),
-            ("ref_audios", ref_audios)):
+            ("ref_audios", ref_audios),
+            ("timeline_audio", timeline_audio)):
         digest.update(name.encode("utf-8"))
         _update_runtime_hash(digest, value)
     return digest.hexdigest()
@@ -748,7 +818,7 @@ def _load_qwen_audit_module():
     global _QWEN_AUDIT_MODULE
     if _QWEN_AUDIT_MODULE is not None:
         return _QWEN_AUDIT_MODULE
-    module_path = Path(__file__).resolve().parents[2] / "comfyui-h3-standard-prompt" / "lm_client.py"
+    module_path = Path(__file__).resolve().parents[2] / "qwen_rapid_jp" / "nodes.py"
     if not module_path.is_file():
         return None
     spec = importlib.util.spec_from_file_location(
@@ -776,6 +846,25 @@ def _flatten_image_tensors(value):
         for key in sorted(value):
             images.extend(_flatten_image_tensors(value[key]))
     return images
+
+
+def _require_reference_images(prompt, ref_images, first_frame=None):
+    """Reject a reference-labelled prompt when no matching pixels arrived."""
+    available_picture_count = len(_flatten_image_tensors(ref_images))
+    if first_frame is not None:
+        available_picture_count += len(_flatten_image_tensors(first_frame))
+    referenced_picture_ids = {
+        int(value) for value in re.findall(r"<Picture\s+([1-9]\d*)>", prompt or "", re.I)
+    }
+    required_picture_count = max(
+        referenced_picture_ids
+        or ({1} if "CHARACTER_IDENTITY_LOCK=STRICT" in (prompt or "") else {0})
+    )
+    if required_picture_count > available_picture_count:
+        raise ValueError(
+            "参照人物を固定するH3プロンプトですが、実画像がサンプラーへ届いていません。"
+            "Ref2Vの参照画像接続（ref_images.ref_image_0 以降）を確認してください。"
+        )
 
 
 def _subject_inventory(prompt):
@@ -949,7 +1038,7 @@ def _audit_closed_cast_video(master_path, segments, master_prompt, ref_images, s
         return [], "unavailable: missing reference tensors or subject inventory"
     module = _load_qwen_audit_module()
     if module is None:
-        return [], "unavailable: portable local LM client is not installed"
+        return [], "unavailable: qwen_rapid_jp is not installed"
     model, api_base, timeout = settings
     sheets = supplied_sheets if supplied_sheets is not None else _video_segment_contact_sheets(master_path, segments)
     failed = []
@@ -975,7 +1064,7 @@ def _audit_closed_cast_video(master_path, segments, master_prompt, ref_images, s
             failed.append(segment.index)
             details.append("{}:missing_frames".format(segment.index))
             continue
-        helper = module.LocalLMHelper()
+        helper = module.QwenJapanesePromptLMStudio()
         helper.SYSTEM_PROMPT = system_prompt
         instruction = (
             "REFERENCE INVENTORY:\n{}\nAudit every human in all three contact-sheet "
@@ -1012,6 +1101,324 @@ def _audio_result_status(result):
     return "pass" if passed else (detail if passed is None else "fail: dialogue audio: " + detail)
 
 
+def _attach_local_audio_evidence(local_result, provider_result):
+    """Keep deterministic timing evidence when both inspectors pass."""
+    if not local_result or local_result[0] is not True or not provider_result:
+        return provider_result
+    if provider_result[0] is not True:
+        return provider_result
+    try:
+        local = json.loads(local_result[1])
+    except (ValueError, TypeError):
+        local = {'detail': local_result[1]}
+    try:
+        provider = json.loads(provider_result[1])
+    except (ValueError, TypeError):
+        provider = {'detail': provider_result[1]}
+    return True, json.dumps({'policy': 'local-timing-plus-provider-v1',
+                             'local': local, 'provider': provider}, ensure_ascii=False)
+
+
+def _audio_result_speech_end(result):
+    if not result or not isinstance(result[1], str):
+        return None
+    try:
+        data = json.loads(result[1])
+    except ValueError:
+        return None
+    stack = [data]
+    while stack:
+        value = stack.pop()
+        if isinstance(value, dict):
+            stamp = value.get('speech_end_seconds')
+            if isinstance(stamp, (int, float)) and math.isfinite(stamp):
+                return float(stamp)
+            stack.extend(value.values())
+        elif isinstance(value, list):
+            stack.extend(value)
+    return None
+
+
+def _reconcile_repaired_audio_audits(local_result, provider_result):
+    """Resolve a narrow false positive after deterministic repeat removal.
+
+    A repaired candidate is accepted only when two shifted local ASR passes find
+    exactly the scripted speech and the provider's transcript agrees.  The
+    provider's acoustic reviewer may still hallucinate words in the encoded
+    ambience; its objection is overridden only when the reported ending,
+    quality and speech margin independently say the utterance is complete and
+    usable.  Any transcript disagreement, cut-off, quality problem or other
+    issue remains a failure.
+    """
+    if not local_result or local_result[0] is not True or not provider_result:
+        return provider_result
+    passed, detail = provider_result
+    if passed is True:
+        return _attach_local_audio_evidence(local_result, provider_result)
+    if passed is not False:
+        return provider_result
+    try:
+        data = json.loads(detail)
+        transcript = data.get('verdict') or {}
+        acoustic = data.get('acoustic') or {}
+        ending = acoustic.get('ending') or {}
+        quality = acoustic.get('quality') or {}
+        margin = acoustic.get('speech_margin') or {}
+        issues = acoustic.get('issues') or []
+        kinds = {row.get('kind') for row in issues if isinstance(row, dict)}
+        allowed = {'repeated_speech', 'added_speech', 'unscripted_speech'}
+        enough_margin = float(margin.get('available_seconds', -1)) >= float(
+            margin.get('minimum_seconds', 0.25))
+        if not (transcript.get('pass') is True and issues and kinds <= allowed
+                and ending.get('status') == 'complete'
+                and quality.get('status') == 'usable' and enough_margin):
+            return provider_result
+        receipt = {
+            'pass': True,
+            'policy': 'corroborated_repaired_audio_v1',
+            'local': json.loads(local_result[1]),
+            'provider_transcript': transcript,
+            'provider_ending': ending,
+            'provider_quality': quality,
+            'provider_speech_margin': margin,
+            'overridden_provider_acoustic_issues': issues,
+        }
+        return True, json.dumps(receipt, ensure_ascii=False)
+    except (ValueError, TypeError, AttributeError):
+        return provider_result
+
+
+def _local_audio_verdict_result(verdict):
+    status = verdict['status']
+    if status in ('unavailable', 'not_configured'):
+        return None, 'unavailable: local speech recognition ' + verdict.get('reason', status)
+    return status != 'fail', json.dumps({'verdict': {'pass': status != 'fail',
+                     'issues': verdict.get('issues', [])}, 'scope': verdict['scope'],
+                     'device': verdict.get('device'), 'quality_pass': None,
+                     'speech_end_seconds': verdict.get('speech_end_seconds'),
+                     'delivered_duration_seconds': verdict.get('delivered_duration_seconds')},
+                    ensure_ascii=False)
+
+
+def _segment_with_delivery_frames(segment, output_frames):
+    """Return the same generated segment with a shorter delivered AV window."""
+    if output_frames in (None, ''):
+        return segment
+    frames = int(output_frames)
+    if not 1 <= frames <= segment.output_frames:
+        raise ValueError('delivered trim frames are outside the generated segment')
+    return Segment(segment.index, segment.raw_frames, segment.context_frames,
+                   segment.output_start, frames)
+
+
+def _metadata_delivery_frames(metadata, segment):
+    value = metadata.get('delivered_trim_frames') if isinstance(metadata, dict) else None
+    return _segment_with_delivery_frames(segment, value).output_frames
+
+
+def _tail_freeze_seconds(images, threshold=0.0015):
+    """Measure the final near-identical frame run without judging quiet motion."""
+    if images.shape[0] < 2:
+        return 0.0
+    reduced = images[..., :3].detach().to(device='cpu', dtype=torch.float32)
+    changes = (reduced[1:] - reduced[:-1]).abs().mean(dim=tuple(range(1, reduced.ndim)))
+    frozen = 0
+    for value in reversed(changes.tolist()):
+        if value > float(threshold):
+            break
+        frozen += 1
+    return frozen / FPS
+
+
+def _recover_saved_repeated_speech_candidate(project, segment, prompt_hash,
+                                              audio_vae, prompt, settings, audit_visual,
+                                              allow_tail_trim=False,
+                                              min_output_frames=1,
+                                              legacy_tail_freeze_seconds=None,
+                                              legacy_attempt=None):
+    """Recheck saved candidates and safely shorten an invalid spoken tail."""
+    attempt_dir = project / 'audit_attempts'
+    paths = sorted(
+        attempt_dir.glob(f'segment_{segment.index:04d}_attempt_*.safetensors'),
+        key=lambda path: int(re.search(r'_attempt_(\d+)\.safetensors$', path.name).group(1)),
+        reverse=True)
+    receipts = []
+    for path in paths:
+        candidate, metadata = _load_segment(path)
+        if (metadata.get('prompt_sha256') != prompt_hash
+                or int(metadata.get('raw_frames', -1)) != segment.raw_frames
+                or int(metadata.get('context_frames', -1)) != segment.context_frames
+                or int(metadata.get('output_frames', -1)) != segment.output_frames):
+            continue
+        attempt = int(metadata.get('attempt', -1))
+        if attempt not in range(9):
+            continue
+        stem = attempt_dir / f'segment_{segment.index:04d}_attempt_{attempt + 1}.resume-cause-audio'
+        prior_visual_pass = False
+        verdict_path = attempt_dir / f'segment_{segment.index:04d}_attempt_{attempt + 1}.verdict.json'
+        try:
+            prior_verdict = json.loads(verdict_path.read_text(encoding='utf-8'))
+            prior_status = prior_verdict.get('status', '')
+            # A combined pass is proof that the exact saved candidate passed
+            # its visual check.  Older compact receipts did not embed the
+            # audiovisual JSON payload in ``status``.
+            prior_visual_pass = (prior_status == 'pass'
+                                 and prior_verdict.get('failed') is False)
+            payload_start = prior_status.find('{')
+            if payload_start >= 0:
+                prior_visual_pass = json.loads(prior_status[payload_start:]).get('visual') == 'pass'
+        except (OSError, ValueError, TypeError):
+            prior_visual_pass = False
+        if not prior_visual_pass:
+            # A restart recheck may have replaced the small per-attempt receipt
+            # with an inspection-unavailable result.  The append-only manifest
+            # still contains the earlier verdict for this exact candidate.
+            try:
+                saved_manifest = json.loads((project / 'manifest.json').read_text(encoding='utf-8'))
+                for row in reversed(saved_manifest.get('segment_audits') or []):
+                    if (int(row.get('index', -1)) != segment.index
+                            or int(row.get('attempt', -1)) != attempt):
+                        continue
+                    saved_status = row.get('status', '')
+                    if saved_status == 'pass' and row.get('failed') is False:
+                        prior_visual_pass = True
+                        break
+                    payload_start = saved_status.find('{') if isinstance(saved_status, str) else -1
+                    if payload_start >= 0:
+                        try:
+                            if json.loads(saved_status[payload_start:]).get('visual') == 'pass':
+                                prior_visual_pass = True
+                                break
+                        except (ValueError, TypeError):
+                            pass
+            except (OSError, ValueError, TypeError):
+                pass
+        cutoff, trim_seconds, trim_frames, local_result = None, None, None, None
+        cutoff_source = None
+        if local_audio_audit.config_contract().get('enabled'):
+            delivered = _delivered_audio(vae_decode_audio(audio_vae, candidate), segment)
+            verdict = local_audio_audit.audit(delivered, prompt, Path(str(stem) + '.json'), locate_repeats=True)
+            local_result = _local_audio_verdict_result(verdict)
+            cutoff = local_audio_audit.repeated_speech_cutoff(verdict, prompt)
+            cutoff_kind = 'repeated_speech'
+            if cutoff is None:
+                cutoff = local_audio_audit.unprescribed_speech_cutoff(verdict, prompt)
+                cutoff_kind = 'unprescribed_speech'
+            if cutoff is not None:
+                cutoff_source = 'local_asr'
+                # Old repair checkpoints recorded how much frozen/muted tail
+                # they appended after the real repeat boundary.  For the same
+                # saved attempt and prompt this is more precise than a coarse
+                # ASR chunk that can span both the native reaction and repeat.
+                try:
+                    legacy_freeze = float(legacy_tail_freeze_seconds)
+                    hinted_cutoff = (segment.output_frames / FPS) - legacy_freeze
+                    if (attempt == int(legacy_attempt) and legacy_freeze > 0
+                            and float(cutoff) < hinted_cutoff < segment.output_frames / FPS):
+                        cutoff = hinted_cutoff
+                        cutoff_source = 'legacy_repeat_boundary'
+                except (TypeError, ValueError):
+                    pass
+                trim_seconds = None
+                if allow_tail_trim:
+                    trim_seconds = (local_audio_audit.natural_tail_trim_seconds(
+                        verdict, prompt, cutoff, min_reaction=0.125)
+                        if cutoff_kind == 'unprescribed_speech'
+                        else local_audio_audit.natural_tail_trim_seconds(verdict, prompt, cutoff))
+                if trim_seconds is None:
+                    receipts.append({'attempt': attempt + 1,
+                                     'status': 'fail: invalid speech tail has no safe AV trim',
+                                     'cutoff_kind': cutoff_kind,
+                                     'cutoff_seconds': round(float(cutoff), 3)})
+                    continue
+                trim_frames = max(1, min(segment.output_frames, round(trim_seconds * FPS)))
+                if trim_frames < int(min_output_frames):
+                    receipts.append({'attempt': attempt + 1,
+                                     'status': 'fail: safe AV trim is shorter than the next continuation guide',
+                                     'cutoff_kind': cutoff_kind,
+                                     'cutoff_seconds': round(float(cutoff), 3),
+                                     'trim_frames': trim_frames,
+                                     'minimum_frames': int(min_output_frames)})
+                    continue
+                repaired_delivered = _delivered_audio(
+                    vae_decode_audio(audio_vae, candidate), segment, trim_frames)
+                repaired_verdict = local_audio_audit.audit(
+                    repaired_delivered, prompt, Path(str(stem) + '.repaired.json'))
+                local_result = _local_audio_verdict_result(repaired_verdict)
+        # Removing a suffix cannot introduce a new person, camera or identity
+        # defect into frames that already passed.  Reuse that visual proof and
+        # let the deterministic frozen-tail gate inspect the new delivered end.
+        # If the old visual proof is absent, inspect the trimmed candidate.
+        if trim_frames is not None and prior_visual_pass:
+            visual_failed, visual_status = [], 'pass'
+        elif trim_frames is not None:
+            visual_failed, visual_status = audit_visual(candidate, attempt, trim_frames)
+        elif prior_visual_pass:
+            visual_failed, visual_status = [], 'pass'
+        else:
+            visual_failed, visual_status = audit_visual(candidate, attempt, None)
+        if visual_failed or visual_status != 'pass':
+            receipts.append({'attempt': attempt + 1, 'status': visual_status,
+                             'trim_frames': trim_frames})
+            continue
+        audit_segment = _segment_with_delivery_frames(segment, trim_frames)
+        locally_verified_trim = (trim_frames is not None and prior_visual_pass
+                                 and local_result and local_result[0] is True)
+        if locally_verified_trim:
+            # ``local_audio_audit`` requires agreement from two independently
+            # padded ASR windows and supplies a complete scripted-speech end.
+            # Together with the saved visual pass this is sufficient to resume
+            # after a server restart without re-entering a cloud credential.
+            combined = local_result
+        else:
+            provider_result = (_audit_delivered_audio(candidate, audit_segment, audio_vae, prompt, settings)
+                               if isinstance(settings, dict) and settings.get('backend') == 'nanobanana'
+                               else local_result or (None, 'unavailable: audio inspection not configured'))
+            combined = (_reconcile_repaired_audio_audits(local_result, provider_result)
+                        if trim_frames is not None else provider_result)
+        receipts.append({'attempt': attempt + 1, 'status': _audio_result_status(combined),
+                         'cutoff_seconds': round(float(cutoff), 3) if cutoff is not None else None,
+                         'cutoff_kind': cutoff_kind if cutoff is not None else None,
+                         'cutoff_source': cutoff_source,
+                         'trim_seconds': round(float(trim_seconds), 3) if trim_seconds is not None else None,
+                         'trim_frames': trim_frames,
+                         'saved_visual_pass_reused': prior_visual_pass,
+                         'local_restart_recovery': bool(locally_verified_trim)})
+        # Persist each recovery candidate immediately.  A long ASR recheck must
+        # not look frozen to the external monitor while it walks saved attempts.
+        try:
+            manifest_path = project / 'manifest.json'
+            manifest = json.loads(manifest_path.read_text(encoding='utf-8')) if manifest_path.is_file() else {}
+            manifest['status'] = 'segment_recovering'
+            manifest['current_segment'] = segment.index
+            manifest['current_attempt'] = attempt + 1
+            manifest['recovery_candidate'] = receipts[-1]
+            writer = globals().get('_atomic_json')
+            if callable(writer):
+                writer(manifest_path, manifest)
+        except (OSError, ValueError, TypeError):
+            pass
+        if combined[0] is True:
+            recovered_metadata = dict(metadata)
+            recovered_metadata.update({
+                'segment_audit_attempt': str(attempt),
+                'segment_audit_failed': 'False',
+                'segment_audit_status': 'pass',
+                'segment_audit_policy': 'cause-recovery-v2',
+                'selected_audio': 'saved_tail_trimmed' if trim_frames is not None else 'saved_unchanged',
+                'delivered_trim_frames': str(trim_frames) if trim_frames is not None else '',
+                'repeat_tail_freeze_seconds': '',
+            })
+            return candidate, recovered_metadata, combined, {
+                'index': segment.index, 'attempt': attempt + 1,
+                'strategy': 'recover_saved_invalid_av_tail_trim_v3',
+                'cutoff_seconds': round(float(cutoff), 3) if cutoff is not None else None,
+                'trim_frames': trim_frames, 'candidates': receipts}
+    return None, None, None, {'index': segment.index,
+                              'strategy': 'recover_saved_invalid_av_tail_trim_v3',
+                              'candidates': receipts, 'status': 'no_verified_repair'}
+
+
 def _speaker_probe_offsets(duration):
     """Three chronological adjacent-frame pairs within the speaking window."""
     end = max(0.0, float(duration) - 0.5)
@@ -1021,13 +1428,15 @@ def _speaker_probe_offsets(duration):
     return tuple(t for start in starts for t in (start, min(end, start + delta)))
 
 
-def _audit_segment_latent(candidate, segment, vae, audio_vae, prompt, ref_images, settings, evidence_path=None, audio_result=None):
+def _audit_segment_latent(candidate, segment, vae, audio_vae, prompt, ref_images, settings, evidence_path=None, audio_result=None,
+                          previous=None, previous_segment=None, visual_prompt=None):
     audio_status = "pass"
     if isinstance(settings, dict) and settings.get("backend") == "nanobanana":
         result = audio_result if audio_result is not None else _audit_delivered_audio(candidate, segment, audio_vae, prompt, settings)
         audio_status = _audio_result_status(result)
         print("[H3 segment audio audit] " + str(segment.index) + ": " + result[1])
 
+    prompt = visual_prompt or prompt
     video, _ = _streams(candidate)
     images = vae.decode(video)
     if images.ndim == 5:
@@ -1035,6 +1444,15 @@ def _audit_segment_latent(candidate, segment, vae, audio_vae, prompt, ref_images
     if images.shape[0] < segment.raw_frames:
         raise ValueError("segment audit: VAE returned too few frames")
     duration = segment.output_frames / FPS
+    delivered_images = images[
+        segment.context_frames:segment.context_frames + segment.output_frames]
+    speech_end = _audio_result_speech_end(audio_result)
+    frozen_tail = _tail_freeze_seconds(delivered_images)
+    del delivered_images
+    post_speech_tail = (max(0.0, duration - speech_end)
+                        if speech_end is not None else None)
+    unnatural_tail = (post_speech_tail is not None and post_speech_tail > 1.5
+                      and frozen_tail > 0.75)
     speaker_probe=isinstance(settings,dict) and settings.get('backend')=='nanobanana'
     offsets = _speaker_probe_offsets(duration) if speaker_probe else (0.5, duration / 2, max(0.5, duration - 0.5))
     frames = []
@@ -1042,6 +1460,33 @@ def _audit_segment_latent(candidate, segment, vae, audio_vae, prompt, ref_images
         index = segment.context_frames + min(segment.output_frames - 1, round(offset * FPS))
         array = (images[index, ..., :3] * 255).clamp(0, 255).to(device="cpu", dtype=torch.uint8).numpy()
         frames.append(Image.fromarray(array))
+    camera_result=None
+    if (speaker_probe and previous is not None and previous_segment is not None
+            and segment.context_frames == 0 and 'Opening camera setup:' in prompt):
+        current_camera=[images[segment.context_frames+i:segment.context_frames+i+1].detach().cpu()
+                        for i in (0,min(6,segment.output_frames-1))]
+        prior_video,_=_streams(previous)
+        prior_frames=vae.decode(prior_video)
+        if prior_frames.ndim==5:prior_frames=prior_frames.reshape(-1,*prior_frames.shape[-3:])
+        end=previous_segment.context_frames+previous_segment.output_frames
+        prior_camera=[prior_frames[i:i+1].detach().cpu() for i in (max(0,end-7),end-1)]
+        auditor=comfy_nodes.NODE_CLASS_MAPPINGS.get('NanoBananaH3Transform')
+        try:
+            camera_result=auditor.audit_camera_view(settings['provider'],current_camera,prompt,prior_camera)
+        except (AttributeError,RuntimeError,ValueError,TypeError,KeyError):
+            camera_result=(False,{'status':'unavailable','issues':[{'kind':'camera_comparison_unavailable',
+                            'detail':'Adjacent delivered-frame camera comparison could not be completed.'}]})
+        if evidence_path is not None:
+            _atomic_json(evidence_path.with_suffix('.camera.json'),camera_result[1])
+            comparison=Image.new('RGB',(int(images.shape[2])*2,
+                                        (int(images.shape[1])+28)*2),'black')
+            for i,frame in enumerate(prior_camera+current_camera):
+                labeled=_labeled_audit_image(frame,('PREVIOUS ' if i<2 else 'CURRENT ')+str(i%2+1))
+                array=(labeled[0]*255).clamp(0,255).to(torch.uint8).numpy()
+                tile=Image.fromarray(array)
+                comparison.paste(tile,((i%2)*tile.width,(i//2)*tile.height))
+            comparison.save(evidence_path.with_suffix('.camera.png'))
+        del prior_frames,prior_video,current_camera,prior_camera
     del images, video
     width = min(768, frames[0].width)
     height = round(frames[0].height * width / frames[0].width)
@@ -1057,6 +1502,18 @@ def _audit_segment_latent(candidate, segment, vae, audio_vae, prompt, ref_images
               if speaker_probe else torch.from_numpy(__import__("numpy").asarray(sheet).copy()).float().div(255).unsqueeze(0))
     failed, visual_status = _audit_closed_cast_video(None, [segment], prompt, ref_images, settings,
                                    {segment.index: prompt}, {segment.index: tensor})
+    if camera_result is not None and not camera_result[0]:
+        failed=[segment.index]
+        visual_status='fail: camera comparison: '+json.dumps(
+            dict(camera_result[1],identity_status=visual_status),ensure_ascii=False)
+    if unnatural_tail:
+        failed = [segment.index]
+        visual_status = 'fail: unnatural post-speech frozen tail: ' + json.dumps({
+            'speech_end_seconds': round(speech_end, 3),
+            'delivered_duration_seconds': round(duration, 3),
+            'post_speech_tail_seconds': round(post_speech_tail, 3),
+            'frozen_tail_seconds': round(frozen_tail, 3),
+        }, ensure_ascii=False)
     if audio_status == "pass" and visual_status == "pass":
         return [], "pass"
     details = {"audio": audio_status, "visual": visual_status}
@@ -1070,12 +1527,7 @@ def _audit_local_script_audio(candidate, segment, audio_vae, prompt, evidence_pa
     try:
         audio = _delivered_audio(vae_decode_audio(audio_vae, candidate), segment)
         verdict = local_audio_audit.audit(audio, prompt, evidence_path)
-        status = verdict['status']
-        if status in ('unavailable', 'not_configured'):
-            return None, 'unavailable: local speech recognition ' + verdict.get('reason', status)
-        return status != 'fail', json.dumps({'verdict': {'pass': status != 'fail',
-                         'issues': verdict.get('issues', [])}, 'scope': verdict['scope'],
-                         'device': verdict.get('device'), 'quality_pass': None}, ensure_ascii=False)
+        return _local_audio_verdict_result(verdict)
     except comfy.model_management.InterruptProcessingException:
         raise
     except Exception as exc:
@@ -1149,8 +1601,7 @@ def _audit_three_mode_segment(candidate, previous, source_segment, segment, vae,
         picture=Image.fromarray(array).resize((width,height),Image.Resampling.LANCZOS)
         sheet.paste(picture,((i%4)*width,(i//4)*height))
     sheet.save(evidence_path)
-    standard_node = comfy_nodes.NODE_CLASS_MAPPINGS.get('H3StandardPrompt')
-    helper_class = standard_node.local_lm_helper if standard_node is not None else None
+    helper_class = comfy_nodes.NODE_CLASS_MAPPINGS.get('QwenJapanesePromptLMStudio')
     if helper_class is None:return [segment.index], 'unavailable: local visual inspector node missing'
     helper = helper_class()
     helper.SYSTEM_PROMPT = 'Evaluate only visible chronological continuity. Return the requested JSON without Markdown.'
@@ -1159,67 +1610,94 @@ def _audit_three_mode_segment(candidate, previous, source_segment, segment, vae,
                                  model,api_base,0.0,1024,timeout,False,'',
                                  input_images=inspection_frames,reasoning='off')
     passed, detail = parse_verdict(response,len(current))
-    appearance = None
-    if passed and references:
-        # Keep wardrobe comparison separate from the larger chronological sequence.
-        response, _ = helper.convert(appearance_instruction(prompt, len(references)),
-                                     model, api_base, 0.0, 1024, timeout, False, '',
-                                     input_images=inspection_frames[:len(references)] +
-                                         [_labeled_audit_image(current[-1], "CURRENT FRAME 0")], reasoning='off')
-        appearance_passed, appearance_detail = parse_verdict(response, 1)
-        appearance = json.loads(appearance_detail)
-        if any(issue['kind'] != 'wardrobe_mismatch' for issue in appearance['issues']):
+    verdict = json.loads(detail)
+    appearance = verdict.get('appearance_comparison') if references else None
+    if references:
+        # Identity and continuity share the same labeled frames and one local-LM
+        # request.  A second identical multimodal prefill doubled CPU audit time
+        # and could time out after the continuity half had already succeeded.
+        if (not isinstance(appearance, dict) or type(appearance.get('pass')) is not bool
+                or appearance.get('frames_checked') != len(current)
+                or not isinstance(appearance.get('issues'), list)):
+            raise ValueError('combined visual audit omitted appearance comparison')
+        if any(issue.get('kind') not in {'identity_mismatch', 'wardrobe_mismatch'}
+               for issue in appearance['issues'] if isinstance(issue, dict)):
             raise ValueError('appearance comparison returned an unrelated issue')
-        if not appearance_passed:
-            passed = False
-            detail = json.dumps({'pass':False, 'frames_checked':len(current),
-                                'issues':[dict(issue, frame=len(current)-1) for issue in appearance['issues']]},
-                               ensure_ascii=False)
+        if appearance['pass'] != (not appearance['issues']):
+            raise ValueError('appearance comparison contradicts its evidence')
+        if not appearance['pass'] and passed:
+            raise ValueError('top-level visual verdict ignored appearance failure')
     _atomic_json(evidence_path.with_suffix('.json'),{'scope':'visual_continuity_only',
                  'appearance_reference_frames':len(references),
                  'prior_delivered_frames':len(prior),'current_offsets_seconds':offsets,
                  'passed':passed,'detail':json.loads(detail),'appearance_comparison':appearance})
     return ([],'pass') if passed else ([segment.index],'fail: visual continuity: '+detail)
 
+def _split_retake_feedback(feedback):
+    """Separate concrete failures; a checker outage is not a visual defect."""
+    if not feedback or feedback == "pass" or feedback.startswith("unavailable:"):
+        return "", ""
+    if feedback.startswith("fail: audiovisual:"):
+        try:
+            details = json.loads(feedback.split("fail: audiovisual:", 1)[1])
+        except (ValueError, TypeError):
+            return "", ""
+        if not isinstance(details, dict):
+            return "", ""
+        def failure(value):
+            return value if isinstance(value, str) and value != "pass" and not value.startswith("unavailable:") else ""
+        return failure(details.get("audio")), failure(details.get("visual"))
+    if feedback.startswith("fail: dialogue audio:"):
+        return feedback, ""
+    return "", feedback
+
+
+def _saved_candidate_prompt(project, index, attempt, fallback):
+    path = project / 'audit_attempts' / f'segment_{index:04d}_attempt_{attempt + 1}.json'
+    if not path.is_file():
+        return fallback
+    value = json.loads(path.read_text(encoding='utf-8')).get('prompt')
+    return value if isinstance(value, str) and value.strip() else fallback
+
+
+def _strip_retake_notes(prompt):
+    # Only remove notes emitted by this retry path, keeping subsequent H3 sections.
+    return re.sub(
+        r"(?ms)\n\[(?:AUDIO RETAKE CORRECTION|VISUAL RETAKE CORRECTION|RETAKE CORRECTION|CAUSE RECOVERY PHASE)"
+        r"[^\]\n]*\].*?(?=\n(?:\[|(?:subject_definitions|summary|retention_analysis|"
+        r"detailed_description|overall_soundscape|non_diegetic_music):)|\Z)",
+        "", prompt)
+
+
 def _retry_generation_prompt(local_prompt, audit_feedback):
     if not audit_feedback:
         return local_prompt
+    local_prompt = _strip_retake_notes(local_prompt)
     if audit_feedback.startswith("fail: user review:"):
         correction = audit_feedback.split("fail: user review:", 1)[1]
         correction = correction.replace("<d>", "[review]").replace("</d>", "[/review]")[-1600:]
         return local_prompt + ("\n[RETAKE CORRECTION] Apply this correction to the current segment only: "
             + correction + ". Preserve the approved preceding visual and audio continuity, "
             "character voice, local tagged words and their order. The correction is not spoken dialogue.")
-    if audit_feedback.startswith("fail: audiovisual:"):
+    audio_feedback, visual_feedback = _split_retake_feedback(audit_feedback)
+    if audio_feedback:
+        # Interpret issue kinds, never condition generation on rejected transcripts.
         try:
-            details = json.loads(audit_feedback.split("fail: audiovisual:", 1)[1])
-            result = local_prompt
-            for key in ("audio", "visual"):
-                feedback = details.get(key, "pass")
-                if feedback != "pass" and not feedback.startswith("unavailable:"):
-                    result = _retry_generation_prompt(result, feedback)
-            return result
-        except (ValueError, TypeError):
-            return local_prompt
-    prefix = "fail: dialogue audio:"
-    if audit_feedback.startswith(prefix):
-        # Interpret verdict issues, never condition generation on the rejected transcript.
-        try:
-            detail = json.loads(audit_feedback[len(prefix):].strip())
+            detail = json.loads(audio_feedback.split("fail: dialogue audio:", 1)[1].strip())
             issues = []
             for key in ("verdict", "acoustic"):
                 verdict = detail.get(key)
                 if isinstance(verdict, dict) and verdict.get("pass") is False:
                     issues.extend(verdict.get("issues") or [])
             kinds = {issue.get("kind") for issue in issues if isinstance(issue, dict)}
-        except (ValueError, TypeError, AttributeError):
+        except (ValueError, TypeError, AttributeError, IndexError):
             kinds = set()
         corrections = []
         if "repeated_speech" in kinds:
             corrections.append("Deliver each prescribed clause once; never restart or echo it. "
                                "Do not replay speech from the preceding audio guide. "
                                "When the prescribed line is short, leave the remaining time without human speech.")
-        if kinds & {"unscripted_speech", "repeated_vocalization"}:
+        if kinds & {"unscripted_speech", "added_speech", "repeated_vocalization"}:
             corrections.append("Keep the speech-free beats before and after the scheduled line free of vocal filler. "
                                "At the explicit speech time, deliver only the tagged words once. "
                                "Do not continue any word or vocal warm-up from the preceding guide.")
@@ -1231,26 +1709,58 @@ def _retry_generation_prompt(local_prompt, audit_feedback):
             corrections.append("Start the prescribed utterance promptly and use a natural, brisk pace "
                                "so every word, including its ending, finishes inside this segment. "
                                "Do not abbreviate or split it across the boundary.")
+        if kinds & {"truncated_speech", "insufficient_speech_margin"}:
+            corrections.append("The previous voice was cut off by the file boundary. Start at the scheduled "
+                               "speech time without a delayed lead-in. Complete the final voiced sound "
+                               "with a natural release before the speech deadline, leaving the prescribed "
+                               "silent reaction. A sustained vowel is allowed only if it finishes naturally "
+                               "inside the window; do not cut or fade a continuing voice.")
         if "changed_words" in kinds:
             corrections.append("Follow the local tagged text verbatim in the established reading; "
-                               "do not substitute, paraphrase, or invent words.")
+                               "do not substitute, paraphrase, or invent words. Articulate Japanese "
+                               "grammatical particles and the boundary on each side of them clearly, "
+                               "without inserting another word or changing the natural sentence rhythm.")
         if kinds & {"overlapping_speech", "wrong_speaker"}:
             corrections.append("Only the speaker assigned to each local turn may speak, "
                                "with a single voice and no overlapping voices from other characters.")
         if not corrections:
             corrections.append("Render the complete local tagged utterance in its prescribed order "
                                "and reading, without extra words or repeated clauses.")
-        return local_prompt + (
+        local_prompt += (
             "\n[AUDIO RETAKE CORRECTION — highest priority] " + " ".join(corrections)
             + " Preserve repetitions explicitly written in the authoritative dialogue. "
             "After the final prescribed syllable, keep all human voices silent. "
             "Preserve the original music policy, source identities, approved preceding "
             "visual continuity, and all unaffected scene content.")
-    return local_prompt + (
-        "\n[VISUAL RETAKE CORRECTION — highest priority] Correct the observed "
-        "visual mismatch below while preserving the approved preceding continuity, "
-        "source identities, story and dialogue ownership. Do not speak this report. "
-        + audit_feedback.replace("<d>", "[reported dialogue]").replace("</d>", "[/reported dialogue]")[-1600:])
+    if visual_feedback:
+        # Safe local fallback when shot replacement is unavailable. Raw audit prose
+        # belongs to the repair request, never to the H3 generation prompt.
+        local_prompt += (
+            "\n[VISUAL RETAKE CORRECTION — highest priority] Keep one coherent body "
+            "per intended visible identity, with the reference face, hairstyle, clothes "
+            "and attached features. Use stable positions and a face-readable camera view "
+            "while preserving the local action, its participants and dialogue ownership. "
+            "Preserve off-screen and narration roles. A visible prescribed speaker "
+            "articulates the line; other visible characters react with their eyes, "
+            "brows and posture while keeping their lips still. "
+            "Preserve the preceding continuity, exact dialogue clock, sound and music.")
+    return local_prompt
+
+
+def _prepare_segment_retake(local_prompt, audit_feedback, repair_visual=None):
+    """Route compound audits through shot replacement, then add only audio notes."""
+    base = _strip_retake_notes(local_prompt)
+    audio_feedback, visual_feedback = _split_retake_feedback(audit_feedback)
+    if visual_feedback and repair_visual is not None:
+        try:
+            repaired, record = repair_visual(base, visual_feedback)
+            return _retry_generation_prompt(repaired, audio_feedback), dict(record, status="repaired")
+        except comfy.model_management.InterruptProcessingException:
+            raise
+        except Exception as exc:
+            return _retry_generation_prompt(base, audit_feedback), {
+                "status": "unavailable", "error_type": type(exc).__name__}
+    return _retry_generation_prompt(base, audit_feedback), None
 
 
 def _candidate_quality_rank(failed, status):
@@ -1312,7 +1822,7 @@ def _candidate_quality_rank(failed, status):
         collect(detail)
         break
     weights = {"repeated_speech": 5, "overlapping_speech": 6,
-               "wrong_speaker": 5, "changed_words": 4, "missing_speech": 3, "unscripted_speech": 5, "repeated_vocalization": 4}
+               "wrong_speaker": 5, "changed_words": 4, "missing_speech": 3, "truncated_speech": 4, "insufficient_speech_margin": 4, "unscripted_speech": 5, "repeated_vocalization": 4}
     # Duplicate acoustic/transcript diagnoses count once per kind.
     kinds = {str(issue["kind"]) for issue in issues}
     extra_size = max((issue.get('extra_characters', 0) for issue in issues
@@ -1331,19 +1841,56 @@ def _checked_candidate_attempt_limit(value):
 
 def _generate_verified_segment(generate, audit, report, enabled, max_attempts=5, initial_feedback="",
                                start_attempt=0, initial_candidate=None, initial_attempt=0,
-                               initial_verdict=None, on_best=None):
+                               initial_verdict=None, on_best=None, candidate_context=None,
+                               require_verified=False, recover=None,
+                               recover_first=False,
+                               allow_unverified=False):
     """Bounded advisory retries, including the previous matching best on resume."""
-    if type(start_attempt) is not int or not 0 <= start_attempt <= 5:
+    if type(start_attempt) is not int or not 0 <= start_attempt <= 9:
         raise ValueError("invalid cumulative segment attempt count")
     best, best_attempt = initial_candidate, initial_attempt
+    # Keep the actual verdict with the selected candidate. ``failed`` alone
+    # cannot distinguish a bad generated segment from a checker that could not
+    # run; treating both as a quality failure was the source of false stops.
+    best_status = initial_verdict[1] if best is not None and initial_verdict is not None else None
     best_rank = (_candidate_quality_rank(*initial_verdict)
                  if best is not None and initial_verdict is not None else None)
     feedback = initial_feedback
-    stop = min(5, max(1, int(max_attempts)))
+    best_context = candidate_context() if candidate_context is not None else None
+    if recover_first and recover is not None:
+        # Legacy repeated-speech repairs muted the second utterance without
+        # changing the matching repeated mouth/action frames.  Re-auditing
+        # their audio would pass and return the stale AV candidate unchanged,
+        # so run the shared-cutoff AV recovery before any ordinary recheck.
+        recovered = recover()
+        if recovered is not None:
+            value, attempt, failed, status = recovered
+            report(attempt, failed, status)
+            if not failed and status == 'pass':
+                if on_best is not None:
+                    on_best(value, attempt, failed, status)
+                return value, attempt
+    if require_verified and enabled and best is not None:
+        # A comparator update or transient inspection error should not require a
+        # new GPU sample. Reinspect the exact persisted candidate first.
+        failed, status = audit(best)
+        report(initial_attempt, failed, status)
+        best_rank = _candidate_quality_rank(failed, status)
+        if on_best is not None:
+            on_best(best, initial_attempt, failed, status)
+        if not failed and status == 'pass':
+            return best, initial_attempt
+        feedback = status
+    stop = min(9, max(1, int(max_attempts)))
     if not enabled:
         stop = min(stop, start_attempt + 1)
     for attempt in range(start_attempt, stop):
         candidate = generate(attempt, feedback)
+        current_context = candidate_context() if candidate_context is not None else None
+        if current_context != best_context:
+            # Duration repair changed the latent geometry. An older short
+            # candidate must never be decoded using the extended trim contract.
+            best, best_rank, best_context = None, None, current_context
         if not enabled:
             if on_best is not None:
                 on_best(candidate, attempt, False, "not_applicable")
@@ -1355,9 +1902,18 @@ def _generate_verified_segment(generate, audit, report, enabled, max_attempts=5,
         except Exception as exc:
             failed, status = True, "unavailable: " + type(exc).__name__
         report(attempt, failed, status)
+        if require_verified and status.startswith('unavailable:'):
+            # Inspection recovery spends an inspection, not another GPU sample.
+            try:
+                failed, status = audit(candidate)
+            except comfy.model_management.InterruptProcessingException:
+                raise
+            except Exception as exc:
+                failed, status = True, 'unavailable: ' + type(exc).__name__
+            report(attempt, failed, status)
         rank = _candidate_quality_rank(failed, status)
         if best_rank is None or rank < best_rank:
-            best, best_rank, best_attempt = candidate, rank, attempt
+            best, best_rank, best_attempt, best_status = candidate, rank, attempt, status
             if on_best is not None:
                 on_best(candidate, attempt, failed, status)
         if (not failed and status == "pass") or status.startswith("unavailable:"):
@@ -1365,6 +1921,35 @@ def _generate_verified_segment(generate, audit, report, enabled, max_attempts=5,
         feedback = status
     if best is None:
         raise RuntimeError("区間の累計候補上限に達しましたが、保存済み候補がありません。上限を自動でリセットせず停止しました。")
+    if require_verified and enabled and best_rank != (0, 0):
+        if isinstance(best_status, str) and best_status.startswith("unavailable:"):
+            # A checker outage is neither a media-quality rejection nor a
+            # reason to discard a generated candidate. Preserve its explicit
+            # unverified status for the manifest and let the normal workflow
+            # continue; a later audit/resume can recheck this exact candidate
+            # without spending another GPU/API generation attempt.
+            print("[品質検査未確認・続行] 区間候補を保持して後続工程へ進みます: " + best_status)
+            return best, best_attempt
+        if recover is not None:
+            recovered = recover()
+            if recovered is not None:
+                value, attempt, failed, status = recovered
+                report(attempt, failed, status)
+                if not failed and status == 'pass':
+                    if on_best is not None:
+                        on_best(value, attempt, failed, status)
+                    return value, attempt
+        if not allow_unverified:
+            raise RuntimeError(
+                'この区間の原因別修復では品質を確定できませんでした。合格済み区間・参照素材・台詞・'
+                '候補と検査結果を保存しています。同じ保存先で途中再開でき、先頭の画像生成と台詞確認は再利用します。'
+                '最後の検査: ' + feedback[:800])
+        # Do not abort the whole multi-segment workflow merely because the
+        # bounded cause-recovery pass could not certify this saved candidate.
+        # Keep the best persisted candidate, mark it as unverified, and let the
+        # final manifest expose the audit failure for a later targeted resume.
+        print('[品質検査未確定・続行] 原因別修復後も合格を確定できないため、最良候補を保持して後続区間へ進みます: ' + feedback[:800])
+        return best, best_attempt
     return best, best_attempt
 
 
@@ -1422,14 +2007,33 @@ def _metadata_matches(metadata, segment, prompt_hash, width, height, noise_seed,
         "predecessor_lineage": predecessor_lineage,
         "lineage": lineage,
     }
+    if segment.index > 0 and segment.context_frames == 0:
+        # A hard cut has no preceding AV guide. Moving it on the assembled
+        # timeline does not change its reference-conditioned latent content.
+        for key in ('output_start', 'predecessor_lineage', 'lineage'):
+            expected.pop(key)
     return all(metadata.get(key) == value for key, value in expected.items())
 
 
-def _checkpoint_audit_reusable(metadata, audit_applicable):
+def _checkpoint_audit_reusable(metadata, audit_applicable, require_verified=False):
     # Advisory mode deliberately saved the best candidate even when all failed.
     # Explicit resume retains it; input hashes/lineage are still checked separately.
-    return not audit_applicable or metadata.get("segment_audit_policy") in (
-        "before-next-segment-v1:pass", "advisory-v2")
+    if not require_verified:
+        return not audit_applicable or metadata.get('segment_audit_policy') in (
+            'before-next-segment-v1:pass', 'advisory-v2', 'cause-recovery-v1')
+    return not audit_applicable or (
+        str(metadata.get('segment_audit_failed')).lower() == 'false'
+        and metadata.get('segment_audit_status') == 'pass'
+        and metadata.get("segment_audit_policy") in (
+            "before-next-segment-v1:pass", "advisory-v2", "cause-recovery-v1",
+            "cause-recovery-v2"))
+
+
+def _checkpoint_needs_av_sync_recovery(metadata):
+    """Reject every legacy repair that muted audio or froze repeated motion."""
+    return (metadata.get("selected_audio") in (
+                "recovered_first_utterance_only", "refined_first_utterance_only")
+            or bool(metadata.get("repeat_tail_freeze_seconds")))
 
 
 def _restored_audit_record(metadata, previous_manifest, index, attempt):
@@ -1443,6 +2047,19 @@ def _restored_audit_record(metadata, previous_manifest, index, attempt):
     return {"index": index, "attempt": attempt,
             "status": "unavailable: reused checkpoint has no stored audit verdict",
             "failed": False}
+
+
+def _final_audit_summary(selected_segment_audits, completed, audit_applicable):
+    verdicts = {int(index): row for index, row in selected_segment_audits.items()
+                if isinstance(row, dict)}
+    missing = (sorted(set(range(completed)) - set(verdicts))
+               if audit_applicable else [])
+    failed = sorted(set(missing) | {
+        index for index, row in verdicts.items()
+        if row.get('failed') or row.get('status') != 'pass'
+    })
+    status = ('warning' if failed else 'pass') if audit_applicable else 'not_applicable'
+    return status, failed, missing
 
 
 def _validate_preserved_segments(segment_paths, segments, local_prompts, reroll_from_segment,
@@ -1462,7 +2079,7 @@ def _validate_preserved_segments(segment_paths, segments, local_prompts, reroll_
             metadata = handle.metadata() or {}
         prompt_hash = _prompt_hash(local_prompt)
         attempt = int(metadata.get("segment_audit_attempt", "0"))
-        if attempt not in range(5):
+        if attempt not in range(9):
             raise ValueError("invalid segment audit attempt")
         segment_seed = _segment_noise_seed(noise_seed, segment.index, attempt)
         lineage = _segment_lineage(
@@ -1473,7 +2090,7 @@ def _validate_preserved_segments(segment_paths, segments, local_prompts, reroll_
             raise ValueError(
                 "segment {} no longer matches the current generation inputs; reroll from this segment or earlier".format(
                     segment.index))
-        predecessor_lineage = lineage
+        predecessor_lineage = metadata.get('lineage', lineage)
 
 
 def _may_reuse_segment(resume, generated, reroll_from_segment, index, previous_manifest):
@@ -1482,7 +2099,7 @@ def _may_reuse_segment(resume, generated, reroll_from_segment, index, previous_m
     if reroll_from_segment >= 0:
         return index < reroll_from_segment
     unfinished = (previous_manifest.get("status") in (
-        "sampling", "segment_auditing", "segment_check_failed")
+        "sampling", "segment_auditing", "segment_recovering", "segment_check_failed")
         and previous_manifest.get("current_segment") == index)
     return not unfinished
 
@@ -1490,14 +2107,14 @@ def _may_reuse_segment(resume, generated, reroll_from_segment, index, previous_m
 def _segment_attempt_count(manifest, index):
     budget = (manifest.get("segment_attempt_counts") or {}).get(str(index), {})
     count = budget.get("count", 0)
-    if type(count) is not int or not 0 <= count <= 5:
+    if type(count) is not int or not 0 <= count <= 9:
         raise ValueError("invalid saved cumulative segment attempt count")
     history = {}
     for row in manifest.get("segment_audits", []):
         if row.get("index") != index:
             continue
         attempt = row.get("attempt", -1)
-        if type(attempt) is not int or not -1 <= attempt < 5:
+        if type(attempt) is not int or not -1 <= attempt < 9:
             raise ValueError("invalid saved segment audit history")
         context = row.get("context", budget.get("context", "legacy"))
         history[context] = max(history.get(context, 0), attempt + 1)
@@ -1506,7 +2123,7 @@ def _segment_attempt_count(manifest, index):
     else:
         # Old histories numbered attempts separately for every predecessor.
         used = sum(history.values())
-    return min(5, max(count, used))
+    return min(9, max(count, used))
 
 
 def _resume_segment_candidate(checkpoint, segment, prompt_hash, width, height, noise_seed,
@@ -1519,7 +2136,7 @@ def _resume_segment_candidate(checkpoint, segment, prompt_hash, width, height, n
         with safe_open(str(checkpoint), framework="pt", device="cpu") as handle:
             saved = handle.metadata() or {}
         attempt = int(saved.get("segment_audit_attempt", "0"))
-        if attempt not in range(5):
+        if attempt not in range(9):
             raise ValueError("invalid saved candidate attempt")
         if saved.get("generation_fingerprint") == generation_fingerprint:
             count = max(count, attempt + 1)
@@ -1737,14 +2354,12 @@ def _assemble_master_audio(segment_paths, segments, audio_vae, sample_rate,
         raise ValueError("dialogue activity must match the segment plan")
     chunks = []
     for checkpoint, segment, is_active in zip(segment_paths, segments, activity):
-        latent, _ = _load_segment(checkpoint)
+        latent, metadata = _load_segment(checkpoint)
         audio = vae_decode_audio(audio_vae, latent)
         raw_samples = round(segment.raw_frames / FPS * sample_rate)
         context_samples = round(segment.context_frames / FPS * sample_rate)
-        output_start = round(segment.output_start / FPS * sample_rate)
-        output_end = round(
-            (segment.output_start + segment.output_frames) / FPS * sample_rate)
-        output_samples = output_end - output_start
+        delivery_frames = _metadata_delivery_frames(metadata, segment)
+        output_samples = round(delivery_frames / FPS * sample_rate)
         waveform = _normalized_audio_waveform(audio, sample_rate, raw_samples)
         context_audio = waveform[..., :context_samples]
         post_context = waveform[..., context_samples:raw_samples]
@@ -1778,6 +2393,7 @@ def _write_master(path, segment_paths, segments, vae, audio_vae, width, height, 
             audio_stream = container.add_stream("aac", rate=sample_rate, layout="stereo")
             video_pts = 0
             audio_pts = 0
+            audio_cursor = 0
 
             def write_images(images):
                 nonlocal video_pts
@@ -1804,7 +2420,7 @@ def _write_master(path, segment_paths, segments, vae, audio_vae, width, height, 
                     container.mux(packet)
 
             for checkpoint, segment in zip(segment_paths, segments):
-                latent, _ = _load_segment(checkpoint)
+                latent, metadata = _load_segment(checkpoint)
                 video, _ = _streams(latent)
                 images = vae.decode(video)
                 if images.ndim == 5:
@@ -1814,11 +2430,17 @@ def _write_master(path, segment_paths, segments, vae, audio_vae, width, height, 
                     raise ValueError(
                         "video VAE decoded fewer frames than the H3 segment requires")
                 images = images[:segment.raw_frames]
+                delivery_frames = _metadata_delivery_frames(metadata, segment)
                 output_images = images[
-                    segment.context_frames:segment.context_frames + segment.output_frames]
-                output_start = round(segment.output_start / FPS * sample_rate)
-                output_end = round((segment.output_start + segment.output_frames) / FPS * sample_rate)
-                output_audio = master_audio[:, output_start:output_end]
+                    segment.context_frames:segment.context_frames + delivery_frames]
+                output_samples = round(delivery_frames / FPS * sample_rate)
+                output_audio = master_audio[:, audio_cursor:audio_cursor + output_samples]
+                audio_cursor += output_samples
+                if metadata.get('delivered_trim_frames') and output_audio.shape[-1] > 1:
+                    fade = min(output_audio.shape[-1], round(0.04 * sample_rate))
+                    ramp = torch.linspace(1.0, 0.0, fade, dtype=output_audio.dtype)
+                    output_audio = output_audio.clone()
+                    output_audio[..., -fade:] *= ramp
 
                 write_images(output_images)
                 write_audio(output_audio)
@@ -1933,9 +2555,14 @@ class MiniMaxH3LongResumePromptPlan(io.ComfyNode):
         # contains the complete plan.  Rebuild the authoritative layout from the
         # saved sampler settings instead of mistaking the partial progress list for
         # the requested video length.
-        expected_segments = plan_segments(
-            manifest["length_input"], manifest["context_frames"],
-            bool(has_initial_latent), manifest["max_raw_frames"])
+        confirmed_windows = manifest.get("confirmed_dialogue_windows")
+        expected_segments = (plan_confirmed_windows(confirmed_windows, manifest["context_frames"],
+                                                    bool(has_initial_latent))
+                             if confirmed_windows else plan_segments(
+                                 manifest["length_input"], manifest["context_frames"],
+                                 bool(has_initial_latent), manifest["max_raw_frames"]))
+        if confirmed_windows and sum(s.output_frames for s in expected_segments) != manifest["length"]:
+            raise ValueError("保存済みの確定台詞の区間尺と合計尺が一致しません。")
         for index, entry in enumerate(entries):
             if index >= len(expected_segments) or not isinstance(entry, dict):
                 raise ValueError("source Long H3 manifest has an invalid segment layout")
@@ -1979,6 +2606,8 @@ class MiniMaxH3LongResumePromptPlan(io.ComfyNode):
             "has_initial_latent": bool(has_initial_latent),
             "segments": plan_entries,
         }
+        if confirmed_windows:
+            plan["confirmed_dialogue_windows"] = confirmed_windows
         audit_prompt = re.split(
             r"\n\s*(?:CAST, IDENTITY|FULL-FRAME STORY-WORLD)",
             prompts[0], maxsplit=1, flags=re.I)[0].strip()
@@ -2061,6 +2690,10 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                 io.Autogrow.Input("ref_audios", display_name="参照音声（任意）", optional=True,
                     template=io.Autogrow.TemplatePrefix(
                         input=io.Audio.Input("ref_audio", display_name="参照音声"), prefix="ref_audio_", min=0, max=3)),
+                io.Audio.Input(
+                    "timeline_audio", display_name="MV元曲タイムライン（区間ごとに自動分割）",
+                    optional=True,
+                    tooltip="動画0秒に対応する元曲。長尺では各H3区間に合う音声だけを自動で切り出し、歌唱口元同期の参照にします。"),
                 LONG_H3_PROMPT_PLAN.Input(
                     "prompt_plan", display_name="区間別プロンプト設計（自動入力・任意）", optional=True,
                     tooltip="Optional exact local prompts from MiniMax H3 Long Prompt Planner. When connected, these replace internal prompt splitting."),
@@ -2083,6 +2716,12 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                 io.Int.Input("stop_after_segment", display_name="確認用・この区間まで出力（-1＝最後まで）",
                              default=-1, min=-1, max=999, optional=True, advanced=True,
                              tooltip="0始まり。指定区間までの動画を出力して後続の生成を保留します。続行時は-1へ戻して途中再開します。"),
+                io.String.Input("resume_execution_token", display_name="途中再開実行トークン（自動）",
+                                default="", optional=True, advanced=True,
+                                tooltip="保存済み区間からの再開時に自動更新され、ComfyUIのノードキャッシュを確実に無効化します。"),
+                H3_DIALOGUE_TIMING.Input("dialogue_timing", optional=True,
+                    display_name="確定台詞ごとの秒数（読み確認から接続）",
+                    tooltip="接続時は基本5秒、長い台詞だけ必要な秒数へ延長。確定後のプロンプト変更・台詞重複は生成前に検出します。"),
             ],
             hidden=[io.Hidden.prompt, io.Hidden.extra_pnginfo, io.Hidden.unique_id],
             outputs=[
@@ -2098,11 +2737,12 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                 context_frames, noise_seed, sampler, sigmas, cache_name, resume,
                 reroll_from_segment, crf, ref_image_size="match", initial_latent=None,
                 ref_images=None, ref_videos=None, ref_video_audios=None, ref_audios=None,
-                 prompt_plan=None, audio_refine_model=None, audio_refine_steps=4,
+                 timeline_audio=None, prompt_plan=None, audio_refine_model=None, audio_refine_steps=4,
                  audio_refine_denoise=0.5, auto_dialogue_duration=False,
                  _audit_retry_index=0, _audit_reroll_floor=None,
                 _audit_history=None, first_frame=None, segment_audit=True,
-                preserve_input_prompt=False, candidate_attempt_limit=5, reroll_feedback="", stop_after_segment=-1):
+                preserve_input_prompt=False, candidate_attempt_limit=5, reroll_feedback="", stop_after_segment=-1,
+                dialogue_timing=None, resume_execution_token=""):
         if reroll_feedback and (not resume or reroll_from_segment < 0):
             raise ValueError("区間の修正指示には途中再開と再生成開始区間の指定が必要です")
         candidate_attempt_limit = _checked_candidate_attempt_limit(candidate_attempt_limit)
@@ -2130,7 +2770,7 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
         generation_fingerprint = _generation_fingerprint(
             graph_prompt, unique_id, model, audio_refine_model,
             audio_refine_steps, audio_refine_denoise, clip, sampler, sigmas, ref_image_size,
-            initial_latent, ref_images, ref_videos, ref_video_audios, ref_audios)
+            initial_latent, ref_images, ref_videos, ref_video_audios, ref_audios, timeline_audio)
         if prompt_plan and prompt_plan.get("quality_policy") == THREE_MODE_POLICY:
             audit_contract = {"quality_policy": THREE_MODE_POLICY, "enabled": bool(segment_audit),
                               "settings": standard_audit_settings(upstream_graph(graph_prompt, unique_id)),
@@ -2143,22 +2783,55 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
             digest = hashlib.sha256(generation_fingerprint.encode("ascii"))
             _update_runtime_hash(digest, first_frame)
             generation_fingerprint = digest.hexdigest()
+        # Never silently degrade a reference prompt to text-only generation.
+        # Without the actual pixels, H3 and the identity audit cannot preserve
+        # the requested face even when the text contains plausible traits.
+        _require_reference_images(prompt, ref_images, first_frame)
+        require_timing_connection(prompt, dialogue_timing, prompt_plan)
         segments = plan_segments(
             length, context_frames, initial_latent is not None, max_raw_frames,
             exact_output_frames=(prompt_plan.get("requested_output_frames")
                                  if prompt_plan is not None else None))
         configured_segment_count = len(segments)
         dialogue_turns = count_timeline_dialogue_turns(prompt)
-        if auto_dialogue_duration and prompt_plan is None and dialogue_turns:
+        confirmed_windows = None
+        if dialogue_timing is not None:
+            if prompt_plan is not None or not auto_dialogue_duration:
+                raise ValueError("確定台詞の尺設計は自動尺ON・prompt_plan未接続で使ってください。")
+            confirmed_windows = validate_timing(dialogue_timing, prompt)
+            if confirmed_windows:
+                segments = plan_confirmed_windows(confirmed_windows, context_frames, initial_latent is not None)
+        elif prompt_plan is not None and prompt_plan.get("confirmed_dialogue_windows"):
+            confirmed_windows = prompt_plan["confirmed_dialogue_windows"]
+            segments = plan_confirmed_windows(confirmed_windows, context_frames, initial_latent is not None)
+        elif auto_dialogue_duration and prompt_plan is None and dialogue_turns:
             segments = plan_segments(
                 dialogue_duration_frames(dialogue_turns, max_raw_frames),
                 context_frames,
                 initial_latent is not None,
                 max_raw_frames,
             )
+        # Explicit cuts in confirmed four-panel reference prompts reconstruct
+        # the same identities from the source, rather than pinning the old view.
+        if dialogue_timing is not None and confirmed_windows and ref_images:
+            segments = apply_explicit_camera_cuts(segments, prompt)
         requested_segment_count = len(segments)
         delivered_length = sum(segment.output_frames for segment in segments)
+        source_segments = list(segments)
+        source_length = delivered_length
         project, master_path, relative_folder = _output_paths(cache_name, resume, width, height)
+        preprocessor = comfy_nodes.NODE_CLASS_MAPPINGS.get('NanoBananaH3Transform') if graph_prompt else None
+        if preprocessor is not None and hasattr(preprocessor, 'checkpoint_preprocessing'):
+            preprocessor.checkpoint_preprocessing(graph_prompt, unique_id, project, ref_images)
+        if graph_prompt and dialogue_timing is not None:
+            from .resume_api import resume_request
+            from server import PromptServer
+            saved_request = resume_request(graph_prompt, unique_id, relative_folder,
+                                           (hidden.extra_pnginfo or {}).get('workflow'))
+            _atomic_json(project / 'resume_prompt.json', saved_request)
+            PromptServer.instance.send_sync('h3_long_video.resume_ready',
+                {'node_id': str(unique_id), 'project': relative_folder, 'resume': bool(resume)},
+                PromptServer.instance.client_id)
         resume_failure_feedback = {}
         previous_manifest = {}
         if resume and (project / "manifest.json").exists():
@@ -2170,6 +2843,12 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                     last = failures[-1]
                     resume_failure_feedback[int(last["index"])] = last["status"]
 
+        duration_extensions = (dict(previous_manifest.get('duration_extensions', {}))
+                               if resume and dialogue_timing is not None
+                               and previous_manifest.get('generation_fingerprint') == generation_fingerprint else {})
+        if duration_extensions:
+            segments = recovery_segments(source_segments, duration_extensions)
+            delivered_length = sum(item.output_frames for item in segments)
         segment_paths = [project / "latents" / "segment_{:04d}.safetensors".format(segment.index) for segment in segments]
         if prompt_plan is not None:
             local_prompts = prompt_plan_prompts(
@@ -2184,11 +2863,20 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                     segment.context_frames / FPS,
                     segment.index,
                     len(segments),
-                    delivered_length / FPS,
+                    source_length / FPS,
                     preserve_input_prompt=preserve_input_prompt,
+                    confirmed_dialogue_timing=bool(confirmed_windows),
+                    speech_deadline_seconds=(dialogue_timing["turns"][segment.index]["speech_deadline_seconds"]
+                                             + duration_extensions.get(str(segment.index), 0)
+                                             if dialogue_timing is not None and confirmed_windows
+                                             and dialogue_timing["turns"][segment.index].get("speech_deadline_seconds") is not None else None),
+                    output_duration_seconds=(segments[segment.index].output_frames / FPS
+                                             if str(segment.index) in duration_extensions else None),
                 )
-                for segment in segments
+                for segment in source_segments
             ]
+        if dialogue_timing is not None and confirmed_windows:
+            validate_local_dialogues(local_prompts, dialogue_timing)
         recovery_floor = _audit_reroll_floor
         if recovery_floor is not None and not preserve_input_prompt:
             recovery_guard = (
@@ -2235,6 +2923,8 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
             "length_input": length,
             "auto_dialogue_duration": bool(auto_dialogue_duration),
             "dialogue_turns": dialogue_turns,
+            "confirmed_dialogue_windows": confirmed_windows,
+            "dialogue_timing": dialogue_timing,
             "configured_segment_count": configured_segment_count,
             "requested_segment_count": requested_segment_count,
             "max_raw_frames": max_raw_frames,
@@ -2242,6 +2932,12 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
             "seed": noise_seed,
             "segment_seed_strategy": SEGMENT_SEED_STRATEGY,
             "audio_continuity_strategy": AUDIO_CONTINUITY_STRATEGY,
+            "timeline_audio_reference": {
+                "enabled": timeline_audio is not None,
+                "strategy": "per-delivered-segment-v1" if timeline_audio is not None else "disabled",
+                "sample_rate": int(timeline_audio["sample_rate"]) if timeline_audio is not None else None,
+                "sample_count": int(timeline_audio["waveform"].shape[-1]) if timeline_audio is not None else None,
+            },
             "preserve_generated_audio": bool(
                 prompt_plan and prompt_plan.get("preserve_generated_audio", False)),
             "audio_refine": {
@@ -2255,6 +2951,7 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
             "visual_cast_audit_history": list(_audit_history or []),
             "prompt_source": "plan" if prompt_plan is not None else "master",
             "generation_fingerprint": generation_fingerprint,
+            "duration_extensions": duration_extensions,
             "segments": [],
         }
         three_mode = bool(prompt_plan and prompt_plan.get("quality_policy") == THREE_MODE_POLICY)
@@ -2284,7 +2981,13 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
         manifest["segment_audits"] = list(previous_manifest.get("segment_audits", [])) if compatible_history else []
         manifest["segment_attempt_counts"] = ({str(item.index): {"count": _segment_attempt_count(previous_manifest, item.index)}
                                                for item in segments} if compatible_history else {})
+        recovery_attempts = 4 if dialogue_timing is not None and audit_applicable else 0
+        total_candidate_attempt_limit = candidate_attempt_limit + recovery_attempts
         manifest["attempt_limit"] = candidate_attempt_limit
+        manifest["cause_recovery_attempts"] = recovery_attempts
+        manifest["attempt_limit_total"] = total_candidate_attempt_limit
+        manifest["on_attempt_limit"] = ("switch_to_cause_recovery_then_require_pass"
+                                        if recovery_attempts else "select_best_and_report_remaining_issues")
         manifest["attempt_limit_scope"] = "cumulative-per-segment"
         manifest["stop_after_segment"] = stop_after_segment
         manifest["resume_fallback"] = fallback_key
@@ -2293,20 +2996,23 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
         locked_downstream = [item.index for item in segments
                              if item.index > reroll_from_segment >= 0
                              and (stop_after_segment < 0 or item.index <= stop_after_segment)
-                             and _segment_attempt_count(manifest, item.index) >= candidate_attempt_limit]
+                             and _segment_attempt_count(manifest, item.index) >= total_candidate_attempt_limit]
         keep_complete_chain = bool(fallback_key and locked_downstream and previous_manifest.get("status")
                                    in ("complete", "complete_with_audit_failure"))
         if keep_complete_chain:
             manifest["budget_fallback"] = {"reason": "A downstream segment has exhausted its budget; kept the compatible complete chain.",
                                             "locked_segments": locked_downstream}
+        manifest["segment_references"] = dict(previous_manifest.get("segment_references", {})) if compatible_history else {}
         manifest["resume_failure_feedback"] = resume_failure_feedback
         _atomic_json(project / "manifest.json", manifest)
 
         previous = initial_latent
+        previous_delivery_frames = None
         generated = False
         completed = 0
         ref_items = None
         ref_blocks = None
+        prepared_reference_key = None
         latent = None
         conditioning = None
         guider = None
@@ -2326,19 +3032,29 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
             lineage = _segment_lineage(
                 generation_fingerprint, predecessor_lineage, segment, prompt_hash)
             may_reuse = keep_complete_chain or _may_reuse_segment(
-                resume, generated, reroll_from_segment, segment.index, previous_manifest)
+                resume, generated and bool(segment.context_frames), reroll_from_segment, segment.index, previous_manifest)
             if may_reuse and checkpoint.exists():
                 cached, metadata = _load_segment(checkpoint)
                 cached_attempt = int(metadata.get("segment_audit_attempt", "0"))
-                if cached_attempt not in range(5):
+                if cached_attempt not in range(9):
                     raise ValueError("invalid cached audit attempt")
                 segment_seed = _segment_noise_seed(noise_seed, segment.index, cached_attempt)
                 lineage = _segment_lineage(generation_fingerprint, predecessor_lineage, segment, prompt_hash, cached_attempt)
-                approved = _checkpoint_audit_reusable(metadata, audit_applicable)
+                approved = _checkpoint_audit_reusable(metadata, audit_applicable,
+                                                     require_verified=dialogue_timing is not None)
+                # Checkpoints produced by the first repeated-speech repair
+                # silenced only the audio.  Reusing one without the matching
+                # video hold would preserve a second silent lip-sync/action.
+                # Force it through cause recovery once so the shared cutoff is
+                # recorded and applied to both streams during master assembly.
+                if _checkpoint_needs_av_sync_recovery(metadata):
+                    approved = False
                 if approved and _metadata_matches(
                         metadata, segment, prompt_hash, width, height, segment_seed,
                         generation_fingerprint, predecessor_lineage, lineage):
+                    lineage = metadata.get('lineage', lineage)
                     previous = cached
+                    previous_delivery_frames = _metadata_delivery_frames(metadata, segment)
                     completed += 1
                     if audit_applicable:
                         restored_audit = _restored_audit_record(metadata, previous_manifest, segment.index, cached_attempt)
@@ -2349,14 +3065,16 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                         manifest.setdefault("candidate_selection", {})[str(segment.index)] = {
                             "attempt": cached_attempt + 1, "policy": "reused matching best candidate",
                             "rank": _candidate_quality_rank(restored_audit["failed"], restored_audit["status"])}
-                    manifest["segments"].append(_manifest_segment(
-                        segment, "reused", checkpoint, prompt_hash, segment_seed, lineage))
+                    manifest_segment = _manifest_segment(
+                        segment, "reused", checkpoint, prompt_hash, segment_seed, lineage)
+                    manifest_segment['delivered_output_frames'] = previous_delivery_frames
+                    manifest["segments"].append(manifest_segment)
                     _atomic_json(project / "manifest.json", manifest)
                     predecessor_lineage = lineage
                     if segment.index == stop_after_segment:
                         break
                     continue
-                if reroll_from_segment >= 0:
+                if reroll_from_segment >= 0 and segment.index < reroll_from_segment:
                     raise ValueError(
                         "segment {} no longer matches the current generation inputs; reroll from this segment or earlier".format(segment.index))
 
@@ -2379,7 +3097,7 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                 if old_record not in manifest["segment_audits"]:
                     manifest["segment_audits"].append(old_record)
                 manifest.setdefault("selected_segment_audits", {})[str(segment.index)] = old_record
-            if start_attempt >= candidate_attempt_limit and old_candidate is None:
+            if start_attempt >= total_candidate_attempt_limit and old_candidate is None:
                 restored = _restore_resume_fallback(project, segment_paths, segments, local_prompts,
                            width, height, noise_seed, generation_fingerprint, initial_latent is not None, manifest)
                 if restored is not None:
@@ -2392,13 +3110,45 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                     opening, _ = _load_segment(segment_paths[0])
                     opening_images = _opening_audit_images(opening, segments[0], vae)
                 audit_images_for_segment = opening_images
-            if ref_items is None and start_attempt < candidate_attempt_limit:
-                ref_items, ref_blocks = _prepare_references(
-                    vae, audio_vae, width, height,
-                    max(item.raw_frames for item in segments), ref_image_size,
-                    ref_images, ref_videos, ref_video_audios, ref_audios)
+            if start_attempt < total_candidate_attempt_limit:
+                segment_ref_images = ref_images
+                reference_key = "master"
+                segment_ref_audios = dict(ref_audios or {})
+                if timeline_audio is not None:
+                    segment_ref_audios["timeline_audio"] = _timeline_audio_segment(timeline_audio, segment)
+                    reference_key += ":timeline_audio:{}".format(segment.index)
+                if (dialogue_timing is not None and confirmed_windows and ref_images
+                        and isinstance(audit_settings, dict) and audit_settings.get("backend") == "nanobanana"
+                        and any(row.get("class_type") == "NanoBananaH3Transform" for row in audit_graph.values())):
+                    auditor = comfy_nodes.NODE_CLASS_MAPPINGS["NanoBananaH3Transform"]
+                    manifest.update(status="preparing_shot_reference", current_segment=segment.index,
+                                    current_attempt=start_attempt + 1)
+                    _atomic_json(project / "manifest.json", manifest)
+                    try:
+                        scoped_image, reference_receipt = auditor.prepare_shot_reference(
+                            audit_settings["provider"], _flatten_image_tensors(ref_images), prompt, local_prompt,
+                            project / "shot_references")
+                    except Exception as exc:
+                        manifest.update(status="error", error={"stage": "shot_reference",
+                                        "segment_index": segment.index, "exception_type": type(exc).__name__})
+                        _atomic_json(project / "manifest.json", manifest)
+                        raise
+                    if reference_receipt is not None:
+                        segment_ref_images = {next(iter(ref_images)): scoped_image}
+                        reference_key = reference_receipt["signature"]
+                        manifest.setdefault("segment_references", {})[str(segment.index)] = {
+                            "image_file": "shot_references/" + reference_receipt["image_file"],
+                            "image_sha256": reference_receipt["image_sha256"],
+                            "subject_ids": reference_receipt["subject_ids"], "passed": True}
+                        _atomic_json(project / "manifest.json", manifest)
+                if ref_items is None or reference_key != prepared_reference_key:
+                    ref_items, ref_blocks = _prepare_references(
+                        vae, audio_vae, width, height,
+                        max(item.raw_frames for item in segments), ref_image_size,
+                        segment_ref_images, ref_videos, ref_video_audios, segment_ref_audios)
+                    prepared_reference_key = reference_key
             guide = None
-            if segment.context_frames and start_attempt < candidate_attempt_limit:
+            if segment.context_frames and start_attempt < total_candidate_attempt_limit:
                 source_segment = segments[segment.index - 1] if segment.index else None
                 if source_segment is None:
                     # Caller-supplied initial latent has no saved trim contract.
@@ -2407,14 +3157,60 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                              "latent": v[:, :, -h3.video_latent_t(segment.context_frames):].clone(),
                              "audio_latent": a[..., -round(segment.context_frames / FPS * h3.AUDIO_LATENT_FPS):].clone()}
                 else:
-                    guide = _delivered_continuation_guide(previous, source_segment, segment.context_frames, vae, audio_vae)
+                    guide = _delivered_continuation_guide(
+                        previous, source_segment, segment.context_frames, vae, audio_vae,
+                        silence_audio=has_tagged_dialogue(local_prompt),
+                        output_frames=previous_delivery_frames)
             repaired_visual_base = local_prompt
+            last_visual_feedback = ''
             attempt_audio_result = None
+            local_attempt_audio_result = None
+            attempt_visual_prompt = _saved_candidate_prompt(project, segment.index, old_attempt, local_prompt)
             audio_sources = ({old_attempt: old_metadata.get("selected_audio", "original")}
                              if old_candidate is not None else {})
+            delivery_trim_frames = ({old_attempt: int(old_metadata['delivered_trim_frames'])}
+                                    if old_candidate is not None
+                                    and old_metadata.get('delivered_trim_frames') else {})
             def generate_candidate(attempt, audit_feedback):
-                nonlocal repaired_visual_base, attempt_audio_result
+                nonlocal repaired_visual_base, attempt_audio_result, local_attempt_audio_result, segment, local_prompt, prompt_hash, context_key, delivered_length, last_visual_feedback
+                nonlocal ref_items, ref_blocks, prepared_reference_key
+                nonlocal attempt_visual_prompt
                 attempt_audio_result = None
+                local_attempt_audio_result = None
+                delivery_trim_frames.pop(attempt, None)
+                duration_changed = False
+                audio_feedback, visual_feedback = _split_retake_feedback(audit_feedback)
+                if visual_feedback:
+                    last_visual_feedback = visual_feedback
+                if (audit_feedback and dialogue_timing is not None and confirmed_windows
+                        and needs_duration_repair(audit_feedback)
+                        and duration_extensions.get(str(segment.index), 0) < 2
+                        and segment.output_frames < 15 * FPS):
+                    source = source_segments[segment.index]
+                    extra = duration_extensions.get(str(segment.index), 0) + 1
+                    duration_extensions[str(segment.index)] = extra
+                    duration_changed = True
+                    segments[:] = recovery_segments(source_segments, duration_extensions)
+                    segment = segments[segment.index]
+                    delivered_length = sum(item.output_frames for item in segments)
+                    local_prompt = slice_prompt(
+                        prompt, source.prompt_start_seconds, source.prompt_end_seconds,
+                        source.context_frames / FPS, source.index, len(segments), source_length / FPS,
+                        preserve_input_prompt=preserve_input_prompt, confirmed_dialogue_timing=True,
+                        speech_deadline_seconds=(dialogue_timing['turns'][source.index].get('speech_deadline_seconds')
+                                                 or source.output_frames / FPS - 1) + extra,
+                        output_duration_seconds=segment.output_frames / FPS)
+                    local_prompts[segment.index] = local_prompt
+                    validate_local_dialogues(local_prompts, dialogue_timing)
+                    repaired_visual_base = local_prompt
+                    prompt_hash = _prompt_hash(local_prompt)
+                    context_key = _segment_lineage(generation_fingerprint, predecessor_lineage, segment, prompt_hash)
+                    manifest['length'] = delivered_length
+                    manifest['duration_extensions'] = dict(duration_extensions)
+                    manifest.setdefault('duration_repairs', []).append({
+                        'index': segment.index, 'attempt': attempt, 'extra_seconds': extra,
+                        'reason': 'observed_truncated_speech', 'output_frames': segment.output_frames})
+                    _atomic_text(project / 'prompts' / f'segment_{segment.index:04d}.txt', local_prompt)
                 manifest["status"] = "sampling"
                 manifest["current_segment"] = segment.index
                 manifest["current_attempt"] = attempt + 1
@@ -2422,26 +3218,74 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                     "context": context_key, "count": attempt + 1}
                 _atomic_json(project / "manifest.json", manifest)
                 candidate_seed = _segment_noise_seed(noise_seed, segment.index, attempt)
-                repair_record = None
-                if (audit_feedback and not audit_feedback.startswith(("fail: dialogue audio:", "fail: audiovisual:"))
+                repair_visual = None
+                if duration_changed and last_visual_feedback:
+                    audit_feedback = 'fail: audiovisual: ' + json.dumps({
+                        'audio': audio_feedback or 'pass', 'visual': last_visual_feedback})
+                if (_split_retake_feedback(audit_feedback)[1]
                         and isinstance(audit_settings, dict) and audit_settings.get("backend") == "nanobanana"):
                     auditor = comfy_nodes.NODE_CLASS_MAPPINGS["NanoBananaH3Transform"]
-                    try:
-                        attempt_prompt, repair_record = auditor.repair_video_segment_prompt(
-                            audit_settings["provider"], _flatten_image_tensors(audit_images), repaired_visual_base, audit_feedback)
-                    except comfy.model_management.InterruptProcessingException:
-                        raise
-                    except Exception as exc:
-                        attempt_prompt = _retry_generation_prompt(repaired_visual_base, audit_feedback)
-                        repair_record = {'status': 'unavailable', 'error_type': type(exc).__name__}
-                    repaired_visual_base = attempt_prompt
-                else:
-                    attempt_prompt = _retry_generation_prompt(repaired_visual_base, audit_feedback)
+                    visual_failures = sum(
+                        bool(_split_retake_feedback(row.get("status", ""))[1])
+                        for row in manifest["segment_audits"]
+                        if row["index"] == segment.index and row.get("context") == context_key and row.get("failed"))
+                    def repair_visual(base, feedback):
+                        return auditor.repair_video_segment_prompt(
+                            audit_settings["provider"], _flatten_image_tensors(audit_images), base, feedback,
+                            simplify_framing=visual_failures >= 2)
+                attempt_prompt, repair_record = _prepare_segment_retake(
+                    repaired_visual_base, audit_feedback, repair_visual)
+                if attempt >= candidate_attempt_limit:
+                    attempt_prompt += (
+                        "\n[CAUSE RECOVERY PHASE — highest priority] The regular candidate strategy "
+                        "has repeatedly failed inspection. Use a stable, simple performance for this "
+                        "segment: begin the one assigned tagged line promptly, speak it exactly once, "
+                        "and then keep every mouth closed and every human voice silent. Do not add a "
+                        "lead-in, acknowledgment, filler, echoed clause, reply or off-screen voice. "
+                        "Keep the camera and non-speakers calm so the assigned speaker and exact words "
+                        "remain unambiguous. Preserve the accepted preceding segment and source identities."
+                    )
+                    manifest.setdefault("cause_recovery", []).append({
+                        "index": segment.index, "attempt": attempt + 1,
+                        "regular_attempt_limit": candidate_attempt_limit,
+                        "strategy": "stable_single_speaker_exact_line_v1"})
                 attempt_dir = project / "audit_attempts"
                 attempt_dir.mkdir(exist_ok=True)
                 _atomic_json(attempt_dir / f"segment_{segment.index:04d}_attempt_{attempt + 1}.json",
                              {"seed": candidate_seed, "prompt": attempt_prompt,
                               "previous_audit": audit_feedback, "visual_repair": repair_record})
+                if repair_record and repair_record["status"] == "repaired":
+                    repaired_visual_base = _strip_retake_notes(attempt_prompt)
+                    if (dialogue_timing is not None and ref_images and isinstance(audit_settings,dict)
+                            and audit_settings.get('backend')=='nanobanana'):
+                        # A corrected camera prompt must not retain an image conditioned on the rejected view.
+                        auditor=comfy_nodes.NODE_CLASS_MAPPINGS['NanoBananaH3Transform']
+                        manifest.update(status='preparing_shot_reference', current_segment=segment.index,
+                                        current_attempt=attempt + 1)
+                        _atomic_json(project/'manifest.json',manifest)
+                        try:
+                            repaired_reference,receipt=auditor.prepare_shot_reference(
+                                audit_settings['provider'],_flatten_image_tensors(ref_images),prompt,
+                                attempt_prompt,project/'shot_references')
+                        except Exception as exc:
+                            manifest.update(status='error', error={'stage':'shot_reference',
+                                            'segment_index':segment.index, 'attempt':attempt + 1,
+                                            'exception_type':type(exc).__name__})
+                            _atomic_json(project/'manifest.json',manifest)
+                            raise
+                        if receipt is not None and receipt['signature']!=prepared_reference_key:
+                            ref_items,ref_blocks=_prepare_references(vae,audio_vae,width,height,
+                                max(item.raw_frames for item in segments),ref_image_size,
+                                {next(iter(ref_images)):repaired_reference},ref_videos,ref_video_audios,segment_ref_audios)
+                            prepared_reference_key=receipt['signature']
+                            manifest.setdefault('segment_references',{})[str(segment.index)]={
+                                'image_file':'shot_references/'+receipt['image_file'],
+                                'image_sha256':receipt['image_sha256'],'subject_ids':receipt['subject_ids'],
+                                'passed':True,'camera_setup':receipt.get('camera_setup','')}
+                            _atomic_json(project/'manifest.json',manifest)
+                        manifest['status']='sampling'
+                        _atomic_json(project/'manifest.json',manifest)
+                attempt_visual_prompt = attempt_prompt
 
                 latent, _ = h3._empty_av_latent(width, height, segment.raw_frames)
                 if segment.context_frames:
@@ -2477,11 +3321,64 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                     audio_refine_denoise,
                 )
                 audio_sources[attempt] = ("refined" if audio_refine_model is not None and int(audio_refine_steps) > 0 else "original")
+                cause_local_result = None
+                # A short H3 line can be spoken correctly and then restart or
+                # drift into invented speech.  Shorten both streams only when
+                # two ASR contexts prove a complete line and a safe boundary.
+                # The next segment then conditions on this delivered tail.
+                if (attempt >= candidate_attempt_limit and dialogue_timing is not None
+                        and local_audio_audit.config_contract().get('enabled')):
+                    cause_evidence = attempt_dir / f"segment_{segment.index:04d}_attempt_{attempt + 1}.cause-audio.json"
+                    delivered = _delivered_audio(vae_decode_audio(audio_vae, candidate), segment)
+                    cause_verdict = local_audio_audit.audit(delivered, local_prompt, cause_evidence, locate_repeats=True)
+                    cutoff = local_audio_audit.repeated_speech_cutoff(cause_verdict, local_prompt)
+                    cutoff_kind = 'repeated_speech'
+                    if cutoff is None:
+                        cutoff = local_audio_audit.unprescribed_speech_cutoff(cause_verdict, local_prompt)
+                        cutoff_kind = 'unprescribed_speech'
+                    if cutoff is not None:
+                        trim_seconds = (local_audio_audit.natural_tail_trim_seconds(
+                            cause_verdict, local_prompt, cutoff, min_reaction=0.125)
+                            if cutoff_kind == 'unprescribed_speech'
+                            else local_audio_audit.natural_tail_trim_seconds(
+                                cause_verdict, local_prompt, cutoff))
+                        if trim_seconds is not None:
+                            trim_frames = max(1, min(
+                                segment.output_frames, round(trim_seconds * FPS)))
+                            minimum_frames = (segments[segment.index + 1].context_frames
+                                              if segment.index + 1 < len(segments) else 1)
+                            if trim_frames < minimum_frames:
+                                trim_frames = None
+                        if trim_seconds is not None and trim_frames is not None:
+                            repaired_evidence = cause_evidence.with_name(
+                                cause_evidence.stem + '.trimmed.json')
+                            trimmed_delivered = _delivered_audio(
+                                vae_decode_audio(audio_vae, candidate), segment, trim_frames)
+                            trimmed_verdict = local_audio_audit.audit(
+                                trimmed_delivered, local_prompt, repaired_evidence)
+                            cause_local_result = _local_audio_verdict_result(trimmed_verdict)
+                        else:
+                            trim_frames = None
+                        if trim_frames is not None and cause_local_result[0] is True:
+                            audio_sources[attempt] = 'refined_tail_trimmed'
+                            delivery_trim_frames[attempt] = trim_frames
+                            manifest.setdefault('cause_recovery_audio_repairs', []).append({
+                                'index': segment.index, 'attempt': attempt + 1,
+                                'strategy': 'invalid_av_tail_trim_v3',
+                                'cutoff_kind': cutoff_kind,
+                                'cutoff_seconds': round(float(cutoff), 3),
+                                'trim_frames': trim_frames,
+                            })
                 if audit_applicable and local_audio_enabled:
                     evidence = attempt_dir / f"segment_{segment.index:04d}_attempt_{attempt + 1}.audio.json"
-                    refined_result = _audit_local_script_audio(candidate, segment, audio_vae, local_prompt, evidence)
+                    audit_segment = _segment_with_delivery_frames(
+                        segment, delivery_trim_frames.get(attempt))
+                    refined_result = (cause_local_result if cause_local_result is not None else
+                                      _audit_local_script_audio(candidate, audit_segment, audio_vae, local_prompt, evidence))
+                    local_attempt_audio_result = refined_result
                     attempt_audio_result = refined_result
-                    if refined_result[0] is False and audio_refine_model is not None and int(audio_refine_steps) > 0:
+                    if (refined_result[0] is False and attempt not in delivery_trim_frames
+                            and audio_refine_model is not None and int(audio_refine_steps) > 0):
                         original = {"samples": sampled["samples"]}
                         original_result = _audit_local_script_audio(original, segment, audio_vae, local_prompt,
                                               evidence.with_name(evidence.stem + '.original.json'))
@@ -2489,15 +3386,26 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                         original_rank = _candidate_quality_rank(original_result[0] is not True, _audio_result_status(original_result))
                         if original_rank < refined_rank:
                             candidate, attempt_audio_result = original, original_result
+                            local_attempt_audio_result = original_result
                             audio_sources[attempt] = 'original'
                         _atomic_json(evidence.with_name(evidence.stem + '.comparison.json'),
                                      {'refined': refined_result, 'original': original_result,
                                       'selected': audio_sources[attempt]})
                 if (audit_applicable and isinstance(audit_settings, dict)
                         and audit_settings.get("backend") == "nanobanana"):
-                    refined_result = _audit_delivered_audio(candidate, segment, audio_vae, local_prompt, audit_settings)
+                    audit_segment = _segment_with_delivery_frames(
+                        segment, delivery_trim_frames.get(attempt))
+                    refined_result = _audit_delivered_audio(
+                        candidate, audit_segment, audio_vae, local_prompt, audit_settings)
+                    if cause_local_result is not None:
+                        refined_result = _reconcile_repaired_audio_audits(
+                            cause_local_result, refined_result)
+                    else:
+                        refined_result = _attach_local_audio_evidence(
+                            local_attempt_audio_result, refined_result)
                     attempt_audio_result = refined_result
-                    if refined_result[0] is False and audio_refine_model is not None and int(audio_refine_steps) > 0:
+                    if (refined_result[0] is False and attempt not in delivery_trim_frames
+                            and audio_refine_model is not None and int(audio_refine_steps) > 0):
                         original = {"samples": sampled["samples"]}
                         original_result = _audit_delivered_audio(original, segment, audio_vae, local_prompt, audit_settings)
                         refined_rank = _candidate_quality_rank(True, _audio_result_status(refined_result))
@@ -2511,7 +3419,15 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                                      {"original": original_result, "refined": refined_result,
                                       "original_rank": original_rank, "refined_rank": refined_rank,
                                       "selected": selected_audio})
-                return _cpu_latent(candidate)
+                candidate = _cpu_latent(candidate)
+                if dialogue_timing is not None:
+                    _save_segment(attempt_dir / f'segment_{segment.index:04d}_attempt_{attempt + 1}.safetensors',
+                                  candidate, {'index': segment.index, 'attempt': attempt,
+                                              'raw_frames': segment.raw_frames,
+                                              'context_frames': segment.context_frames,
+                                              'output_frames': segment.output_frames,
+                                              'prompt_sha256': prompt_hash})
+                return candidate
             def report_audit(attempt, failed, status):
                 manifest["status"] = "segment_auditing"
                 manifest["current_segment"] = segment.index
@@ -2530,7 +3446,7 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                 metadata = {
                     "schema": SCHEMA_VERSION,
                     "segment_audit_attempt": attempt,
-                    "segment_audit_policy": "advisory-v2" if audit_applicable else "not_applicable",
+                    "segment_audit_policy": ("cause-recovery-v2" if dialogue_timing is not None else "advisory-v2") if audit_applicable else "not_applicable",
                     "segment_audit_status": status,
                     "segment_audit_failed": bool(failed),
                     "index": segment.index,
@@ -2550,6 +3466,11 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                         audio_refine_model is not None and int(audio_refine_steps) > 0),
                     "audio_refine_applied": audio_sources.get(attempt) == "refined",
                     "selected_audio": audio_sources.get(attempt, "original"),
+                    "delivered_trim_frames": delivery_trim_frames.get(attempt, ''),
+                    "delivery_trim_policy": (
+                        "complete-line-native-reaction-v1"
+                        if attempt in delivery_trim_frames else ""),
+                    "repeat_tail_freeze_seconds": "",
                 }
                 _save_segment(checkpoint, value, metadata)
                 manifest.setdefault("selected_segment_audits", {})[str(segment.index)] = record
@@ -2558,27 +3479,69 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                     "rank": _candidate_quality_rank(failed, status), "selected_audio": audio_sources.get(attempt, "original")}
                 _atomic_json(project / "manifest.json", manifest)
 
+            def recover_saved():
+                nonlocal attempt_audio_result
+                def inspect_visual(value, attempt, output_frames=None):
+                    manifest['current_attempt'] = attempt + 1
+                    inspect_segment = _segment_with_delivery_frames(segment, output_frames)
+                    return _audit_segment_latent(
+                        value, inspect_segment, vae, audio_vae, local_prompt, audit_images, audit_settings,
+                        project / 'audit_attempts' / f'segment_{segment.index:04d}_attempt_{attempt + 1}.recovery.frames.png',
+                        audio_result=(True, 'visual-only phase; audio checked separately'),
+                        previous=previous, previous_segment=segments[segment.index-1] if segment.index else None,
+                        visual_prompt=_saved_candidate_prompt(project, segment.index, attempt, local_prompt))
+                manifest['status'] = 'segment_recovering'
+                _atomic_json(project / 'manifest.json', manifest)
+                value, metadata, audio_result, receipt = _recover_saved_repeated_speech_candidate(
+                    project, segment, prompt_hash, audio_vae, local_prompt, audit_settings, inspect_visual,
+                    allow_tail_trim=True,
+                    min_output_frames=(segments[segment.index + 1].context_frames
+                                       if segment.index + 1 < len(segments) else 1),
+                    legacy_tail_freeze_seconds=old_metadata.get('repeat_tail_freeze_seconds'),
+                    legacy_attempt=old_metadata.get('segment_audit_attempt'))
+                manifest.setdefault('cause_recovery_audio_repairs', []).append(receipt)
+                _atomic_json(project / 'manifest.json', manifest)
+                if value is None:
+                    return None
+                attempt = int(metadata['segment_audit_attempt'])
+                attempt_audio_result = audio_result
+                audio_sources[attempt] = metadata['selected_audio']
+                if metadata.get('delivered_trim_frames'):
+                    delivery_trim_frames[attempt] = int(metadata['delivered_trim_frames'])
+                return value, attempt, False, 'pass'
+
             manifest["status"] = "sampling"
             manifest["current_segment"] = segment.index
+            manifest['current_attempt'] = old_attempt + 1
             _atomic_json(project / "manifest.json", manifest)
+            def current_audit_segment():
+                return _segment_with_delivery_frames(
+                    segment, delivery_trim_frames.get(manifest['current_attempt'] - 1))
             try:
                 candidate, audit_attempt = _generate_verified_segment(
                     generate_candidate,
                     lambda value: (_combine_three_mode_audits(_audit_three_mode_segment(
                         value, previous, segments[segment.index-1] if segment.index else None,
-                        segment, vae, local_prompt, audit_images_for_segment, audit_settings,
+                        current_audit_segment(), vae, local_prompt, audit_images_for_segment, audit_settings,
                         project / "audit_attempts" / f"segment_{segment.index:04d}_attempt_{manifest['current_attempt']}.boundary.png"), attempt_audio_result)
                         if three_mode else _audit_segment_latent(
-                        value, segment, vae, audio_vae, local_prompt, audit_images, audit_settings,
+                        value, current_audit_segment(), vae, audio_vae, local_prompt, audit_images, audit_settings,
                         project / "audit_attempts" / f"segment_{segment.index:04d}_attempt_{manifest['current_attempt']}.frames.png",
-                        audio_result=attempt_audio_result)),
-                    report_audit, audit_applicable, max_attempts=candidate_attempt_limit,
+                        audio_result=attempt_audio_result, previous=previous,
+                        previous_segment=segments[segment.index-1] if segment.index else None,
+                        visual_prompt=attempt_visual_prompt)),
+                    report_audit, audit_applicable, max_attempts=total_candidate_attempt_limit,
                     initial_feedback=segment_feedback, start_attempt=start_attempt,
                     initial_candidate=old_candidate, initial_attempt=old_attempt,
                     initial_verdict=(old_record["failed"], old_record["status"]) if old_record else None,
-                    on_best=save_best)
+                    on_best=save_best, candidate_context=lambda: context_key,
+                    require_verified=dialogue_timing is not None and audit_applicable,
+                    allow_unverified=dialogue_timing is not None and audit_applicable,
+                    recover=recover_saved if dialogue_timing is not None and audit_applicable else None,
+                    recover_first=_checkpoint_needs_av_sync_recovery(old_metadata))
             except Exception:
-                manifest["status"] = "segment_check_failed"
+                if manifest.get('status') != 'error':
+                    manifest["status"] = "segment_check_failed"
                 _atomic_json(project / "manifest.json", manifest)
                 raise
             selected = next((row for row in reversed(manifest["segment_audits"])
@@ -2590,15 +3553,18 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
                 "rank": _candidate_quality_rank(selected["failed"], selected["status"]) if selected else None,
                 "selected_audio": audio_sources.get(audit_attempt, "original")}
             previous = candidate
+            previous_delivery_frames = delivery_trim_frames.get(audit_attempt, segment.output_frames)
             segment_seed = _segment_noise_seed(noise_seed, segment.index, audit_attempt)
             lineage = _segment_lineage(generation_fingerprint, predecessor_lineage, segment, prompt_hash, audit_attempt)
             segment_has_dialogue = has_tagged_dialogue(local_prompt)
             save_best(previous, audit_attempt, bool(selected and selected["failed"]),
                       selected["status"] if selected else "not_applicable")
             completed += 1
-            manifest["segments"].append(_manifest_segment(
+            manifest_segment = _manifest_segment(
                 segment, "reused_best_at_limit" if start_attempt >= candidate_attempt_limit else "generated",
-                checkpoint, prompt_hash, segment_seed, lineage))
+                checkpoint, prompt_hash, segment_seed, lineage)
+            manifest_segment['delivered_output_frames'] = previous_delivery_frames
+            manifest["segments"].append(manifest_segment)
             _atomic_json(project / "manifest.json", manifest)
             predecessor_lineage = lineage
             if segment.index == stop_after_segment:
@@ -2608,11 +3574,13 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
             raise RuntimeError("MiniMax H3 Long Video did not produce a latent")
         segments = segments[:completed]
         manifest["segments"] = manifest["segments"][:completed]
-        for key in ("selected_segment_audits", "candidate_selection"):
+        for key in ("selected_segment_audits", "candidate_selection", "segment_references"):
             manifest[key] = {index: value for index, value in manifest.get(key, {}).items() if int(index) < completed}
         segment_paths = segment_paths[:completed]
         local_prompts = local_prompts[:completed]
-        manifest["completed_output_frames"] = sum(item.output_frames for item in segments)
+        manifest["completed_output_frames"] = sum(
+            int(item.get('delivered_output_frames', item['output_frames']))
+            for item in manifest["segments"])
         manifest["master_is_partial"] = completed < requested_segment_count
         manifest["status"] = "decoding"
         _atomic_json(project / "manifest.json", manifest)
@@ -2630,16 +3598,20 @@ class MiniMaxH3LongReferenceSampler(io.ComfyNode):
             width, height, crf, local_prompts,
             preserve_generated_audio=manifest["preserve_generated_audio"])
 
-        final_verdicts = {int(index): row for index, row in manifest.get('selected_segment_audits', {}).items() if row is not None}
-        failed_segments = sorted(index for index, row in final_verdicts.items() if row['failed'] or row['status'] != 'pass')
-        audit_status = ('warning' if failed_segments else 'pass') if audit_applicable else 'not_applicable' 
-        manifest["visual_cast_audit"] = {"status": audit_status, "mode": "advisory-v2", "failed_segments": failed_segments}
+        audit_status, failed_segments, missing_segments = _final_audit_summary(
+            manifest.get('selected_segment_audits', {}), completed, audit_applicable)
+        manifest["visual_cast_audit"] = {
+            "status": audit_status, "mode": "advisory-v2",
+            "failed_segments": failed_segments, "missing_segments": missing_segments}
         last_latent, _ = _load_segment(segment_paths[-1])
         last_latent = _cpu_latent(last_latent)
         manifest["status"] = (
             ("partial_complete" if manifest["master_is_partial"] else "complete")
             + ("_with_audit_failure" if failed_segments else "")
         )
+        manifest['quality_status'] = (
+            'pass' if audit_status == 'pass' and not manifest['master_is_partial']
+            else ('not_applicable' if audit_status == 'not_applicable' else 'needs_review'))
         manifest["master"] = master_path.name
         _atomic_json(project / "manifest.json", manifest)
 
@@ -3312,6 +4284,7 @@ class MiniMaxH3LongVideoExtension(ComfyExtension):
     @override
     async def get_node_list(self):
         return [
+            MiniMaxH3CloudPrompt,
             MiniMaxH3LongPromptPlanner,
             MiniMaxH3LongResumePromptPlan,
             MiniMaxH3LongReferenceSampler,
@@ -3325,4 +4298,6 @@ class MiniMaxH3LongVideoExtension(ComfyExtension):
 
 
 async def comfy_entrypoint():
+    from .resume_api import register_routes
+    register_routes()
     return MiniMaxH3LongVideoExtension()

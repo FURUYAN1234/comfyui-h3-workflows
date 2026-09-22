@@ -3,7 +3,14 @@ import argparse,hashlib,json,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parent
 def files():
-    return sorted(p for p in ROOT.rglob("*") if p.is_file() and ".git" not in p.relative_to(ROOT).parts and "__pycache__" not in p.parts and p.suffix != ".pyc" and p.name != "SHA256SUMS.json")
+    ignored_dirs={".git",".pytest_cache",".mypy_cache",".ruff_cache","__pycache__"}
+    return sorted(
+        p for p in ROOT.rglob("*")
+        if p.is_file()
+        and not ignored_dirs.intersection(p.relative_to(ROOT).parts)
+        and p.suffix != ".pyc"
+        and p.name not in {"SHA256SUMS.json",".DS_Store"}
+    )
 def build(destination,update=False):
     dest=Path(destination).resolve()
     if dest==ROOT or ROOT in dest.parents: raise ValueError("Destination must be outside source tree")

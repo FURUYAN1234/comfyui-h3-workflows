@@ -8,7 +8,7 @@ import unicodedata
 from .lm_device import prompt_gpu_session, ensure_cpu_for_video
 
 import folder_paths
-from .lm_client import LocalLMHelper
+import nodes
 from .standard import timing, timeline, segment_prompt, normalize_lm_fields, reference_format_errors, boundary_errors, segment_frame_budget
 from .quality_guard import conversion_errors, VOCAL_REQUEST
 
@@ -24,13 +24,17 @@ BGMの有無・種類はユーザー指示を優先する。BGMを入れる場�
 
 _DIALOGUE_TAG_RE = re.compile(r'<d>\[([^\]]+)\]\s*(.*?)</d>', re.IGNORECASE | re.DOTALL)
 _SPEAKER_ID_RE = re.compile(r'\(S\d+(?:\s*,\s*S\d+)*\)')
-_SPEECH_REQUEST_RE = re.compile(r'話す|喋る|しゃべる|言う|台詞|セリフ|会話|ナレーション|歌う|歌詞|発声|掛け声')
+_SPEECH_REQUEST_RE = re.compile(
+    r'話す|話し(?:て|ま|かけ)|喋る|喋っ|喋り|しゃべる|しゃべっ|しゃべり|'
+    r'言う|言っ|言います|台詞|セリフ|会話|ナレーション|歌う|歌って|歌詞|発声|掛け声|挨拶|あいさつ|'
+    r'\b(?:speak|speaks|speaking|talk|talks|talking|say|says|dialogue|narration|sing|sings|singing)\b', re.I)
+# A mixed list can prohibit voice, music and visible text in any order.
 _BAN_ITEM = r'(?:台詞|セリフ|会話|ナレーション|発声|掛け声|歌声|歌詞|歌|人声|声|BGM|背景音楽|音楽|劇伴|サウンドトラック|字幕|テロップ|文字|ロゴ|効果音|環境音)'
 _LIST_BAN_RE = re.compile(
     _BAN_ITEM + r'(?:[・、,／/\s]+' + _BAN_ITEM + r')*'
-    r'(?:は|を|の)?\s*(?:なし|無し|不要|入れない|追加しない)', re.IGNORECASE)
+    r'(?:は|を|の)?\s*(?:なし|無し|不要|入れない|追加しない)', re.I)
 _NO_SPEECH_RE = re.compile(
-    r'無言|喋らない|しゃべらない|話さない|' + _LIST_BAN_RE.pattern, re.IGNORECASE)
+    r'無言|喋らない|しゃべらない|話さない|' + _LIST_BAN_RE.pattern, re.I)
 
 
 def requests_global_silence(brief):
@@ -69,67 +73,270 @@ _SPOKEN_QUOTE_RE = re.compile(
     re.IGNORECASE,
 )
 
+_STYLE_LOCK_RE = re.compile(
+    r'MV_VISUAL_STYLE_LOCK:\s*(SOURCE_MATCH_AUTO|2D_ANIME|3D_CGI|PHOTOREAL_LIVE_ACTION)',
+    re.IGNORECASE,
+)
+_IDENTITY_LOCK_RE = re.compile(r'MV_CHARACTER_IDENTITY_LOCK:\s*([^\n\r]+)', re.IGNORECASE)
+_RENDERING_MEDIUM_RE = re.compile(
+    r'RENDERING_MEDIUM\s*=\s*(2D_ANIME|3D_CGI|PHOTOREAL_LIVE_ACTION)',
+    re.IGNORECASE,
+)
+
+_STYLE_CONTRACTS = {
+    '2D_ANIME': (
+        'Flat 2D cel animation with clean line art, hand-drawn forms, and cel shading is maintained in every shot.'
+    ),
+    '3D_CGI': (
+        'Consistent 3D CGI models, materials, dimensional lighting, and the source render style are maintained in every shot.'
+    ),
+    'PHOTOREAL_LIVE_ACTION': (
+        'Photoreal live-action cinematography, natural skin and fabric texture, physical lenses, and real-world lighting are maintained in every shot.'
+    ),
+}
+
+
+def enforce_visual_style_lock(prompt, brief):
+    """Make a manual medium lock unambiguous without replacing LM-authored scenes."""
+    lock = _STYLE_LOCK_RE.search(brief or '')
+    if not lock:
+        return prompt
+    requested = lock.group(1).upper()
+    if requested == 'SOURCE_MATCH_AUTO':
+        return prompt
+    # A model may repeat the three choices from the instruction while explaining
+    # why it chose one. Remove those prose markers, then restore only the selected
+    # marker at the two visual ownership sections. Scene content remains intact.
+    result = _RENDERING_MEDIUM_RE.sub('', prompt or '')
+    marker = f'RENDERING_MEDIUM={requested}. {_STYLE_CONTRACTS[requested]} '
+    first_section = (
+        r'(subject_definitions\s*:\s*)'
+        if re.search(r'subject_definitions\s*:', result, re.IGNORECASE)
+        else r'(integrated_multimodal_description\s*:\s*)'
+    )
+    result = re.sub(
+        first_section,
+        lambda match: match.group(1) + marker,
+        result,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+    if re.search(r'detailed_description\s*:', result, re.IGNORECASE):
+        result = re.sub(
+            r'(detailed_description\s*:\s*)',
+            lambda match: match.group(1) + marker,
+            result,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+    return result
+
+
+def enforce_character_identity_lock(prompt, brief):
+    """Keep explicit stable character traits after the LM conversion.
+
+    English lock text is safe to inject verbatim into H3. Japanese lock text is
+    left to the multimodal LM for translation, then checked by category below.
+    """
+    lock = _IDENTITY_LOCK_RE.search(brief or '')
+    if not lock:
+        return prompt
+    notes = ' '.join(lock.group(1).split())
+    if not notes or re.search(r'[ぁ-んァ-ヶ一-龯々]', notes):
+        return prompt
+    marker = (
+        'CHARACTER_IDENTITY_LOCK=STRICT. ' + notes + ' '
+        '<Picture 1> is authoritative. Preserve the same facial silhouette and proportions, '
+        'eye shape and spacing, eyebrow shape, nose and mouth placement, jawline, bangs, and '
+        'hair silhouette; do not replace them with a generic character face. '
+        'Never alter these stable traits. '
+    )
+    section = (
+        r'(subject_definitions\s*:\s*)'
+        if re.search(r'subject_definitions\s*:', prompt or '', re.IGNORECASE)
+        else r'(integrated_multimodal_description\s*:\s*)'
+    )
+    return re.sub(section, lambda match: match.group(1) + marker, prompt or '', count=1, flags=re.IGNORECASE)
+
+
+def character_identity_lock_errors(prompt, brief):
+    lock = _IDENTITY_LOCK_RE.search(brief or '')
+    if not lock:
+        return []
+    subject_match = re.search(
+        r'(?:subject_definitions|integrated_multimodal_description)\s*:\s*(.*?)(?=\n\s*(?:summary|retention_analysis|detailed_description|overall_soundscape|non_diegetic_music)\s*:|\Z)',
+        prompt or '', re.IGNORECASE | re.DOTALL,
+    )
+    subject = subject_match.group(1) if subject_match else ''
+    categories = (
+        (r'hair|bob|bangs?|fringe', 'hair length and cut'),
+        (r'eyes?|iris', 'eye color'),
+        (r'outfit|clothing|wears?|bikini|dress|shirt|jacket', 'outfit'),
+        (r'ears?|headband|headwear|accessor|tail|horns?', 'head accessories, ears, or tail'),
+    )
+    missing = [label for pattern, label in categories if not re.search(pattern, subject, re.IGNORECASE)]
+    if missing:
+        return [
+            'Describe the reference character stable identity in subject_definitions, including: '
+            + ', '.join(missing) + '. Preserve exact shapes, lengths, and colors from <Picture 1>.'
+        ]
+    return []
+
+
+def visual_style_lock_errors(prompt, brief):
+    """Require the image-aware LM conversion to keep the requested source medium."""
+    lock = _STYLE_LOCK_RE.search(brief or '')
+    if not lock:
+        return []
+    requested = lock.group(1).upper()
+    rendered = {match.group(1).upper() for match in _RENDERING_MEDIUM_RE.finditer(prompt or '')}
+    if requested == 'SOURCE_MATCH_AUTO':
+        if len(rendered) != 1:
+            return [
+                'Inspect <Picture 1> and state exactly one rendering marker in the final prompt: '
+                'RENDERING_MEDIUM=2D_ANIME, RENDERING_MEDIUM=3D_CGI, or '
+                'RENDERING_MEDIUM=PHOTOREAL_LIVE_ACTION. Preserve that medium in every shot.'
+            ]
+        requested = next(iter(rendered))
+    if rendered != {requested}:
+        return [
+            f'The style lock requires exactly RENDERING_MEDIUM={requested}. Remove every conflicting '
+            'rendering marker and preserve this medium in subject_definitions and every timed shot.'
+        ]
+    visual = _main_description(prompt)
+    positive_visual = re.sub(
+        r'\b(?:no|not|never|without|avoid|forbid(?:den)?|exclude)\b[^.,;\n]{0,100}',
+        '',
+        visual,
+        flags=re.IGNORECASE,
+    )
+    requirements = {
+        '2D_ANIME': (r'\b2D\b|cel[- ]?(?:anime|animation|shading)|hand[- ]drawn|line art',
+                     r'\b3D\s+CGI\b|photoreal(?:istic)?|live[- ]action|plastic skin'),
+        '3D_CGI': (r'\b3D\b|CGI|computer[- ]generated|rendered model',
+                   r'flat 2D|cel[- ]?(?:anime|animation)|hand[- ]drawn|live[- ]action'),
+        'PHOTOREAL_LIVE_ACTION': (r'photoreal(?:istic)?|live[- ]action|real[- ]world camera|natural skin texture',
+                                  r'flat 2D|cel[- ]?(?:anime|animation)|hand[- ]drawn|\b3D\s+CGI\b'),
+    }
+    required, forbidden = requirements[requested]
+    errors = []
+    if not re.search(required, visual, re.IGNORECASE):
+        errors.append(f'Describe the entire visual timeline explicitly in the locked {requested} medium.')
+    if re.search(forbidden, positive_visual, re.IGNORECASE):
+        errors.append(f'Remove rendering language that conflicts with the locked {requested} medium.')
+    return errors
+
 
 def _supplied_dialogue_lines(brief):
     values = []
+    for match in _DIALOGUE_TAG_RE.finditer(brief or ''):
+        value = match.group(2).strip()
+        if value:
+            values.append(value)
     for match in re.finditer(r'「([^」]+)」|『([^』]+)』|“([^”]+)”|"([^"]+)"', brief or ''):
         value = next((item for item in match.groups() if item is not None), '').strip()
         if value and re.search(r'[ぁ-んァ-ヶ一-龯々ー]', value):
             values.append(value)
-    return values
+    return list(dict.fromkeys(values))
 
 
-def _parse_created_dialogue(response):
-    text = (response or '').strip()
-    match = re.search(r'\{.*\}', text, re.DOTALL)
-    if not match:
-        return []
-    try:
-        payload = json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return []
-    raw_lines = payload.get('lines') if isinstance(payload, dict) else None
-    if not isinstance(raw_lines, list):
-        return []
-    result = []
-    for item in raw_lines:
-        if not isinstance(item, str):
+_TIMED_DIALOGUE_RE = re.compile(
+    r'\[\s*(\d+(?:\.\d+)?)\s*[-–—~〜]\s*(\d+(?:\.\d+)?)\s*\]\s*'
+    r'(\(S\d+(?:\s*,\s*S\d+)*\))?\s*<d>\[([^\]]+)\]\s*(.*?)</d>',
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _event_clock(seconds):
+    value = max(0.0, float(seconds))
+    minutes = int(value // 60)
+    remainder = value - minutes * 60
+    return f'{minutes:02d}:{remainder:06.3f}'
+
+
+def restore_supplied_dialogue(prompt, brief):
+    """Restore exact tagged user dialogue that an LLM accidentally drops.
+
+    Visual direction remains authored by the LLM. Only explicit input tags are
+    copied, so this cannot invent a line or turn production prose into speech.
+    """
+    events = []
+    for match in _TIMED_DIALOGUE_RE.finditer(brief or ''):
+        start, end, speaker, language, body = match.groups()
+        events.append((float(start), float(end), speaker or '(S1)', language.strip(), body.strip()))
+    if not events:
+        return prompt
+    section = re.search(
+        r'((?:detailed_description|integrated_multimodal_description)\s*:\s*)(.*?)'
+        r'(?=\n\s*overall_soundscape\s*:)',
+        prompt or '', re.IGNORECASE | re.DOTALL,
+    )
+    if not section:
+        return prompt
+    body = section.group(2).rstrip()
+    # LMs sometimes keep the exact words but widen two precise lyric windows
+    # into one whole-shot speech range. Remove those model-authored speech
+    # sentences and append one authoritative event per original input range.
+    supplied_words = {words for _, _, _, _, words in events}
+    remove_spans = []
+    for tag_match in _DIALOGUE_TAG_RE.finditer(body):
+        words = tag_match.group(2).strip()
+        if words not in supplied_words and '<Audio 1> は元曲' not in (brief or ''):
             continue
-        value = item.strip().strip('「」『』“”"')
-        if not value or len(value) > 160:
-            continue
-        if not re.search(r'[ぁ-んァ-ヶ一-龯々ー]', value):
-            continue
-        if value not in result:
-            result.append(value)
-    return result[:4]
-
-
-def create_japanese_dialogue(brief, model, api_base, timeout_seconds):
-    dialogue_helper = LocalLMHelper()
-    dialogue_helper.SYSTEM_PROMPT = '''Create the actual Japanese words that will be spoken in the requested video.
-The user requested speech but did not supply exact dialogue. Infer short, natural, context-appropriate Japanese lines from the scene and duration.
-Return only strict JSON in this form: {"lines":["actual Japanese line"]}
-Use one line unless the brief clearly requires a multi-speaker exchange. Use at most four short lines. Do not return descriptions, placeholders, translations, speaker labels, Markdown, or repeated wording.'''
-    last_response = ''
-    for temperature in (0.2, 0.0):
-        last_response, _ = dialogue_helper.convert(
-            brief,
-            model,
-            api_base,
-            temperature,
-            512,
-            timeout_seconds,
-            False,
-            '',
-            input_images=[],
-            reasoning='off',
+        prefix = body[max(0, tag_match.start() - 320):tag_match.start()]
+        from_matches = list(re.finditer(r'\bFrom\s+\d{2}:\d{2}\.\d{3}\s+to\s+\d{2}:\d{2}\.\d{3}\b', prefix))
+        if from_matches:
+            start = max(0, tag_match.start() - len(prefix) + from_matches[-1].start())
+        else:
+            boundaries = list(re.finditer(r'(?:(?<=\.)\s+|(?<=\n))', body[:tag_match.start()]))
+            start = boundaries[-1].end() if boundaries else 0
+        ending = re.search(r'\.(?=\s|$)', body[tag_match.end():])
+        end = tag_match.end() + ending.end() if ending else tag_match.end()
+        remove_spans.append((start, end))
+    for start, end in sorted(remove_spans, reverse=True):
+        body = body[:start].rstrip() + ' ' + body[end:].lstrip()
+    scheduled = [
+        (start, end,
+            f'From {_event_clock(start)} to {_event_clock(end)}, the assigned singer performs '
+            f'exactly once with mouth movement synchronized to <Audio 1>: {speaker} {exact_tag}.'
         )
-        lines = _parse_created_dialogue(last_response)
-        if lines:
-            return lines
-    print('[H3] 台詞JSONの形式警告。動画プロンプト生成側で自然な台詞を補います。')
-    return []
+        for start, end, speaker, language, words in events
+        for exact_tag in [f'<d>[{language}] {words}</d>']
+    ]
+    phase_re = re.compile(
+        r'(?m)^\s*\[?(\d{2}):(\d{2}(?:\.\d+)?)\s*[-–—~〜]\s*'
+        r'(\d{2}):(\d{2}(?:\.\d+)?)\]?\s*$'
+    )
+    phases = list(phase_re.finditer(body))
+    insertions = {}
+    unslotted = []
+    for start, end, sentence in scheduled:
+        chosen = None
+        for index, phase in enumerate(phases):
+            phase_start = int(phase.group(1)) * 60 + float(phase.group(2))
+            phase_end = int(phase.group(3)) * 60 + float(phase.group(4))
+            if phase_start - 1e-3 <= start < phase_end + 1e-3 and end <= phase_end + 1e-3:
+                chosen = index
+                break
+        if chosen is None:
+            unslotted.append(sentence)
+        else:
+            insertion_point = phases[chosen + 1].start() if chosen + 1 < len(phases) else len(body)
+            insertions.setdefault(insertion_point, []).append(sentence)
+    for insertion_point, sentences in sorted(insertions.items(), reverse=True):
+        body = body[:insertion_point].rstrip() + '\n' + '\n'.join(sentences) + '\n\n' + body[insertion_point:].lstrip()
+    if unslotted:
+        body += ('\n' if body else '') + '\n'.join(unslotted)
+    return prompt[:section.start(2)] + body + prompt[section.end(2):]
+
+
+def requests_scripted_speech(brief):
+    if requests_global_silence(brief):
+        return False
+    directions = _normalized_for_matching(brief)
+    directions = re.sub(r'「[^」]*」|『[^』]*』|“[^”]*”|"[^"\n]*"', ' ', directions)
+    directions = _NO_SPEECH_RE.sub(' ', directions)
+    return bool(_SPEECH_REQUEST_RE.search(directions))
 
 
 def _main_description(prompt):
@@ -198,7 +405,7 @@ def enforce_no_unscripted_speech(prompt, brief):
     main = _main_description(prompt)
     if _DIALOGUE_TAG_RE.search(main):
         return prompt
-    if (_SPEECH_REQUEST_RE.search(brief or '') or VOCAL_REQUEST.search(brief or '')) and not requests_global_silence(brief):
+    if (requests_scripted_speech(brief) or VOCAL_REQUEST.search(brief or '')) and not requests_global_silence(brief):
         return prompt
     main_clause = (
         ' No character speaks. No dialogue, narration, singing, chanting, intelligible words, '
@@ -226,7 +433,8 @@ def enforce_no_unscripted_speech(prompt, brief):
 
 def enforce_music_policy(prompt, brief):
     normalized_brief = _normalized_for_matching(brief)
-    requested = bool(_MUSIC_REQUEST_RE.search(normalized_brief)) and not _NO_MUSIC_RE.search(normalized_brief)
+    banned_music = any(_MUSIC_REQUEST_RE.search(m.group()) for m in _LIST_BAN_RE.finditer(normalized_brief))
+    requested = bool(_MUSIC_REQUEST_RE.search(normalized_brief)) and not (_NO_MUSIC_RE.search(normalized_brief) or banned_music)
     section = re.search(r'(non_diegetic_music\s*:\s*)(.*)\Z', prompt or '', re.IGNORECASE | re.DOTALL)
     if not section:
         return prompt
@@ -248,13 +456,13 @@ def dialogue_format_errors(prompt, brief):
     supplied = _supplied_dialogue_lines(brief)
     explicit_other_language = bool(_OTHER_LANGUAGE_RE.search(brief or ''))
     no_speech = requests_global_silence(brief)
-    requests_speech = bool(_SPEECH_REQUEST_RE.search(brief or '')) and not no_speech
+    requests_speech = requests_scripted_speech(brief)
     positive_main = re.sub(r'\b(?:no|without)\b[^.\n]*', '', main, flags=re.I)
     claims_speech = bool(_SPEECH_CLAIM_RE.search(positive_main))
 
     if no_speech and tags:
         errors.append('The user requested no human speech, so remove every <d> dialogue tag and every vocal line.')
-    if (requests_speech or claims_speech) and not tags and not _SPOKEN_QUOTE_RE.search(main) and not any(line in main for line in supplied):
+    if not no_speech and (requests_speech or claims_speech) and not tags:
         errors.append('The user requests speech. Put every spoken line in <d>[Japanese] exact words</d> and bind the speaker with a stable (S1) ID.')
 
     bodies = []
@@ -264,12 +472,91 @@ def dialogue_format_errors(prompt, brief):
         bodies.append(body)
         if not explicit_other_language and language.casefold() != 'japanese':
             errors.append('All speech must use the [Japanese] language tag unless the user explicitly requests another language.')
+        if not explicit_other_language and (not re.search(r'[ぁ-んァ-ヶ一-龯々ー]', body)
+                or re.search(r'\b(?:TBD|placeholder|insert dialogue|actual words)\b|台詞をここ|セリフをここ', body, re.I)):
+            errors.append('Write actual context-appropriate Japanese words inside every dialogue tag; placeholders and untranslated English are not speech.')
 
     for line in supplied:
         if line not in main:
             errors.append(f'The supplied dialogue is missing from the scene: {line}')
 
+    for match in _TIMED_DIALOGUE_RE.finditer(brief or ''):
+        start, end, speaker, language, words = match.groups()
+        tag_pattern = (
+            r'<d>\[' + re.escape(language.strip()) + r'\]\s*'
+            + re.escape(words.strip()) + r'\s*</d>'
+        )
+        occurrences = list(re.finditer(tag_pattern, main, re.IGNORECASE | re.DOTALL))
+        if len(occurrences) != 1:
+            errors.append(f'The supplied dialogue must appear exactly once: {words.strip()}')
+            continue
+        prefix = main[max(0, occurrences[0].start() - 220):occurrences[0].start()]
+        exact_range = rf'From\s+{re.escape(_event_clock(float(start)))}\s+to\s+{re.escape(_event_clock(float(end)))}\b'
+        if not re.search(exact_range, prefix, re.IGNORECASE):
+            errors.append(
+                f'Keep the exact supplied speech range {_event_clock(float(start))}-{_event_clock(float(end))} '
+                f'for: {words.strip()}'
+            )
+
     return list(dict.fromkeys(errors))
+
+
+def enforce_segment_dialogue_schedule(local_prompt, brief, segment):
+    """Put authoritative MV lyric events directly into the consumed segment prompt.
+
+    This is the final layer after timeline segmentation, so an LM-authored broad
+    speech range cannot erase the exact ASR-aligned windows. A line crossing a
+    generation boundary is marked as a continuation in the following raw clip.
+    """
+    if '<Audio 1> は元曲' not in (brief or ''):
+        return local_prompt
+    events = []
+    for match in _TIMED_DIALOGUE_RE.finditer(brief or ''):
+        start, end, speaker, language, words = match.groups()
+        events.append((float(start), float(end), speaker or '(S1)', language.strip(), words.strip()))
+    if not events:
+        return local_prompt
+    start = segment.output_start / 24
+    end = (segment.output_start + segment.output_frames) / 24
+    context = segment.context_frames / 24
+    scheduled = []
+    for event_start, event_end, speaker, language, words in events:
+        if event_start >= end or event_end <= start:
+            continue
+        local_start = context + max(event_start, start) - start
+        local_end = context + min(event_end, end) - start
+        tag = f'{speaker} <d>[{language}] {words}</d>'
+        if event_start < start:
+            scheduled.append(
+                f'From {_event_clock(local_start)} to {_event_clock(local_end)}, continue only the remaining '
+                f'part of the already-started vocal line synchronized to <Audio 1>: {tag}. '
+                'Do not restart the line or repeat any earlier word.'
+            )
+        elif event_end > end:
+            scheduled.append(
+                f'From {_event_clock(local_start)} to {_event_clock(local_end)}, begin this vocal line exactly once '
+                f'with mouth movement synchronized to <Audio 1>: {tag}. The line continues only through the next '
+                'audiovisual guide; do not rush, finish, or repeat it inside this clip.'
+            )
+        else:
+            scheduled.append(
+                f'From {_event_clock(local_start)} to {_event_clock(local_end)}, perform exactly once with mouth '
+                f'movement synchronized to <Audio 1>: {tag}. Start and finish inside this range.'
+            )
+    # Remove any model-authored dialogue markup first. The exact source events
+    # below are the only vocal words H3 may consume for this segment.
+    result = re.sub(r'(?:\(S\d+(?:\s*,\s*S\d+)*\)\s*)?<d>.*?</d>', '', local_prompt or '', flags=re.I | re.S)
+    if not scheduled:
+        return result
+    block = (
+        '\n\nAUTHORITATIVE VOCAL SCHEDULE — overrides every broader speech range above. '
+        'Use only these tagged words; do not add filler, echoes, or a second voice.\n'
+        + '\n'.join(scheduled)
+    )
+    match = re.search(r'\n\s*overall_soundscape\s*:', result, re.IGNORECASE)
+    if match:
+        return result[:match.start()] + block + result[match.start():]
+    return result.rstrip() + block
 
 
 def long_timeline():
@@ -288,8 +575,8 @@ def system_prompt(mode, duration, boundaries=()):
     boundary_rule = ('Generation boundaries: '+', '.join(f'{b:g} seconds' for b in boundaries)+'. No action time range may cross a boundary. At each boundary keep the current camera framing and subject positions; the next range advances the already-reached state, without restaging the action onset. Describe each side separately. ') if boundaries else ''
     return f'''{boundary_rule}Rewrite the brief as a MiniMax H3 {mode} video lasting {duration:g} seconds. Return only JSON with these string keys: {fields}. The JSON schema enforces field limits. Aim for 350-450 words TOTAL. End immediately after the JSON object.
 All visual prose is English. Translate the production instructions into visible actions in their original order; NEVER read them aloud or discuss rendering, software, or the rewrite process. Only actual dialogue/lyrics and requested visible lettering retain their original language. Exact user-supplied words must remain unchanged. Default voice language is Japanese. Screams, breaths and gasps are short NONVERBAL sounds, not narration. Describe them in English as short wordless sounds by the assigned subject, preserving the requested voice; do not impose a female voice on every subject or invent phonetic dialogue.
-The main description MUST contain the complete beginning, middle, and ending, spanning the entire requested duration. Never put later actions only in the summary. The main description uses explicit [MM:SS-MM:SS] ranges for successive phases. Cover 00:00 through the requested final second, putting the requested ending in the final range. Keep the action progressing throughout; do not finish the story early and pad the rest with black screen. These ranges are mandatory even for one continuous shot. They are timing phases, not cuts. Maintain continuous action and camera movement unless the user requests cuts; never repeat an establishing view or reset the actors between phases. Keep all requested actions, characters, camera movements and sound. Preserve causal order: an initiating event must happen before its consequences, never reappear in the final phase. Allocate the final phase solely to completing the requested ending state. At each boundary explicitly state the already-reached position and ongoing movement, not a fresh start. Every spoken turn belongs to exactly one timed phase and must finish before that phase ends; put a short natural pause at each generation boundary. Never split a sentence or copy its full text into both phases. Do not add people, narration, captions or music without a request. Speech uses (S1) <d>[Japanese] actual words</d> once with natural pauses. No speech text in soundscape or music.
-For references: subject_definitions contains ONLY stable appearance, never the starting location, pose or action. The detailed description owns all changing locations and poses. Soundscape contains only continuous ambience; put one-off growls, attacks, screams and thunder onsets in their timed action ranges. For references: subject_definitions gives separate <Subject 1>, <Subject 2> etc with appearance and correct <Picture N> source. One image may contain multiple people. Retention states fully_preserved/partially_preserved/attribute_transfer/weak_reference relationships. Use the same Subject labels in the action timeline. Ref2VA images define identity, not compulsory first frames. In I2VA, state <Picture 1> is the first frame at 0.00 seconds.
+The main description MUST contain the complete beginning, middle, and ending, spanning the entire requested duration. Never put later actions only in the summary. The main description uses explicit [MM:SS-MM:SS] ranges for successive phases. Cover 00:00 through the requested final second, putting the requested ending in the final range. Keep the action progressing throughout; do not finish the story early and pad the rest with black screen. These ranges are mandatory even for one continuous shot. They are timing phases, not cuts. Maintain continuous action and camera movement unless the user requests cuts; never repeat an establishing view or reset the actors between phases. Keep all requested actions, characters, camera movements and sound. Preserve causal order: an initiating event must happen before its consequences, never reappear in the final phase. Allocate the final phase solely to completing the requested ending state. At each boundary explicitly state the already-reached position and ongoing movement, not a fresh start. Every spoken turn belongs to exactly one timed phase and must finish before that phase ends; put a short natural pause at each generation boundary. Never split a sentence or copy its full text into both phases. Do not add people, narration, captions or music without a request. Speech uses (S1) <d>[Japanese] actual words</d> once with natural pauses. If speech is requested without exact words, compose a short natural Japanese line appropriate to the scene INSIDE the dialogue tag; never leave speech as an instruction such as talks, chats, greets or speaks Japanese. Bind each line to the character who says it. Use one brief line unless a multi-speaker exchange is requested. Never use placeholders or pronounce production directions. Silence instructions override creative dialogue. No speech text in soundscape or music.
+For references: subject_definitions contains ONLY stable appearance, never the starting location, pose or action. For every visible person, inspect the reference and explicitly state hair length/cut and bangs, eye color, head accessories or ears, facial silhouette and proportions, eye shape and spacing, eyebrow shape, nose and mouth placement, jawline, body build, every outfit layer, footwear, and any tail or mechanical part. Treat the reference pixels as authoritative identity: do not substitute a generic face that merely shares hair, eye, ear, or clothing colors, and never replace a bob with long hair or vice versa. Keep at least one face-readable medium or close view in each generated segment so identity can be verified. The detailed description owns all changing locations and poses. Soundscape contains only continuous ambience; put one-off growls, attacks, screams and thunder onsets in their timed action ranges. For references: subject_definitions gives separate <Subject 1>, <Subject 2> etc with appearance and correct <Picture N> source. One image may contain multiple people. Retention states fully_preserved/partially_preserved/attribute_transfer/weak_reference relationships. Use the same Subject labels in the action timeline. Ref2VA images define identity, not compulsory first frames. In I2VA, state <Picture 1> is the first frame at 0.00 seconds.
 Soundscape contains environmental and nonverbal sounds. Music is N/A unless requested. Preserve deliberate silence and requested BGM.
 '''
 
@@ -306,7 +593,6 @@ def split_conversion_issues(errors, prompt, image_count):
     used = {int(n) for n in re.findall(r'<Picture\s+(\d+)>', prompt, re.I)}
     for error in errors:
         minor = error.startswith((
-            'The user requests speech. Put every spoken line',
             'Split the action phase at ',
             'Use explicit time ranges with generation boundaries:',
             'Soundscape contains spoken words or written cries.',
@@ -324,7 +610,7 @@ def split_conversion_issues(errors, prompt, image_count):
 class H3StandardPrompt:
     @classmethod
     def INPUT_TYPES(cls):
-        schema = json.loads(Path(__file__).with_name('input_schema.json').read_text(encoding='utf-8'))
+        schema = copy.deepcopy(nodes.NODE_CLASS_MAPPINGS['H3VideoJapanesePromptLMStudio'].INPUT_TYPES())
         schema['required']['fallback_to_japanese'][1].update(default=False, display_name='旧・原文続行（安全のため無効）', tooltip='互換性のため残していますが、ONでも未変換原文は動画へ渡しません。内容不備は最大2回修正依頼し、未解決なら停止します。')
         schema['required']['mode'] = (['T2VA','I2VA','Ref2VA (R2V)'],)
         schema['required']['duration_seconds'][1].update(default=15.0, min=0.1, max=600.0,
@@ -338,7 +624,6 @@ class H3StandardPrompt:
         return schema
 
     ensure_cpu_for_video = staticmethod(ensure_cpu_for_video)
-    local_lm_helper = LocalLMHelper
 
     RETURN_TYPES = ('STRING','STRING','INT','INT','MINIMAX_H3_LONG_PROMPT_PLAN')
     RETURN_NAMES = ('H3_PROMPT','実行計画','総フレーム数','内部区間フレーム数','区間プロンプト計画')
@@ -366,7 +651,7 @@ class H3StandardPrompt:
         status = '直接入力：LM Studio・外部API呼出しなし'
         device_report = {'enabled': False}
         if brief:
-            helper = LocalLMHelper()
+            helper = nodes.NODE_CLASS_MAPPINGS['QwenJapanesePromptLMStudio']()
             helper.SYSTEM_PROMPT = system_prompt(mode, duration, boundaries)
             helper.STREAM_RESPONSE = True
             helper.H3_SAMPLING = True
@@ -385,11 +670,16 @@ class H3StandardPrompt:
                     prompt, valid = normalize_lm_fields(prompt, expected)
                     if 'Ref2' in mode:
                         prompt = normalize_reference_labels(prompt)
+                    prompt = restore_supplied_dialogue(prompt, brief)
+                    prompt = enforce_character_identity_lock(prompt, brief)
+                    prompt = enforce_visual_style_lock(prompt, brief)
                     prompt = enforce_dialogue_locality(prompt, brief)
                     errors = [] if valid else ['Return the complete ordered H3 fields with nonempty English visual descriptions.']
                     errors += conversion_errors(prompt, brief, _supplied_dialogue_lines(brief), duration)
                     errors += reference_format_errors(prompt,len(images)) if 'Ref2' in mode else []
                     errors += dialogue_format_errors(prompt, brief)
+                    errors += character_identity_lock_errors(prompt, brief)
+                    errors += visual_style_lock_errors(prompt, brief)
                     errors += boundary_errors(prompt, duration, boundaries)
                     errors, tolerated_warnings = split_conversion_issues(errors, prompt, len(images))
                     boundary_warnings = [w for w in tolerated_warnings if w.startswith(('Split the action phase at ', 'Use explicit time ranges with generation boundaries:', 'Soundscape contains spoken words', 'The user requests speech. Put every spoken line', 'Untranslated Japanese production prose'))]
@@ -429,13 +719,18 @@ class H3StandardPrompt:
         # max_raw was selected before conversion so planning and validation agree.
         context = int(context_frames)
         segments = tl.plan_segments(length, context, False, max_raw, exact_output_frames=count_frames)
+        local_prompts = [
+            enforce_segment_dialogue_schedule(segment_prompt(prompt, duration, item, len(segments)), brief, item)
+            for item in segments
+        ]
         plan = {
             'schema':tl.PROMPT_PLAN_SCHEMA_VERSION,'length_input':length,
             'delivered_length':count_frames,'requested_output_frames':count_frames,
             'preserve_generated_audio':True,
             'quality_policy':THREE_MODE_POLICY,
             'max_raw_frames':max_raw,'context_frames':context,'has_initial_latent':False,
-            'segments':[{**tl._segment_record(s),'prompt':segment_prompt(prompt,duration,s,len(segments))} for s in segments],
+            'segments':[{**tl._segment_record(s),'prompt':local_prompt}
+                        for s, local_prompt in zip(segments, local_prompts)],
         }
         if device_report.get('enabled'):
             plan['lm_device_guard'] = {'api_base': device_report['api_base'], 'identifier': model}
@@ -452,6 +747,3 @@ class H3StandardPrompt:
 
 NODE_CLASS_MAPPINGS = {'H3StandardPrompt':H3StandardPrompt}
 NODE_DISPLAY_NAME_MAPPINGS = {'H3StandardPrompt':'通常H3プロンプト：直接入力／日本語LM変換・指定尺'}
-
-# Browser extension for Japanese prompt conversion status.
-WEB_DIRECTORY = "./web"
