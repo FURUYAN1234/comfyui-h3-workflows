@@ -3,11 +3,11 @@
 
 <img width="1280" height="670" alt="rectangle_large_type_2_59a7eaa00188c52e187dedbee72c137f" src="https://github.com/user-attachments/assets/1ae01f31-9fda-4863-a060-fbe1f4c8f392" />
 
-# MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.0
+# MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.1
 
 <!-- bilingual-readme: paired english-japanese -->
 
-This ComfyUI distribution generates video with MiniMax H3 in four modes: **text to video (T2V)**, **video from a starting image (I2V)**, **video guided by reference images (Ref2V)**, and a **music-video workflow** that combines a finished song, exact lyrics, and a character image. It supports Japanese direction, fixed test clips or full-song variable duration, subtitles, source-audio lip-sync guidance, title/end-link overlays, fades, per-segment review, and resume. / MiniMax H3で、**文章から動画（T2V）**、**開始画像から動画（I2V）**、**参照画像から動画（Ref2V）**、さらに完成曲・正確な歌詞・キャラクター画像を組み合わせる**MVワークフロー**を提供します。日本語の演出指示、短い検証尺または曲末までの可変尺、字幕、元音源に合わせたリップシンク指示、タイトル／終了リンク表示、フェード、区間検査、途中再開に対応します。
+This ComfyUI distribution generates video with MiniMax H3 in four modes: **text to video (T2V)**, **video from a starting image (I2V)**, **video guided by reference images (Ref2V)**, and a **music-video workflow** that combines a finished song, exact lyrics, and a character sheet containing one or more people. It supports Japanese direction, fixed test clips or full-song variable duration, subtitles, source-audio lip-sync guidance, title/end-link overlays, fades, per-segment review, and resume. / MiniMax H3で、**文章から動画（T2V）**、**開始画像から動画（I2V）**、**参照画像から動画（Ref2V）**、さらに完成曲・正確な歌詞・1人以上を含むキャラクターシートを組み合わせる**MVワークフロー**を提供します。日本語の演出指示、短い検証尺または曲末までの可変尺、字幕、元音源に合わせたリップシンク指示、タイトル／終了リンク表示、フェード、区間検査、途中再開に対応します。
 
 This README walks first-time users through choosing a workflow, installing every required component, placing the files correctly, and running the first generation. See [README_JA.md](README_JA.md) for additional node-level details and examples, and [VALIDATION.md](VALIDATION.md) for the exact validation scope and remaining unverified areas. / このREADMEでは、初めて使う人が「どれを選ぶか」「何を入れるか」「どこへ置くか」「最初に何を実行するか」を順番に確認できます。さらに詳しいノード設定と操作例は [README_JA.md](README_JA.md)、実施済みの検証と未確認範囲は [VALIDATION.md](VALIDATION.md) を参照してください。
 
@@ -29,7 +29,7 @@ YuE2 completes a song and simultaneously creates a separate `output/mv-assets/..
 | **T2V** | No image / 画像なし | Create characters, backgrounds, and action from text; also the best first-run check / 人物、背景、動作を文章から作る。初回の動作確認にも向く |
 | **I2V** | One starting image / 開始画像1枚 | Use an existing image as the first frame and animate its composition / 手元の画像を最初のフレームとして、その構図から動かす |
 | **Ref2V** | One to five reference images / 参照画像1〜5枚 | Reference a character, face, hairstyle, clothing, or other visual details while creating a different scene or composition / 人物、顔、髪型、服装などを参照し、別の場面や構図を作る |
-| **MV** | MV asset bundle + one character image / MV素材バンドル＋キャラクター画像1枚 | Turn a YuE2 or compatible song into a fixed-length test MV or a full-song variable-length MV / YuE2等の曲を短い検証MVまたは曲末までの可変尺MVにする |
+| **MV** | MV asset bundle + one character sheet image / MV素材バンドル＋キャラクターシート1枚 | Keep one or more registered characters distinct while turning a song into a fixed-length test MV or full-song MV / 登録された1人以上の人物を区別し、曲を短い検証MVまたは1曲MVにする |
 
 Key features: / 主な機能は次のとおりです。
 
@@ -41,19 +41,19 @@ Key features: / 主な機能は次のとおりです。
 - Resume from intermediate data and regenerate from a selected segment / 中間データを使った途中再開と、指定区間からの再生成
 - Model download URLs, destinations, sizes, and SHA-256 hashes in [`models.json`](models.json) / モデル取得URL、配置先、サイズ、SHA-256を [`models.json`](models.json) に収録
 - No cloud API key; Japanese conversion, visual review, and speech review all run locally / クラウドAPIキー不要。日本語変換、画像検査、音声検査はローカル処理
-- Portable MV input: `master.flac`, exact display/singing lyrics, `lyrics.json`, and `mv_manifest.json` / 可搬MV入力：最終音源、表示／歌唱用歌詞、`lyrics.json`、`mv_manifest.json`
+- Portable MV input: `master.flac`, exact display/singing lyrics, `lyrics.json`, and schema-v2 `mv_manifest.json` with an optional 1–12-character contract / 可搬MV入力：最終音源、表示／歌唱用歌詞、`lyrics.json`、任意の1～12人契約を持つschema v2の `mv_manifest.json`
 - MV duration can be a requested number of seconds or the remaining song length; the last image and audio are faded together / MVは任意秒数または音源末尾までを選択でき、最後に映像と音声を同時フェード
 - Original 2D, 3D, or live-action appearance is explicitly preserved in the generated direction; identity is reference-guided rather than guaranteed / 元画像が2D・3D・実写のどれかを判定して画風維持を明示。人物同一性は参照誘導であり完全保証ではない
 
 The system does not always use all five attempts. It advances as soon as a segment passes. If the limit is reached, it selects the best candidate that meets the applicable conditions. Because AI review can still miss problems, always watch and listen to the finished video. / 区間試行は必ず5回行う仕組みではありません。合格した時点で次の区間へ進み、上限に達した場合は条件に合う候補から最良のものを使用します。AI検査にも見落としがあるため、完成動画は最後に目と耳で確認してください。
 
-## Changes in v1.2.0 / v1.2.0の変更点
+## Changes in v1.2.1 / v1.2.1の変更点
 
-Added the public `MV_H3_YuE2-LMStudio_v1.2.0.json` workflow and the reusable `comfyui-mv-workflow` custom node. The new input node reads the YuE2 MV bundle by relative folder name under `ComfyUI/output`, accepts a standard ComfyUI `IMAGE`, validates the manifest and source hashes, clips a requested section, and prepares exact lyrics for subtitles and source-audio-driven H3 direction. / 公開用 `MV_H3_YuE2-LMStudio_v1.2.0.json` と汎用 `comfyui-mv-workflow` ノードを追加しました。入力ノードは `ComfyUI/output` 以下の相対フォルダー名でYuE2のMV素材を読み、標準 `IMAGE` を受け、manifestと元ファイルのハッシュを検査し、指定区間を切り出して字幕・元曲連動のH3演出へ正確な歌詞を渡します。
+The MV input now reads YuE2 schema-v2 character metadata and maps 1–12 people in the same sheet to separate `<Subject 1>`, `<Subject 2>`, and stable speaker IDs. Repeated poses remain views of the same person; distinct people may not merge, split, swap identity, or acquire unregistered clones. / MV入力はYuE2のschema v2人物情報を読み、同じシート内の1～12人を別々の `<Subject 1>`、`<Subject 2>`…と安定話者IDへ対応付けます。表情・ポーズ差分は同一人物として扱い、別人物の融合・分裂・入れ替わり・未登録の分身を禁止します。
 
-The workflow includes 20-second test mode and full-song mode, subtitle ON/OFF, Whisper alignment, character/style preservation, LM Studio GPU loading followed by CPU release, H3 generation, original-audio finishing, title fade, end-link overlap, and synchronized audio/video fade-out. / 20秒などの検証尺と音源末尾までの可変尺、字幕ON/OFF、Whisper時刻合わせ、人物・画風維持、LM StudioのGPU読込→CPU復帰、H3生成、元曲での仕上げ、タイトルのフェード、終了リンクの重ね表示、映像・音声の同時フェードを1本にまとめました。
+For multi-character songs, the planner does not invent voice-to-person ownership from audio timbre. Each solo cue gets one visible singer, and the same lyric is not assigned to multiple mouths unless group singing is explicitly planned. Bundles without visual metadata keep the legacy single-person path. / 複数人物の曲では音声の声質だけから話者を捏造せず、ソロ区間は見える歌唱者を1人に限定し、明示したグループ歌唱以外で同じ歌詞を複数の口へ割り当てません。visual情報のない旧バンドルは従来の1人物経路で動きます。
 
-The public workflow was loaded in ComfyUI without missing nodes. The new relative-bundle and `IMAGE` input path passed unit/integration checks. A 20.000-second 864×480, 24fps H.264/AAC validation MV completed through the normal workflow path with four subtitle cues and synchronized finishing fades. Character identity remains model-dependent and must be visually checked. / 公開JSONはComfyUIで不足ノードなく読込確認済みです。相対バンドル＋`IMAGE`経路は単体・結合検査に合格しました。通常経路では20.000秒、864×480、24fps、H.264/AAC、字幕4区間、終了フェード付きMVを実生成しています。顔の一致度は生成モデル依存のため目視確認が必要です。
+The v1.2.1 checks cover two-character prompt contracts, malformed and duplicate metadata, and legacy fallback. The final generated MV still requires visual review because H3 reference guidance does not guarantee exact identity. / v1.2.1では2人物のプロンプト契約、不正・重複メタデータ、旧版フォールバックを検査します。H3の参照誘導は厳密な同一性を保証しないため、生成した完成MVは目視確認が必要です。
 
 The v1.1.9 timeline and mixed-audio-prohibition fixes remain included. / v1.1.9のタイムライン検査と混合音声禁止の修正も引き続き含みます。
 
@@ -64,7 +64,7 @@ The Release ZIP contains: / Release ZIPには次のファイルが入ってい�
 **English / 英語**
 
 ```text
-H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/
+H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/
 ├─ workflows/                 # T2V, I2V, Ref2V, and MV workflows
 ├─ custom_nodes/              # Six required custom-node packages
 ├─ docs/assets/               # Actual workflow diagrams and note thumbnail
@@ -81,7 +81,7 @@ H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/
 **Japanese / 日本語**
 
 ```text
-H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/
+H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/
 ├─ workflows/                 # T2V・I2V・Ref2V・MVのワークフロー4本
 ├─ custom_nodes/              # 導入に必要なカスタムノード6パッケージ
 ├─ docs/assets/               # 実ワークフロー図・noteサムネイル
@@ -119,7 +119,7 @@ The validated development environment is WSL2 Ubuntu with an NVIDIA RTX 5080 16 
 ### 1. Download and extract the Release ZIP / 1. Release ZIPを取得して展開する
 
 1. Open the [latest Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest). / [最新Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest)を開きます。
-2. Download `H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0.zip` from Assets. / Assetsから `H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0.zip` を取得します。
+2. Download `H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1.zip` from Assets. / Assetsから `H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1.zip` を取得します。
 3. Extract the entire ZIP. Do not take only a workflow JSON out of the archive. / ZIPをすべて展開します。ZIPの中からJSONだけを取り出さないでください。
 4. If custom nodes with the same names are already installed, move those existing folders outside ComfyUI first. / 既に同名のカスタムノードを使っている場合は、ComfyUIの外へ退避します。
 
@@ -182,13 +182,13 @@ For ComfyUI Portable on Windows, run this from the Portable root: / Windows Port
 **English / 英語**
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1\requirements.txt"
 ```
 
 **Japanese / 日本語**
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1\requirements.txt"
 ```
 
 For a Linux or WSL venv installation, run this from the ComfyUI directory: / Linux・WSLのvenv版では、ComfyUIフォルダーから実行します。
@@ -196,13 +196,13 @@ For a Linux or WSL venv installation, run this from the ComfyUI directory: / Lin
 **English / 英語**
 
 ```bash
-.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/requirements.txt"
+.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/requirements.txt"
 ```
 
 **Japanese / 日本語**
 
 ```bash
-.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/requirements.txt"
+.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/requirements.txt"
 ```
 
 Install the Triton build required by SLA separately, matching your OS, PyTorch, and CUDA combination. For native Windows guidance, see [triton-windows](https://github.com/woct0rdho/triton-windows). / SLAに必要なTritonはOSとPyTorchの組み合わせに合わせて別途用意します。Windowsネイティブの情報は [triton-windows](https://github.com/woct0rdho/triton-windows) を確認してください。
@@ -379,7 +379,7 @@ Speech review runs on the CPU and does not send audio to an external service. It
 Start with T2V and a short duration so the environment is easier to check. / 環境を確認しやすいT2Vから、短い設定で始めます。
 
 1. Fully restart ComfyUI. / ComfyUIを完全に再起動します。
-2. Load `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json`. / `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` を読み込みます。
+2. Load `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json`. / `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` を読み込みます。
 3. Confirm that no missing node is shown in red. / 赤い不足ノードがないことを確認します。
 4. Confirm that each of the four model loaders selects the specified file. / 4つのモデルローダーで、指定ファイルが選択されていることを確認します。
 5. Start the LM Studio server and load its model if you use Japanese input or per-segment AI review. / 日本語入力または区間AI検査を使う場合は、LM Studioのサーバーとモデルを起動します。
@@ -391,11 +391,11 @@ The first model load can take time. After T2V works, move to I2V or Ref2V as app
 
 ### Use I2V / I2Vを使う
 
-Open `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` and upload one image to "Starting image." For the first run, match the source image and video aspect ratios so cropping or resizing effects are easy to identify. / `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` を開き、「開始画像」へ画像を1枚アップロードします。入力画像と動画の比率を最初はそろえると、切り抜きやリサイズの影響を確認しやすくなります。
+Open `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` and upload one image to "Starting image." For the first run, match the source image and video aspect ratios so cropping or resizing effects are easy to identify. / `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` を開き、「開始画像」へ画像を1枚アップロードします。入力画像と動画の比率を最初はそろえると、切り抜きやリサイズの影響を確認しやすくなります。
 
 ### Use Ref2V / Ref2Vを使う
 
-Open `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` and place an image in "Reference image 1," which is required. To use images 2 through 5, add them in order, select the corresponding nodes, and enable each with `Ctrl+B`. Enabling an empty image node stops execution before generation. / `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` を開き、「参照画像1」へ画像を入れます。画像1は必須です。画像2〜5を使う場合は順番に画像を入れ、対象ノードを選択して `Ctrl+B` で有効にします。空の画像ノードを有効にすると実行前に止まります。
+Open `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` and place an image in "Reference image 1," which is required. To use images 2 through 5, add them in order, select the corresponding nodes, and enable each with `Ctrl+B`. Enabling an empty image node stops execution before generation. / `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` を開き、「参照画像1」へ画像を入れます。画像1は必須です。画像2〜5を使う場合は順番に画像を入れ、対象ノードを選択して `Ctrl+B` で有効にします。空の画像ノードを有効にすると実行前に止まります。
 
 When using multiple images, describe each role in the prompt: / 複数画像を使う場合は、役割を文章で分けてください。
 
@@ -412,13 +412,15 @@ Only one character appears in the finished video.
 
 ![Actual MV workflow layout / MVワークフロー実画面](docs/assets/workflow-mv-v1.2.0.png)
 
-1. In [ComfyUI-YuE2-Japanese v1.6.0](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.0), generate a song. Node ⑥ creates `ComfyUI/output/mv-assets/TITLE_TIMESTAMP_ID/` at the same time as the normal song folder. / [ComfyUI-YuE2-Japanese v1.6.0](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.0)で曲を生成します。通常の曲フォルダーと同じ実行で、⑥が `ComfyUI/output/mv-assets/曲名_日時_ID/` を別途作ります。
-2. Open `workflows/MV_H3_YuE2-LMStudio_v1.2.0.json`. Enter that relative folder as `mv-assets/TITLE_TIMESTAMP_ID`; an absolute path is not required. / `workflows/MV_H3_YuE2-LMStudio_v1.2.0.json` を開き、`mv-assets/曲名_日時_ID` の相対名を入力します。絶対パスは不要です。
+1. In [ComfyUI-YuE2-Japanese v1.6.1](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.1), generate a song. Node ⑥ creates `ComfyUI/output/mv-assets/TITLE_TIMESTAMP_ID/` at the same time as the normal song folder. / [ComfyUI-YuE2-Japanese v1.6.1](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.1)で曲を生成します。通常の曲フォルダーと同じ実行で、⑥が `ComfyUI/output/mv-assets/曲名_日時_ID/` を別途作ります。
+2. Open `workflows/MV_H3_YuE2-LMStudio_v1.2.1.json`. Enter that relative folder as `mv-assets/TITLE_TIMESTAMP_ID`; an absolute path is not required. / `workflows/MV_H3_YuE2-LMStudio_v1.2.1.json` を開き、`mv-assets/曲名_日時_ID` の相対名を入力します。絶対パスは不要です。
 3. Upload one character sheet with the standard `LoadImage` node. Use a clean reference that shows the intended face, hair, body proportions, and clothing. / 標準 `LoadImage` へキャラクターシートを1枚アップロードします。顔・髪・体格・服装が分かる参照を使います。
 4. In the large Japanese direction field, describe the mood or write “お任せ”. The bundled rules ask LM Studio to retain the input's 2D anime, 3D, or live-action appearance and avoid unauthorized redesign. / 大きな日本語欄へMVの雰囲気を書くか「お任せ」と入力します。同梱ルールは入力が2Dアニメ・3D・実写のどれかを維持し、勝手な別デザイン化を避けるよう指示します。
 5. Select `任意秒数` for a short test such as 20 seconds, or `音源末尾まで（可変尺）` for a complete song. `start_seconds` can begin from another section. / 20秒等の検証は `任意秒数`、1曲完走は `音源末尾まで（可変尺）` を選びます。`start_seconds` で途中からも開始できます。
 6. For subtitles, enable alignment and point `whisper_model_path` to a Transformers-format Whisper folder, normally `models/whisper/whisper-large-v3-turbo`. The exporter intentionally does not invent timestamps; it passes exact lyrics with `timing_status: not_aligned`, and this node aligns them to the final master audio. / 字幕を使う場合は時刻合わせをONにし、`whisper_model_path` へTransformers形式Whisperを指定します。標準は `models/whisper/whisper-large-v3-turbo` です。書き出し側は時刻を捏造せず `timing_status: not_aligned` で正確な歌詞を渡し、このノードが最終音源へ合わせます。
 7. Queue the workflow. The final node restores the original song audio, burns subtitles when enabled, overlays a top-left title that fades out, adds the configured link at the lower right near the end, and fades picture and sound together. The node preview includes ComfyUI's normal download control. / 実行すると、最後のノードが元曲音声へ戻し、必要なら字幕を焼き込み、左上タイトルをフェードアウト、終盤に右下リンクを重ね、映像と音声を同時にフェードします。最終ノードのプレビューから通常どおりダウンロードできます。
+
+For a multi-character sheet without an explicit singer assignment, the workflow never guesses the singer from voice timbre. Whisper timing drives exact subtitles in the final renderer, while H3 receives vocal-activity windows and `<Audio 1>` without lyric text; exactly one visible registered subject is animated per solo window. / 歌唱者が明示されていない複数キャラシートでは、声質から人物を推測しません。Whisper時刻と正確な歌詞は最終字幕へ使い、H3へは歌詞本文を渡さず歌唱区間と `<Audio 1>` だけを渡し、ソロ区間では登録済み人物1人だけを動かします。
 
 Bundle contract / バンドル仕様:
 
@@ -558,8 +560,8 @@ For a 30-second video split into 13 + 13 + 4 seconds, `reroll_from_segment=1` re
 
 - T2V, I2V, and Ref2V generation were run in the development environment / 開発環境ではT2V・I2V・Ref2Vの実生成を実施済み
 - For a 30-second T2V run, the ending was resumed from a cache generated through the middle, reaching 30 seconds and 720 frames / T2Vの30秒生成で、中盤まで生成したキャッシュから終盤だけ再開し、30秒・720フレームへの到達を確認
-- For v1.2.0, four workflow JSON files, six package imports, the relative MV-bundle + `IMAGE` path, variable/fixed duration logic, subtitle timing, finishing overlays, and Release ZIP reconstruction were checked / v1.2.0では4本のJSON、6パッケージ、相対MVバンドル＋`IMAGE`経路、可変／固定尺、字幕時刻、仕上げ表示、配布ZIP再構築を検査
-- The 20-second MV validation used the normal workflow path; output was 20.000 seconds, 864×480, 24fps, H.264/AAC, with four subtitle cues and audio correlation 0.999712 against the intended source section / 20秒MVは通常経路で実生成し、20.000秒、864×480、24fps、H.264/AAC、字幕4区間、指定元音源との相関0.999712を確認
+- For v1.2.1, four workflow JSON files, six package imports, the relative MV-bundle + `IMAGE` path, variable/fixed duration logic, subtitle timing, finishing overlays, and Release ZIP reconstruction were checked / v1.2.1では4本のJSON、6パッケージ、相対MVバンドル＋`IMAGE`経路、可変／固定尺、字幕時刻、仕上げ表示、配布ZIP再構築を検査
+- The v1.2.1 two-character MV validation used the normal workflow path (`2ab581ce-9845-4df4-b58c-100371e4924c`); all five H3 segments passed review and the final output was exactly 60.000 seconds, 864×480, 24fps, H.264/AAC, with four visibly burned Japanese subtitle cues and source-audio correlation 0.999743 over the unfaded first 58 seconds. Akari (red/orange bob, no glasses) and Hikari (blonde bob, blue eyes, round glasses) remained visually distinct in the inspected frames, without a visible merge, clone, or identity swap. / v1.2.1の2人物MVは通常経路（`2ab581ce-9845-4df4-b58c-100371e4924c`）で実生成し、H3の5区間すべてが検査合格。完成映像は60.000秒、864×480、24fps、H.264/AACで、日本語字幕4区間の焼き込みを実フレームで確認し、フェード前58秒の元音源相関は0.999743でした。確認フレームでは、アカリ（赤橙ボブ・眼鏡なし）とヒカリ（金髪ボブ・青い目・丸眼鏡）を区別し、人物融合・分身・入れ替わりは見られませんでした。
 - GPU execution on another PC and on native Windows remains unverified / 別PCとWindowsネイティブでのGPU実行は未確認
 
 The generation model and automated review have limits. They do not guarantee identical characters or clothing in every frame, seamless long-video transitions, exact dialogue pronunciation, or complete removal of unwanted sounds and subtitles. Earlier validation videos included examples with minor subtitles or short grunts. Play the completed video and check both picture and sound. / 生成モデルと自動検査には限界があります。人物や服装の全フレーム一致、長尺の継ぎ目、台詞の正確な発音、不要音や字幕の完全排除を保証するものではありません。過去の確認動画では軽微な字幕や短いうなり声が残った例があります。完成動画を再生し、映像と音声の両方を確認してください。

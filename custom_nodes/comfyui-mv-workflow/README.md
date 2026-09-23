@@ -4,4 +4,4 @@ This package reads a portable music-video asset bundle, validates its manifest a
 
 The input accepts a standard ComfyUI `IMAGE`; the legacy path field is optional. Bundle paths may be relative to `ComfyUI/output`, such as `mv-assets/TITLE_TIMESTAMP_ID`. / 入力画像は標準ComfyUI `IMAGE` を受けます。旧パス欄は任意です。バンドルは `mv-assets/曲名_日時_ID` のように `ComfyUI/output` 基準の相対指定ができます。
 
-See the repository root README and `workflows/MV_H3_YuE2-LMStudio_v1.2.0.json` for the supported contract and complete setup. / 対応仕様と導入全体はリポジトリ直下READMEと同梱MVワークフローを参照してください。
+See the repository root README and `workflows/MV_H3_YuE2-LMStudio_v1.2.1.json` for the supported contract and complete setup. / 対応仕様と導入全体はリポジトリ直下READMEと同梱MVワークフローを参照してください。

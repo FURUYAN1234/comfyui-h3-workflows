@@ -103,7 +103,26 @@ def enforce_visual_style_lock(prompt, brief):
         return prompt
     requested = lock.group(1).upper()
     if requested == 'SOURCE_MATCH_AUTO':
-        return prompt
+        rendered = {match.group(1).upper() for match in _RENDERING_MEDIUM_RE.finditer(prompt or '')}
+        if rendered:
+            return prompt
+        visual = _main_description(prompt)
+        positive_visual = re.sub(
+            r'\b(?:no|not|never|without|avoid|forbid(?:den)?|exclude)\b[^.,;\n]{0,100}',
+            '',
+            visual,
+            flags=re.IGNORECASE,
+        )
+        candidates = []
+        if re.search(r'\b2D\b|cel[- ]?(?:anime|animation|shading)|hand[- ]drawn|line art|anime illustration', positive_visual, re.IGNORECASE):
+            candidates.append('2D_ANIME')
+        if re.search(r'\b3D\b|\bCGI\b|computer[- ]generated|rendered model', positive_visual, re.IGNORECASE):
+            candidates.append('3D_CGI')
+        if re.search(r'photoreal(?:istic)?|live[- ]action|real[- ]world camera|natural skin texture', positive_visual, re.IGNORECASE):
+            candidates.append('PHOTOREAL_LIVE_ACTION')
+        if len(candidates) != 1:
+            return prompt
+        requested = candidates[0]
     # A model may repeat the three choices from the instruction while explaining
     # why it chose one. Remove those prose markers, then restore only the selected
     # marker at the two visual ownership sections. Scene content remains intact.
@@ -457,13 +476,14 @@ def dialogue_format_errors(prompt, brief):
     explicit_other_language = bool(_OTHER_LANGUAGE_RE.search(brief or ''))
     no_speech = requests_global_silence(brief)
     requests_speech = requests_scripted_speech(brief)
+    authoritative_audio_only = 'AUTHORITATIVE_AUDIO_ONLY_VOCALS:' in (brief or '')
     positive_main = re.sub(r'\b(?:no|without)\b[^.\n]*', '', main, flags=re.I)
     claims_speech = bool(_SPEECH_CLAIM_RE.search(positive_main))
 
     if no_speech and tags:
         errors.append('The user requested no human speech, so remove every <d> dialogue tag and every vocal line.')
-    if not no_speech and (requests_speech or claims_speech) and not tags:
-        errors.append('The user requests speech. Put every spoken line in <d>[Japanese] exact words</d> and bind the speaker with a stable (S1) ID.')
+    if not no_speech and (requests_speech or claims_speech) and not tags and not authoritative_audio_only:
+        errors.append('The user requests speech. Put every spoken line in <d>[Japanese] exact words</d> and bind it to one declared stable speaker ID such as (S1) or (S2).')
 
     bodies = []
     for tag in tags:
@@ -573,9 +593,10 @@ def long_timeline():
 def system_prompt(mode, duration, boundaries=()):
     fields = 'subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music' if 'Ref2' in mode else 'integrated_multimodal_description, overall_soundscape, non_diegetic_music'
     boundary_rule = ('Generation boundaries: '+', '.join(f'{b:g} seconds' for b in boundaries)+'. No action time range may cross a boundary. At each boundary keep the current camera framing and subject positions; the next range advances the already-reached state, without restaging the action onset. Describe each side separately. ') if boundaries else ''
-    return f'''{boundary_rule}Rewrite the brief as a MiniMax H3 {mode} video lasting {duration:g} seconds. Return only JSON with these string keys: {fields}. The JSON schema enforces field limits. Aim for 350-450 words TOTAL. End immediately after the JSON object.
+    final_clock = _event_clock(duration)
+    return f'''{boundary_rule}Rewrite the brief as a MiniMax H3 {mode} video lasting {duration:g} seconds. Timeline clocks are MM:SS.mmm: the exact final timestamp for this video is {final_clock}. Never write elapsed seconds in the minute field (for example, a 60-second video ends at 01:00.000, not 60:00). Return only JSON with these string keys: {fields}. The JSON schema enforces field limits. Aim for 350-450 words TOTAL. End immediately after the JSON object.
 All visual prose is English. Translate the production instructions into visible actions in their original order; NEVER read them aloud or discuss rendering, software, or the rewrite process. Only actual dialogue/lyrics and requested visible lettering retain their original language. Exact user-supplied words must remain unchanged. Default voice language is Japanese. Screams, breaths and gasps are short NONVERBAL sounds, not narration. Describe them in English as short wordless sounds by the assigned subject, preserving the requested voice; do not impose a female voice on every subject or invent phonetic dialogue.
-The main description MUST contain the complete beginning, middle, and ending, spanning the entire requested duration. Never put later actions only in the summary. The main description uses explicit [MM:SS-MM:SS] ranges for successive phases. Cover 00:00 through the requested final second, putting the requested ending in the final range. Keep the action progressing throughout; do not finish the story early and pad the rest with black screen. These ranges are mandatory even for one continuous shot. They are timing phases, not cuts. Maintain continuous action and camera movement unless the user requests cuts; never repeat an establishing view or reset the actors between phases. Keep all requested actions, characters, camera movements and sound. Preserve causal order: an initiating event must happen before its consequences, never reappear in the final phase. Allocate the final phase solely to completing the requested ending state. At each boundary explicitly state the already-reached position and ongoing movement, not a fresh start. Every spoken turn belongs to exactly one timed phase and must finish before that phase ends; put a short natural pause at each generation boundary. Never split a sentence or copy its full text into both phases. Do not add people, narration, captions or music without a request. Speech uses (S1) <d>[Japanese] actual words</d> once with natural pauses. If speech is requested without exact words, compose a short natural Japanese line appropriate to the scene INSIDE the dialogue tag; never leave speech as an instruction such as talks, chats, greets or speaks Japanese. Bind each line to the character who says it. Use one brief line unless a multi-speaker exchange is requested. Never use placeholders or pronounce production directions. Silence instructions override creative dialogue. No speech text in soundscape or music.
+The main description MUST contain the complete beginning, middle, and ending, spanning the entire requested duration. Never put later actions only in the summary. The main description uses explicit [MM:SS-MM:SS] ranges for successive phases. Cover 00:00 through the requested final second, putting the requested ending in the final range. Keep the action progressing throughout; do not finish the story early and pad the rest with black screen. These ranges are mandatory even for one continuous shot. They are timing phases, not cuts. Maintain continuous action and camera movement unless the user requests cuts; never repeat an establishing view or reset the actors between phases. Keep all requested actions, characters, camera movements and sound. Preserve causal order: an initiating event must happen before its consequences, never reappear in the final phase. Allocate the final phase solely to completing the requested ending state. At each boundary explicitly state the already-reached position and ongoing movement, not a fresh start. Every spoken turn belongs to exactly one timed phase and must finish before that phase ends; put a short natural pause at each generation boundary. Never split a sentence or copy its full text into both phases. Do not add people, narration, captions or music without a request. Speech uses one declared stable speaker ID, for example (S1) or (S2), immediately before <d>[Japanese] actual words</d>, once with natural pauses. Use only IDs declared in the brief and never merge two speakers into one ID. If AUTHORITATIVE_AUDIO_ONLY_VOCALS is present, do not invent or transcribe lyrics and do not add <d> tags; synchronize visible mouth and body motion only to <Audio 1>. If speech is requested without exact words, compose a short natural Japanese line appropriate to the scene INSIDE the dialogue tag; never leave speech as an instruction such as talks, chats, greets or speaks Japanese. Bind each line to the character who says it. Use one brief line unless a multi-speaker exchange is requested. Never use placeholders or pronounce production directions. Silence instructions override creative dialogue. No speech text in soundscape or music.
 For references: subject_definitions contains ONLY stable appearance, never the starting location, pose or action. For every visible person, inspect the reference and explicitly state hair length/cut and bangs, eye color, head accessories or ears, facial silhouette and proportions, eye shape and spacing, eyebrow shape, nose and mouth placement, jawline, body build, every outfit layer, footwear, and any tail or mechanical part. Treat the reference pixels as authoritative identity: do not substitute a generic face that merely shares hair, eye, ear, or clothing colors, and never replace a bob with long hair or vice versa. Keep at least one face-readable medium or close view in each generated segment so identity can be verified. The detailed description owns all changing locations and poses. Soundscape contains only continuous ambience; put one-off growls, attacks, screams and thunder onsets in their timed action ranges. For references: subject_definitions gives separate <Subject 1>, <Subject 2> etc with appearance and correct <Picture N> source. One image may contain multiple people. Retention states fully_preserved/partially_preserved/attribute_transfer/weak_reference relationships. Use the same Subject labels in the action timeline. Ref2VA images define identity, not compulsory first frames. In I2VA, state <Picture 1> is the first frame at 0.00 seconds.
 Soundscape contains environmental and nonverbal sounds. Music is N/A unless requested. Preserve deliberate silence and requested BGM.
 '''

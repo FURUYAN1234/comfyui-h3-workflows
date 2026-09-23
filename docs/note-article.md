@@ -2,6 +2,14 @@
 
 YuE2などで作った「完成音源＋歌詞」とキャラクター画像を入れ、日本語で雰囲気を指示すると、MiniMax H3でMVを作るComfyUIワークフローを公開します。
 
+## v1.2.1：同じキャラクターシートの複数人を別Subjectとして固定
+
+YuE2 v1.6.1のMV素材バンドルには、1枚のシートから読み取った1～12人の安定ID、名前、外見、役割、セリフ、行動、関係性が入ります。MV側は同じシートを `<Picture 1>` として使いながら、人物を `<Subject 1>`、`<Subject 2>`…へ分け、表情・ポーズ差分を追加人物として数えません。
+
+人物同士の融合・分裂・入れ替わり、未登録人物や同一人物の分身を禁止し、ソロの歌詞区間は見える歌唱者を1人に限定します。音源の声質だけから人物への割当は捏造せず、明示したグループ歌唱以外では同じ歌詞を複数人の口へ割り当てません。人物情報のない旧バンドルは従来の1人物モードで利用できます。
+
+複数人物で歌唱者が明示されていない場合、Whisperで整列した正確な歌詞は最終字幕だけに使います。H3へは歌詞本文を渡さず、歌唱区間と元音源だけを渡すため、声質から人物を決めたり、字幕用歌詞を生成台詞として重ねたりしません。
+
 短い確認用MVは20秒など任意の秒数、完成版は音源の途中から曲末までの可変尺で生成できます。最後は映像と音を一緒にフェードアウト。字幕、元曲に合わせた歌唱口パクの指示、左上タイトル、終盤の右下リンク表示もまとめました。
 
 配布ページ：
@@ -11,7 +19,7 @@ YuE2などで作った「完成音源＋歌詞」とキャラクター画像を�
 - YuE2日本語おまかせ作曲: https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese
 - YuE2の解説note: https://note.com/happy_duck780/n/n57df44cf7fd2
 
-初回はGitHubの「Source code」やJSON単体ではなく、ReleaseのAssetsにある `H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0.zip` を使ってください。
+初回はGitHubの「Source code」やJSON単体ではなく、ReleaseのAssetsにある `H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1.zip` を使ってください。
 
 ![YuE2からMVへの連携](assets/workflow-bridge-yue2-to-mv-v1.2.0.png)
 
@@ -30,7 +38,7 @@ YuE2側は作曲システム、こちらは映像システムです。それぞ�
 
 ## MV素材フォルダーの中身
 
-YuE2 v1.6.0の⑥「曲完成と同時にMV素材を書き出す」が、次を作ります。
+YuE2 v1.6.1の⑥「曲完成と同時にMV素材を書き出す」が、次を作ります。
 
 ```text
 ComfyUI/output/mv-assets/曲名_日時_ID/
@@ -42,7 +50,7 @@ ComfyUI/output/mv-assets/曲名_日時_ID/
 └─ README.txt
 ```
 
-`master.flac` は完成した元曲、`lyrics_display.txt` は表示用の正確な歌詞、`lyrics_singing.txt` は歌唱用の読みです。`mv_manifest.json` にはファイル名、ハッシュ、音源情報、歌詞の時刻状態を記録します。
+`master.flac` は完成した元曲、`lyrics_display.txt` は表示用の正確な歌詞、`lyrics_singing.txt` は歌唱用の読みです。schema v2の `mv_manifest.json` にはファイル名、ハッシュ、音源情報、歌詞の時刻状態に加え、画像モードで確認した人物情報と関係性を記録します。
 
 歌詞の時刻は作曲時に推測して埋めません。まず `not_aligned` として安全に渡し、MV側で最終音源にWhisperを当てて時刻合わせします。字幕と口パクの基準が、編集前の仮音源ではなく完成した `master.flac` になるためです。
 
@@ -90,7 +98,7 @@ ComfyUI/output/mv-assets/曲名_日時_ID/
 - H3用モデル4ファイル（合計約40.44GB）
 - LM Studioと画像対応ローカルモデル
 - 字幕を使う場合はTransformers形式のWhisper large-v3-turbo
-- YuE2連携を使う場合はComfyUI-YuE2-Japanese v1.6.0
+- YuE2連携を使う場合はComfyUI-YuE2-Japanese v1.6.1
 
 モデル本体、LM Studio、ComfyUI、生成曲、入力画像、APIキーはZIPへ同梱していません。各モデルの利用条件も取得元で確認してください。MiniMax H3には地域・用途・商用利用・再配布に関するCommunity Licenseがあります。
 
@@ -127,13 +135,13 @@ ComfyUIが実際に使うPythonで実行します。
 Windows Portable例：
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1\requirements.txt"
 ```
 
 WSL/Linux venv例：
 
 ```bash
-.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/requirements.txt"
+.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/requirements.txt"
 ```
 
 続けて `ffmpeg -version`、`ffprobe -version`、ComfyUIのPythonで `torch.cuda.is_available()` を確認します。
@@ -184,7 +192,7 @@ ComfyUI/models/whisper/whisper-large-v3-turbo/
 ## 7. まず20秒で確認
 
 1. ComfyUIを完全に再起動
-2. `workflows/MV_H3_YuE2-LMStudio_v1.2.0.json` を開く
+2. `workflows/MV_H3_YuE2-LMStudio_v1.2.1.json` を開く
 3. 赤い不足ノードがないことを確認
 4. `mv-assets/曲名_日時_ID` を入力
 5. キャラクター画像をLoadImageへアップロード
@@ -206,15 +214,17 @@ ComfyUI/output/video/MV/曲名_日時/final.mp4
 ## 検証した範囲
 
 - 公開MV JSONをComfyUIへ読込：26ノード、35リンク、不足ノードなし
-- MVコア8件、可搬性3件、H3 Long Video 186件、H3 Standard Prompt 76件、ルート回帰3件
-- 通常経路の検証MV：20.000秒、864×480、24fps、H.264/AAC
-- 字幕4区間
-- 指定した元音源区間との相関0.999712
+- MVコア10件、字幕・60秒時刻処理8件、可搬性3件、H3 Long Video 186件、H3 Standard Prompt 76件、ルート回帰3件
+- YuE2 v1.6.1の2人物バンドルと同じキャラクターシートを使い、通常経路のH3 5区間がすべて検査合格
+- 完成MV：60.000秒、864×480、24fps、H.264/AAC
+- Whisper整列した日本語字幕4区間を焼き込み、字幕ごとの実フレームで表示を確認
+- フェード前58秒の元音源との相関0.999743、-15.7 LUFS、true peak -1.6 dBFS
+- 確認フレームではアカリとヒカリを別人物として維持し、融合・分身・入れ替わりなし
 - 左上タイトル、終盤右下リンク、映像／音声フェード
 
 これは生成システムの経路確認です。特定の1本が成功しても、すべての曲・キャラクター・PCで同じ結果を保証するものではありません。人物の分身、明らかな髪型不一致、台詞破綻、二重発声、字幕ずれは完成映像を見て、原因に応じて入力・区間・生成設定を修正してください。
 
-## YuE2側もv1.6.0へ更新
+## YuE2側もv1.6.1へ更新
 
 YuE2側は、曲完成と同時にMV素材を別フォルダーへ書き出す⑥ノードと、次のMVワークフローを案内する⑦説明枠を追加しました。
 
@@ -228,7 +238,7 @@ https://note.com/happy_duck780/n/n57df44cf7fd2
 
 ## ダウンロード
 
-- MV／H3ワークフロー: https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/v1.2.0
-- YuE2日本語おまかせ作曲: https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.0
+- MV／H3ワークフロー: https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/v1.2.1
+- YuE2日本語おまかせ作曲: https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.1
 
 どちらも初回はRelease Assetsの名前付きZIPを使い、展開後に `verify_package.py` を実行してください。自動生成されるGitHubのSource code ZIPやJSON単体だけでは、必要なカスタムノードと検査ファイルが揃いません。

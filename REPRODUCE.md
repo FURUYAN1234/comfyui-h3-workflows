@@ -1,11 +1,11 @@
-# v1.2.0 再構築
+# v1.2.1 再構築
 
-専用リポジトリのタグ v1.2.0 をクリーンに取得します。Python標準ライブラリだけで再構築できます。
+専用リポジトリのタグ v1.2.1 をクリーンに取得します。Python標準ライブラリだけで再構築できます。
 
 ```text
-git clone --branch v1.2.0 --depth 1 https://github.com/FURUYAN1234/comfyui-h3-workflows.git h3-source
+git clone --branch v1.2.1 --depth 1 https://github.com/FURUYAN1234/comfyui-h3-workflows.git h3-source
 cd h3-source
-python -B build_release.py ../H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0.zip
+python -B build_release.py ../H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1.zip
 ```
 
 再構築ZIPを新規フォルダーへ展開し、展開したルートで python -B verify_package.py を実行します。SHA256SUMS.jsonの全件一致、欠落と余分なファイルも検査します。マニフェスト自身のみ自己ハッシュ対象外です。

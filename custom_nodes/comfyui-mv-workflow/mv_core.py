@@ -112,10 +112,51 @@ def cues_to_srt(cues):
     return "\n\n".join(blocks) + ("\n" if blocks else "")
 
 
-def format_h3_timeline(cues):
+def manifest_characters(manifest):
+    """Read the portable character contract, preserving v1 bundle fallback."""
+    visual = manifest.get("visual")
+    if visual is None:
+        return []
+    if not isinstance(visual, dict):
+        raise ValueError("manifest.visual はJSONオブジェクトで指定してください")
+    characters = visual.get("characters")
+    if not isinstance(characters, list) or not 1 <= len(characters) <= 12:
+        raise ValueError("manifest.visual.characters は1～12人の配列で指定してください")
+    fields = ("id", "name", "appearance", "role", "dialogue", "actions")
+    result = []
+    seen_ids = set()
+    for index, character in enumerate(characters, 1):
+        if not isinstance(character, dict):
+            raise ValueError(f"manifest.visual.characters[{index}] が不正です")
+        if not set(fields).issubset(character):
+            raise ValueError(f"manifest.visual.characters[{index}] の項目が不足しています")
+        item = {}
+        for field in fields:
+            value = character.get(field, "")
+            if not isinstance(value, str):
+                raise ValueError(f"manifest.visual.characters[{index}].{field} は文字列で指定してください")
+            item[field] = " ".join(value.split())
+        if not item["id"] or item["id"] in seen_ids:
+            raise ValueError("manifest.visual.characters のidが空または重複しています")
+        seen_ids.add(item["id"])
+        result.append(item)
+    return result
+
+
+def format_h3_timeline(cues, characters=None):
+    characters = list(characters or [])
+    if len(characters) <= 1:
+        return "\n".join(
+            "[{:.3f}-{:.3f}] (S1) <d>[Japanese] {}</d>".format(
+                cue["start"], cue["end"], cue["text"]
+            )
+            for cue in cues or []
+        )
     return "\n".join(
-        "[{:.3f}-{:.3f}] (S1) <d>[Japanese] {}</d>".format(
-            cue["start"], cue["end"], cue["text"]
+        "VOCAL_ACTIVITY_CUE from {start} to {end}: synchronize exactly one visible registered "
+        "subject to <Audio 1>; this is timing metadata, not a visual-shot range or dialogue text.".format(
+            start=_srt_time(cue["start"]).replace(",", "."),
+            end=_srt_time(cue["end"]).replace(",", "."),
         )
         for cue in cues or []
     )
@@ -168,10 +209,26 @@ def build_instruction(
     cues,
     visual_style_mode="参照画像に自動追従",
     character_identity_lock="",
+    characters=None,
+    relationships="",
+    story="",
+    ending="",
 ):
-    timeline = format_h3_timeline(cues)
-    if not timeline:
-        timeline = "この区間では音声解析で確定できた歌詞字幕なし。歌唱していない口を無理に動かさない。"
+    characters = list(characters or [])
+    timeline = format_h3_timeline(cues, characters)
+    if len(characters) > 1:
+        audio_only_rule = (
+            "AUTHORITATIVE_AUDIO_ONLY_VOCALS: <Audio 1> is the only vocal performance. "
+            "Do not transcribe, quote, invent, or emit lyrics in <d> tags. The exact Japanese text is "
+            "reserved for the separate subtitle renderer. Use the timed vocal-activity ranges only to "
+            "animate one visible registered subject at a time unless manifest dialogue explicitly assigns a group."
+        )
+        timeline = audio_only_rule + ("\n" + timeline if timeline else "")
+    elif not timeline:
+        timeline = (
+            "AUTHORITATIVE_AUDIO_ONLY_VOCALS: この区間は歌詞字幕なし。<Audio 1> の歌声だけを同期参照し、"
+            "歌詞を推測・転記した <d> タグや別の歌声を追加しない。歌唱していない口を無理に動かさない。"
+        )
     identity_notes = " ".join(str(character_identity_lock or "").split())
     identity_instruction = (
         "MV_CHARACTER_IDENTITY_LOCK: " + identity_notes
@@ -182,19 +239,51 @@ def build_instruction(
             "画面から正確に読み取り、汎用的な別人顔へ置き換えず全カットで固定する。"
         )
     )
+    if characters:
+        subject_lines = []
+        for index, character in enumerate(characters, 1):
+            subject_lines.append(
+                "<Subject {index}> / stable speaker ID (S{index}) / manifest id={id}: "
+                "name={name}; appearance={appearance}; role={role}; dialogue plan={dialogue}; actions={actions}. "
+                "This is one distinct person visible in <Picture 1>.".format(
+                    index=index,
+                    id=character["id"],
+                    name=character["name"] or "unspecified",
+                    appearance=character["appearance"] or "read exact traits from the sheet",
+                    role=character["role"] or "unspecified",
+                    dialogue=character["dialogue"] or "not preassigned",
+                    actions=character["actions"] or "unspecified",
+                )
+            )
+        subject_contract = "\n".join(subject_lines)
+        narrative = "\n".join(
+            line for line in (
+                f"Relationships: {' '.join(str(relationships or '').split())}" if relationships else "",
+                f"Story: {' '.join(str(story or '').split())}" if story else "",
+                f"Ending: {' '.join(str(ending or '').split())}" if ending else "",
+            ) if line
+        )
+        casting_instruction = f"""MV_MULTI_CHARACTER_CONTRACT: manifestに登録された{len(characters)}人を、同じ <Picture 1> にある別人物として扱う。
+{subject_contract}
+同じ人物の表情差分・ポーズ差分・前後左右図は追加人物ではなく、その人物の別ビューである。人物同士を融合・分裂・入れ替えず、髪・顔・眼鏡・衣装・体格とSubject番号を全カットで固定する。未登録人物や同一人物の分身を作らない。
+{narrative}
+全員を同時に出す必要はないが、尺が許す範囲で定義した各Subjectを少なくとも一度は識別可能に見せる。ソロの歌詞区間で口を動かす人物は必ず一人だけとし、そのカットで選んだSubjectの (S番号) を最終プロンプトに一つだけ付ける。明示的にグループ歌唱を設計した箇所以外で、同じ歌詞を複数の口に割り当てない。音声だけから声質と人物の対応を捏造せず、manifestのdialogue planが明示する場合のみ優先する。"""
+    else:
+        casting_instruction = """参照画像の同じ人物を一人だけ登場させ、顔の輪郭と各パーツの比率・配置、髪型、頭部の特徴、衣装、アクセサリーを最後まで維持する。髪色や衣装だけ似た汎用顔へ置き換えず、各生成区間に少なくとも一度は顔を比較できる中近景または近景を入れる。人物の分身を作らない。
+歌唱者は参照画像の人物 <Subject 1>、安定話者IDは (S1) とする。以下の各歌詞行では必ずこの (S1) を直前に置き、別の話者IDへ変更しない。"""
     return f"""{str(user_instruction).strip()}
 
 曲名: {title}
 曲の情報: {style}
 対象区間: 元音源の {plan.start_seconds:.3f} 秒から {plan.duration_seconds:.3f} 秒間。
-参照画像の同じ人物を一人だけ登場させ、顔の輪郭と各パーツの比率・配置、髪型、頭部の特徴、衣装、アクセサリーを最後まで維持する。髪色や衣装だけ似た汎用顔へ置き換えず、各生成区間に少なくとも一度は顔を比較できる中近景または近景を入れる。人物の分身を作らない。
+{casting_instruction}
 {identity_instruction}
 {visual_style_instruction(visual_style_mode)}
-歌唱者は参照画像の人物 <Subject 1>、安定話者IDは (S1) とする。以下の各歌詞行では必ずこの (S1) を直前に置き、別の話者IDへ変更しない。
 <Audio 1> は元曲から切り出した同期用音声である。歌声とリズムを参照し、歌唱中は口形・表情・呼吸・身体のリズムを音声に同期させる。映像内へ字幕・ロゴ・文字を生成しない（字幕は後段で正確に合成する）。
 MVの映像内容、場所、照明、カメラ、色調、カット割りは、曲とキャラクターに似合うよう自由に設計する。歌詞の意味を映像で説明しすぎず、音楽映像として気持ちよい変化を付ける。
-以下は音声解析で元曲に整列した歌詞時刻。歌詞は一字も変更せず、同じ行を二重に歌わせない。
+以下は音声解析で元曲に整列した歌唱時刻。複数人物では字幕用歌詞をH3へ転記せず、音声だけに同期する。
 {timeline}
+最終H3プロンプトは英語で、subject_definitions、summary、retention_analysis、detailed_description、overall_soundscape、non_diegetic_music の6セクションをこの順序で一度ずつ出力する。subject_definitionsで上記の各Subjectを別々に定義し、detailed_descriptionの全カットで同じSubjectラベルを使う。<Audio 1> を再利用する権威ある同期音源として明記し、別の歌声・台詞・音楽を生成しない。
 """.strip()
 
 
@@ -206,6 +295,10 @@ def load_bundle_manifest(bundle_folder):
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get("schema") != "comfyui.mv_asset_bundle":
         raise ValueError("対応していないMV素材バンドルです")
+    version = manifest.get("schema_version", 1)
+    if isinstance(version, bool) or not isinstance(version, int) or not 1 <= version <= 2:
+        raise ValueError(f"対応していないMV素材バンドルschema_versionです: {version}")
+    manifest_characters(manifest)
     audio_name = manifest.get("audio", {}).get("file")
     lyrics_name = manifest.get("lyrics", {}).get("display_file")
     if not audio_name or not lyrics_name:

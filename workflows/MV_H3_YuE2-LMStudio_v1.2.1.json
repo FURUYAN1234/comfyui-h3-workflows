@@ -1471,7 +1471,7 @@
         4096,
         360,
         false,
-        "出力はFull-Reference Modeの6区分を英語で、subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music の順に書く。歌詞だけは日本語を保持し、各行を必ず (S1) <d>[Japanese] ...</d> とする。(S1) は <Subject 1> の歌唱者で、全行で同じIDを使う。<Picture 1>の同一人物を一人だけ使い、顔の輪郭・目鼻口の比率と配置・顎・前髪、髪型、頭部の特徴、衣装、アクセサリーを維持し、髪色や衣装だけ似た汎用顔へ置き換えない。各生成区間に少なくとも一度は顔を比較できる中近景または近景を入れ、分身を作らない。<Audio 1>は元曲の同期参照で、歌唱中の口形と身体リズムを合わせる。入力にある整列済み歌詞の文字と時刻を変更せず、一度だけ歌わせる。映像内の字幕、ロゴ、ウォーターマーク、意味不明な文字は作らない。MVの場所、照明、カメラ、色調、カット割りはユーザーがおまかせとした範囲で自由に設計する。MV_VISUAL_STYLE_LOCKの媒体指定を必ず守り、RENDERING_MEDIUMを最終プロンプトへ残す。長尺では前区間を繰り返さず続きだけを進める。",
+        "出力はFull-Reference Modeの6区分を英語で、subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music の順に書く。単一人物の明示歌詞タグだけ日本語を保持する。AUTHORITATIVE_AUDIO_ONLY_VOCALSがある複数人物MVでは歌詞を推測・転記せず、字幕は後段へ任せ、入力内の人物定義にあるSubject番号だけを使う。複数人物では各Subjectを別人として維持し、表情・ポーズ差分を別人に数えない。ソロ歌唱は一人だけ口を動かし、明示的な合唱以外で同じ歌詞を複数人に歌わせない。<Audio 1>は元曲の同期参照で、歌唱中の口形と身体リズムを合わせる。単一人物の明示歌詞タグは文字と時刻を変更せず一度だけ歌わせる。複数人物のVOCAL_ACTIVITY_CUEは時刻だけを使用し、歌詞本文を追加しない。映像内の字幕、ロゴ、ウォーターマーク、意味不明な文字は作らない。MVの場所、照明、カメラ、色調、カット割りはユーザーがおまかせとした範囲で自由に設計する。MV_VISUAL_STYLE_LOCKの媒体指定を必ず守り、RENDERING_MEDIUMを最終プロンプトへ残す。長尺では前区間を繰り返さず続きだけを進める。",
         "",
         "39",
         true
@@ -1486,7 +1486,7 @@
         "max_tokens": 4096,
         "timeout_seconds": 360,
         "fallback_to_japanese": false,
-        "extra_rules": "出力はFull-Reference Modeの6区分を英語で、subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music の順に書く。歌詞だけは日本語を保持し、各行を必ず (S1) <d>[Japanese] ...</d> とする。(S1) は <Subject 1> の歌唱者で、全行で同じIDを使う。<Picture 1>の同一人物を一人だけ使い、顔の輪郭・目鼻口の比率と配置・顎・前髪、髪型、頭部の特徴、衣装、アクセサリーを維持し、髪色や衣装だけ似た汎用顔へ置き換えない。各生成区間に少なくとも一度は顔を比較できる中近景または近景を入れ、分身を作らない。<Audio 1>は元曲の同期参照で、歌唱中の口形と身体リズムを合わせる。入力にある整列済み歌詞の文字と時刻を変更せず、一度だけ歌わせる。映像内の字幕、ロゴ、ウォーターマーク、意味不明な文字は作らない。MVの場所、照明、カメラ、色調、カット割りはユーザーがおまかせとした範囲で自由に設計する。MV_VISUAL_STYLE_LOCKの媒体指定を必ず守り、RENDERING_MEDIUMを最終プロンプトへ残す。長尺では前区間を繰り返さず続きだけを進める。",
+        "extra_rules": "出力はFull-Reference Modeの6区分を英語で、subject_definitions, summary, retention_analysis, detailed_description, overall_soundscape, non_diegetic_music の順に書く。単一人物の明示歌詞タグだけ日本語を保持する。AUTHORITATIVE_AUDIO_ONLY_VOCALSがある複数人物MVでは歌詞を推測・転記せず、字幕は後段へ任せ、入力内の人物定義にあるSubject番号だけを使う。複数人物では各Subjectを別人として維持し、表情・ポーズ差分を別人に数えない。ソロ歌唱は一人だけ口を動かし、明示的な合唱以外で同じ歌詞を複数人に歌わせない。<Audio 1>は元曲の同期参照で、歌唱中の口形と身体リズムを合わせる。単一人物の明示歌詞タグは文字と時刻を変更せず一度だけ歌わせる。複数人物のVOCAL_ACTIVITY_CUEは時刻だけを使用し、歌詞本文を追加しない。映像内の字幕、ロゴ、ウォーターマーク、意味不明な文字は作らない。MVの場所、照明、カメラ、色調、カット割りはユーザーがおまかせとした範囲で自由に設計する。MV_VISUAL_STYLE_LOCKの媒体指定を必ず守り、RENDERING_MEDIUMを最終プロンプトへ残す。長尺では前区間を繰り返さず続きだけを進める。",
         "external_h3_prompt": "",
         "context_frames": "39",
         "auto_gpu_for_prompt": true
@@ -2031,7 +2031,7 @@
         "Node name for S&R": "MarkdownNote"
       },
       "widgets_values": [
-        "# YuE2で曲を作り、H3でMVにする\n\nこのワークフローは、音源・歌詞・manifestをまとめた **MV素材バンドル** とキャラクターシートから、リップシンク・字幕・タイトル・終了リンク付きMVを作ります。\n\n1. [https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese) のYuE2ワークフローで曲を生成します。\n2. YuE2の「MV素材を書き出す」をONにし、`output/mv-assets/曲名_日時_ID/` を作ります。\n3. このワークフローへバンドル名とキャラクターシートを入れます。\n4. LM Studioが日本語の希望をH3向け構成へ変換し、H3が映像を生成します。\n5. 最後に元曲・字幕・タイトル・リンク・映像音声フェードを合成します。\n\n[YuE2のnote解説](https://note.com/happy_duck780/n/n57df44cf7fd2) / [MVのnote解説](https://note.com/happy_duck780/n/ne8a84cb6db37)\n\nYuE2以外の歌声システムでも `comfyui.mv_asset_bundle` v1形式を書き出せば利用できます。"
+        "# YuE2で曲を作り、H3でMVにする\n\nこのワークフローは、音源・歌詞・manifestをまとめた **MV素材バンドル** とキャラクターシートから、リップシンク・字幕・タイトル・終了リンク付きMVを作ります。\n\n1. [https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese) のYuE2ワークフローで曲を生成します。\n2. YuE2の「MV素材を書き出す」をONにし、`output/mv-assets/曲名_日時_ID/` を作ります。\n3. このワークフローへバンドル名とキャラクターシートを入れます。\n4. LM Studioが日本語の希望をH3向け構成へ変換し、H3が映像を生成します。\n5. 最後に元曲・字幕・タイトル・リンク・映像音声フェードを合成します。\n\n[YuE2のnote解説](https://note.com/happy_duck780/n/n57df44cf7fd2) / [MVのnote解説](https://note.com/happy_duck780/n/ne8a84cb6db37)\n\nYuE2以外の歌声システムでも `comfyui.mv_asset_bundle` v1またはv2形式を書き出せば利用できます。v2の人物情報があれば、同じシート内の複数人を別々のSubjectとして固定します。"
       ],
       "color": "#223044",
       "bgcolor": "#182434"
@@ -2057,7 +2057,7 @@
         "Node name for S&R": "MarkdownNote"
       },
       "widgets_values": [
-        "## 最初に変える場所\n\n**MV素材バンドル**  \n`output/` からの相対パスを入れます。YuE2の出力フォルダー名だけを使う場合は `mv-assets/フォルダー名` です。別の場所は絶対パスでも指定できます。\n\n**キャラクターシート**  \n右の画像ノードへ自分の画像をアップロードします。2Dアニメ、3D CG、実写のどれでも使用できます。画像ファイルは配布物に含まれません。\n\n**人物固定特徴**  \n通常は空欄で画像自動解析します。髪型、顔、衣装などを特に固定したい場合だけ、短い特徴を書きます。\n\n**旧方式の実パス欄**  \n画像ソケットを使えない既存ワークフロー互換用です。新規利用では空欄のままにします。"
+        "## 最初に変える場所\n\n**MV素材バンドル**  \n`output/` からの相対パスを入れます。YuE2の出力フォルダー名だけを使う場合は `mv-assets/フォルダー名` です。別の場所は絶対パスでも指定できます。\n\n**キャラクターシート**  \n右の画像ノードへ自分の画像をアップロードします。YuE2で複数人を読み取った場合は同じキャラクターシートを使います。manifest v2の人物IDごとに別Subjectとして扱い、表情・ポーズ差分は同一人物として扱います。2Dアニメ、3D CG、実写のどれでも使用できます。画像ファイルは配布物に含まれません。\n\n**人物固定特徴**  \n通常は空欄で画像自動解析します。髪型、顔、衣装などを特に固定したい場合だけ、短い特徴を書きます。\n\n**旧方式の実パス欄**  \n画像ソケットを使えない既存ワークフロー互換用です。新規利用では空欄のままにします。"
       ],
       "color": "#223044",
       "bgcolor": "#182434"
@@ -2563,7 +2563,7 @@
       ],
       "overlays": "top-left fading title; bottom-right end credit and URL",
       "llm_gpu": "temporary GPU load, CPU restore before H3",
-      "release_version": "1.2.0",
+      "release_version": "1.2.1",
       "public_workflow": true,
       "related_yue2": "https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese",
       "related_yue2_note": "https://note.com/happy_duck780/n/n57df44cf7fd2",

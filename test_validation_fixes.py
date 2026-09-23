@@ -53,6 +53,57 @@ class ValidationFixTests(unittest.TestCase):
         prompt_package = load_prompt_package()
         self.assertFalse(prompt_package.requests_global_silence("歌はなし。女性が「こんにちは」と話す。"))
 
+    def test_authoritative_audio_only_vocals_allow_no_dialogue_tags(self):
+        prompt_package = load_prompt_package()
+        brief = (
+            "歌唱中は口形を音声に同期する。"
+            "AUTHORITATIVE_AUDIO_ONLY_VOCALS: <Audio 1>だけを使い、歌詞を推測しない。"
+        )
+        prompt = (
+            "detailed_description: [00:00-00:05] Subject 1 sings in sync with <Audio 1>.\n"
+            "overall_soundscape: The authoritative source vocals.\n"
+            "non_diegetic_music: N/A"
+        )
+        self.assertEqual(prompt_package.dialogue_format_errors(prompt, brief), [])
+
+    def test_system_prompt_allows_declared_multiple_speaker_ids(self):
+        prompt_package = load_prompt_package()
+        rules = prompt_package.system_prompt("Ref2VA (R2V)", 20)
+        self.assertIn("(S1) or (S2)", rules)
+        self.assertIn("Use only IDs declared in the brief", rules)
+
+    def test_system_prompt_spells_sixty_seconds_as_one_minute(self):
+        prompt_package = load_prompt_package()
+        rules = prompt_package.system_prompt("Ref2VA (R2V)", 60)
+        self.assertIn("exact final timestamp for this video is 01:00.000", rules)
+        self.assertIn("not 60:00", rules)
+
+    def test_auto_style_infers_one_unambiguous_2d_medium(self):
+        prompt_package = load_prompt_package()
+        brief = "MV_VISUAL_STYLE_LOCK: SOURCE_MATCH_AUTO."
+        prompt = (
+            "subject_definitions: <Subject 1> is a hand-drawn 2D anime character with clean line art.\n"
+            "summary: A short performance.\nretention_analysis: fully_preserved.\n"
+            "detailed_description: [00:00-00:05] Flat cel animation continues.\n"
+            "overall_soundscape: Room tone.\nnon_diegetic_music: N/A"
+        )
+        result = prompt_package.enforce_visual_style_lock(prompt, brief)
+        self.assertEqual(result.count("RENDERING_MEDIUM=2D_ANIME"), 2)
+        self.assertEqual(prompt_package.visual_style_lock_errors(result, brief), [])
+
+    def test_auto_style_keeps_ambiguous_output_unmarked(self):
+        prompt_package = load_prompt_package()
+        brief = "MV_VISUAL_STYLE_LOCK: SOURCE_MATCH_AUTO."
+        prompt = (
+            "subject_definitions: <Subject 1> is visible.\n"
+            "summary: A short performance.\nretention_analysis: fully_preserved.\n"
+            "detailed_description: [00:00-00:05] The subject performs.\n"
+            "overall_soundscape: Room tone.\nnon_diegetic_music: N/A"
+        )
+        result = prompt_package.enforce_visual_style_lock(prompt, brief)
+        self.assertNotIn("RENDERING_MEDIUM=", result)
+        self.assertTrue(prompt_package.visual_style_lock_errors(result, brief))
+
 
 if __name__ == "__main__":
     unittest.main()

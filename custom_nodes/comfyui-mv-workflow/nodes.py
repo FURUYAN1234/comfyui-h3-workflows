@@ -21,6 +21,7 @@ from .mv_core import (
     build_instruction,
     cues_to_srt,
     load_bundle_manifest,
+    manifest_characters,
     resolve_duration_plan,
 )
 
@@ -267,6 +268,14 @@ class MVAssetBundlePrepare(io.ComfyNode):
         folder, manifest, audio_path, lyrics_path = load_bundle_manifest(
             _resolve_bundle_folder(bundle_folder)
         )
+        characters = manifest_characters(manifest)
+        visual = manifest.get("visual") or {}
+        narrative = {}
+        for field in ("relationships", "story", "ending"):
+            value = visual.get(field, "")
+            if not isinstance(value, str):
+                raise ValueError(f"manifest.visual.{field} は文字列で指定してください")
+            narrative[field] = " ".join(value.split())
         if character is not None:
             if not isinstance(character, torch.Tensor) or character.ndim != 4 or character.shape[0] < 1:
                 raise ValueError("キャラクターシート画像が不正です")
@@ -327,12 +336,23 @@ class MVAssetBundlePrepare(io.ComfyNode):
             cues,
             visual_style_mode,
             character_identity_lock,
+            characters,
+            narrative["relationships"],
+            narrative["story"],
+            narrative["ending"],
         )
         report = {
             "schema": "comfyui.mv_execution_plan",
             "schema_version": 1,
             "bundle": str(folder),
             "bundle_id": manifest.get("bundle_id"),
+            "manifest_schema_version": manifest.get("schema_version", 1),
+            "multi_character_mode": len(characters) > 1,
+            "character_count": len(characters) if characters else 1,
+            "characters": [
+                {"subject": f"Subject {index}", "speaker_id": f"S{index}", "id": item["id"], "name": item["name"]}
+                for index, item in enumerate(characters, 1)
+            ],
             "title": title,
             "source_audio": str(audio_path),
             "source_audio_sha256": _sha256(audio_path),

@@ -8,6 +8,7 @@ from mv_core import (
     align_asr_chunks,
     build_instruction,
     cues_to_srt,
+    manifest_characters,
     resolve_duration_plan,
     visual_style_instruction,
 )
@@ -75,6 +76,48 @@ class StyleLockTests(unittest.TestCase):
         notes = "chin-length blonde bob, green eyes, blue headband, yellow cat ears, pink boots"
         instruction = build_instruction("おまかせ", "曲名", "style", plan, [], "2Dアニメ", notes)
         self.assertIn("MV_CHARACTER_IDENTITY_LOCK: " + notes, instruction)
+
+    def test_multi_character_sheet_gets_distinct_subject_contracts(self):
+        plan = resolve_duration_plan(100.0, 0.0, "任意秒数", 20.0, 1.0)
+        characters = [
+            {"id": "akari", "name": "アカリ", "appearance": "red long hair", "role": "lead", "dialogue": "", "actions": "sings by the sea"},
+            {"id": "hikari", "name": "ヒカリ", "appearance": "blonde hair and glasses", "role": "friend", "dialogue": "", "actions": "joins the lead"},
+        ]
+        instruction = build_instruction(
+            "おまかせ", "曲名", "style", plan,
+            [{"start": 1.0, "end": 3.0, "text": "二人の歌詞"}],
+            "2Dアニメ", "", characters, "親友", "夏の思い出", "並んで笑う",
+        )
+        self.assertIn("<Subject 1> / stable speaker ID (S1) / manifest id=akari", instruction)
+        self.assertIn("<Subject 2> / stable speaker ID (S2) / manifest id=hikari", instruction)
+        self.assertIn("red long hair", instruction)
+        self.assertIn("blonde hair and glasses", instruction)
+        self.assertIn("融合・分裂・入れ替えず", instruction)
+        self.assertIn("未登録人物や同一人物の分身を作らない", instruction)
+        self.assertIn("AUTHORITATIVE_AUDIO_ONLY_VOCALS:", instruction)
+        self.assertIn("VOCAL_ACTIVITY_CUE from 00:00:01.000 to 00:00:03.000", instruction)
+        self.assertNotIn("二人の歌詞", instruction)
+        self.assertNotIn("(S1) <d>[Japanese] 二人の歌詞</d>", instruction)
+        self.assertIn(
+            "subject_definitions、summary、retention_analysis、detailed_description、overall_soundscape、non_diegetic_music",
+            instruction,
+        )
+
+    def test_manifest_character_validation_and_legacy_fallback(self):
+        self.assertEqual(manifest_characters({"schema_version": 1}), [])
+        valid = {
+            "visual": {"characters": [
+                {"id": "one", "name": "One", "appearance": "red", "role": "lead", "dialogue": "", "actions": "sing"},
+                {"id": "two", "name": "Two", "appearance": "blue", "role": "friend", "dialogue": "", "actions": "dance"},
+            ]}
+        }
+        self.assertEqual([item["id"] for item in manifest_characters(valid)], ["one", "two"])
+        with self.assertRaises(ValueError):
+            manifest_characters({"visual": {"characters": [{"id": "one"}, {"id": "one"}]}})
+        with self.assertRaises(ValueError):
+            manifest_characters({"visual": {"characters": [{"id": "one"}]}})
+        with self.assertRaises(ValueError):
+            manifest_characters({"visual": {"characters": []}})
 
     def test_unknown_style_mode_is_rejected(self):
         with self.assertRaises(ValueError):

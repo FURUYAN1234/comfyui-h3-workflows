@@ -11,7 +11,7 @@ def verify_bilingual_readme_text(readme):
     require(len(readme)>=24000,'README bilingual content is unexpectedly short')
     paired_headings=(
         '## What you can do / できること',
-        '## Changes in v1.2.0 / v1.2.0の変更点',
+        '## Changes in v1.2.1 / v1.2.1の変更点',
         '## Package contents / 配布内容',
         '## Requirements / 必要な環境',
         '## Installation / インストール',
@@ -32,7 +32,7 @@ def verify_bilingual_readme_text(readme):
     )
     for heading in paired_headings:
         require(readme.count(heading)==1,'Missing or duplicated bilingual README section: '+heading)
-    for token in ('T2V','I2V','Ref2V','MV_H3_YuE2-LMStudio_v1.2.0.json','requirements.txt','models.json','LM Studio','Whisper','verify_package.py','VALIDATION.md','LICENSES_AND_NOTICES.md','ComfyUI-YuE2-Japanese'):
+    for token in ('T2V','I2V','Ref2V','MV_H3_YuE2-LMStudio_v1.2.1.json','requirements.txt','models.json','LM Studio','Whisper','verify_package.py','VALIDATION.md','LICENSES_AND_NOTICES.md','ComfyUI-YuE2-Japanese'):
         require(token in readme,'README content token missing: '+token)
     require(readme.count(' / ')>=50,'README does not contain enough paired English/Japanese units')
 def verify_bilingual_readme(root):
@@ -66,7 +66,7 @@ def verify(root=ROOT):
                 require(n['properties']['models']==[{k:m[k] for k in ('name','directory','url')}],'Model download metadata mismatch')
             if n['type']=='LoadImage':require(n['widgets_values'][0]=='','Image or private path remains')
         if kind=='MV':
-            require(f.name=='MV_H3_YuE2-LMStudio_v1.2.0.json','MV workflow name differs')
+            require(f.name=='MV_H3_YuE2-LMStudio_v1.2.1.json','MV workflow name differs')
             require(ns[200]['type']=='MVAssetBundlePrepare' and ns[201]['type']=='MVFinalize','MV bridge/finalizer missing')
             require(ns[204]['type']=='LoadImage','Standard ComfyUI image input missing')
             require(ns[200]['widgets_values'][:2]==['mv-assets/YOUR_BUNDLE_FOLDER',''],'Private or ambiguous MV input remains')
@@ -78,7 +78,7 @@ def verify(root=ROOT):
             require(ns[124]['widgets_values']==['simple',4,1] and ns[161]['widgets_values']==[0.9,'64',8192,0,True,True],'MV Fused4/SLA settings differ')
             require(ns[201]['widgets_values'][-1]=='video/MV','MV output folder differs')
             notes='\n'.join(n['widgets_values'][0] for n in ns.values() if n['type']=='MarkdownNote')
-            for text in ('YuE2','音源末尾まで（可変尺）','字幕','リップシンク','2D','3D','実写','LM Studio','プレビュー','ダウンロード'):
+            for text in ('YuE2','音源末尾まで（可変尺）','字幕','リップシンク','2D','3D','実写','LM Studio','複数人','別Subject','プレビュー','ダウンロード'):
                 require(text in notes,'Missing MV inline instructions: '+text)
             print('Workflow OK:',kind)
             continue
