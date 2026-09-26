@@ -1,8 +1,8 @@
 {
-  "version": "1.2.0",
-  "baseline": "v1.1.9",
+  "version": "1.2.0-ref1",
+  "baseline": "v1.2.0",
   "scope": "H3 T2V/I2V/Ref2V plus YuE2-compatible fixed/variable-duration MV workflow",
-  "new_gpu_generation": true,
+  "new_gpu_generation": false,
   "paid_api_execution": false,
   "checks": [
     "package graph and settings",
@@ -12,7 +12,10 @@
     "real ComfyUI CPU import and planning",
     "fresh extraction manifest",
     "clean tag rebuild",
-    "published asset download comparison"
+    "published asset download comparison",
+    "numeric reference order and all batch items",
+    "missing Picture N rejection and resume fingerprint",
+    "optional audit status when inapplicable"
   ],
   "unverified": [
     "other-PC GPU",

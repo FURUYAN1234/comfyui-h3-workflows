@@ -1,4 +1,4 @@
-# MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.0
+# MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.0-ref1
 
 <!-- bilingual-readme: paired english-japanese -->
 
@@ -42,6 +42,10 @@ Key features: / 主な機能は次のとおりです。
 
 The system does not always use all five attempts. It advances as soon as a segment passes. If the limit is reached, it selects the best candidate that meets the applicable conditions. Because AI review can still miss problems, always watch and listen to the finished video. / 区間試行は必ず5回行う仕組みではありません。合格した時点で次の区間へ進み、上限に達した場合は条件に合う候補から最良のものを使用します。AI検査にも見落としがあるため、完成動画は最後に目と耳で確認してください。
 
+## Changes in v1.2.0-ref1 / v1.2.0-ref1の変更点
+
+Reference pictures now reach the H3 sampler in numeric socket order, including every image in a batch. The audit uses the same order, missing `<Picture N>` references fail before generation, and resumes made with a changed reference layout receive a new fingerprint. The optional audit correctly reports `not_applicable` when disabled. / 参照画像を番号順に、バッチ内の全画像を含めてH3サンプラーへ渡し、監査と同じ順序にしました。不足する`<Picture N>`は生成前に拒否し、参照配置が変わる再開には新しい指紋を使います。任意監査を無効にした場合は`not_applicable`を正しく返します。
+
 ## Changes in v1.2.0 / v1.2.0の変更点
 
 Added the public `MV_H3_YuE2-LMStudio_v1.2.0.json` workflow and the reusable `comfyui-mv-workflow` custom node. The new input node reads the YuE2 MV bundle by relative folder name under `ComfyUI/output`, accepts a standard ComfyUI `IMAGE`, validates the manifest and source hashes, clips a requested section, and prepares exact lyrics for subtitles and source-audio-driven H3 direction. / 公開用 `MV_H3_YuE2-LMStudio_v1.2.0.json` と汎用 `comfyui-mv-workflow` ノードを追加しました。入力ノードは `ComfyUI/output` 以下の相対フォルダー名でYuE2のMV素材を読み、標準 `IMAGE` を受け、manifestと元ファイルのハッシュを検査し、指定区間を切り出して字幕・元曲連動のH3演出へ正確な歌詞を渡します。
@@ -59,7 +63,7 @@ The Release ZIP contains: / Release ZIPには次のファイルが入ってい�
 **English / 英語**
 
 ```text
-H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/
+H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1/
 ├─ workflows/                 # T2V, I2V, Ref2V, and MV workflows
 ├─ custom_nodes/              # Six required custom-node packages
 ├─ docs/assets/               # Actual workflow diagrams and note thumbnail
@@ -76,7 +80,7 @@ H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/
 **Japanese / 日本語**
 
 ```text
-H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/
+H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1/
 ├─ workflows/                 # T2V・I2V・Ref2V・MVのワークフロー4本
 ├─ custom_nodes/              # 導入に必要なカスタムノード6パッケージ
 ├─ docs/assets/               # 実ワークフロー図・noteサムネイル
@@ -114,7 +118,7 @@ The validated development environment is WSL2 Ubuntu with an NVIDIA RTX 5080 16 
 ### 1. Download and extract the Release ZIP / 1. Release ZIPを取得して展開する
 
 1. Open the [latest Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest). / [最新Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest)を開きます。
-2. Download `H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0.zip` from Assets. / Assetsから `H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0.zip` を取得します。
+2. Download `H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1.zip` from Assets. / Assetsから `H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1.zip` を取得します。
 3. Extract the entire ZIP. Do not take only a workflow JSON out of the archive. / ZIPをすべて展開します。ZIPの中からJSONだけを取り出さないでください。
 4. If custom nodes with the same names are already installed, move those existing folders outside ComfyUI first. / 既に同名のカスタムノードを使っている場合は、ComfyUIの外へ退避します。
 
@@ -177,13 +181,13 @@ For ComfyUI Portable on Windows, run this from the Portable root: / Windows Port
 **English / 英語**
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1\requirements.txt"
 ```
 
 **Japanese / 日本語**
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1\requirements.txt"
 ```
 
 For a Linux or WSL venv installation, run this from the ComfyUI directory: / Linux・WSLのvenv版では、ComfyUIフォルダーから実行します。
@@ -191,13 +195,13 @@ For a Linux or WSL venv installation, run this from the ComfyUI directory: / Lin
 **English / 英語**
 
 ```bash
-.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/requirements.txt"
+.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1/requirements.txt"
 ```
 
 **Japanese / 日本語**
 
 ```bash
-.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260922210437_v1.2.0/requirements.txt"
+.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1/requirements.txt"
 ```
 
 Install the Triton build required by SLA separately, matching your OS, PyTorch, and CUDA combination. For native Windows guidance, see [triton-windows](https://github.com/woct0rdho/triton-windows). / SLAに必要なTritonはOSとPyTorchの組み合わせに合わせて別途用意します。Windowsネイティブの情報は [triton-windows](https://github.com/woct0rdho/triton-windows) を確認してください。
@@ -374,7 +378,7 @@ Speech review runs on the CPU and does not send audio to an external service. It
 Start with T2V and a short duration so the environment is easier to check. / 環境を確認しやすいT2Vから、短い設定で始めます。
 
 1. Fully restart ComfyUI. / ComfyUIを完全に再起動します。
-2. Load `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json`. / `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` を読み込みます。
+2. Load `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260926115639_v1.2.0-ref1.json`. / `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260926115639_v1.2.0-ref1.json` を読み込みます。
 3. Confirm that no missing node is shown in red. / 赤い不足ノードがないことを確認します。
 4. Confirm that each of the four model loaders selects the specified file. / 4つのモデルローダーで、指定ファイルが選択されていることを確認します。
 5. Start the LM Studio server and load its model if you use Japanese input or per-segment AI review. / 日本語入力または区間AI検査を使う場合は、LM Studioのサーバーとモデルを起動します。
@@ -386,11 +390,11 @@ The first model load can take time. After T2V works, move to I2V or Ref2V as app
 
 ### Use I2V / I2Vを使う
 
-Open `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` and upload one image to "Starting image." For the first run, match the source image and video aspect ratios so cropping or resizing effects are easy to identify. / `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` を開き、「開始画像」へ画像を1枚アップロードします。入力画像と動画の比率を最初はそろえると、切り抜きやリサイズの影響を確認しやすくなります。
+Open `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260926115639_v1.2.0-ref1.json` and upload one image to "Starting image." For the first run, match the source image and video aspect ratios so cropping or resizing effects are easy to identify. / `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260926115639_v1.2.0-ref1.json` を開き、「開始画像」へ画像を1枚アップロードします。入力画像と動画の比率を最初はそろえると、切り抜きやリサイズの影響を確認しやすくなります。
 
 ### Use Ref2V / Ref2Vを使う
 
-Open `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` and place an image in "Reference image 1," which is required. To use images 2 through 5, add them in order, select the corresponding nodes, and enable each with `Ctrl+B`. Enabling an empty image node stops execution before generation. / `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260922210437_v1.2.0.json` を開き、「参照画像1」へ画像を入れます。画像1は必須です。画像2〜5を使う場合は順番に画像を入れ、対象ノードを選択して `Ctrl+B` で有効にします。空の画像ノードを有効にすると実行前に止まります。
+Open `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260926115639_v1.2.0-ref1.json` and place an image in "Reference image 1," which is required. To use images 2 through 5, add them in order, select the corresponding nodes, and enable each with `Ctrl+B`. Enabling an empty image node stops execution before generation. / `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260926115639_v1.2.0-ref1.json` を開き、「参照画像1」へ画像を入れます。画像1は必須です。画像2〜5を使う場合は順番に画像を入れ、対象ノードを選択して `Ctrl+B` で有効にします。空の画像ノードを有効にすると実行前に止まります。
 
 When using multiple images, describe each role in the prompt: / 複数画像を使う場合は、役割を文章で分けてください。
 
@@ -408,7 +412,7 @@ Only one character appears in the finished video.
 ![Actual MV workflow layout / MVワークフロー実画面](docs/assets/workflow-mv-v1.2.0.png)
 
 1. In [ComfyUI-YuE2-Japanese v1.6.0](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.0), generate a song. Node ⑥ creates `ComfyUI/output/mv-assets/TITLE_TIMESTAMP_ID/` at the same time as the normal song folder. / [ComfyUI-YuE2-Japanese v1.6.0](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.0)で曲を生成します。通常の曲フォルダーと同じ実行で、⑥が `ComfyUI/output/mv-assets/曲名_日時_ID/` を別途作ります。
-2. Open `workflows/MV_H3_YuE2-LMStudio_v1.2.0.json`. Enter that relative folder as `mv-assets/TITLE_TIMESTAMP_ID`; an absolute path is not required. / `workflows/MV_H3_YuE2-LMStudio_v1.2.0.json` を開き、`mv-assets/曲名_日時_ID` の相対名を入力します。絶対パスは不要です。
+2. Open `workflows/MV_H3_YuE2-LMStudio_v1.2.0-ref1.json`. Enter that relative folder as `mv-assets/TITLE_TIMESTAMP_ID`; an absolute path is not required. / `workflows/MV_H3_YuE2-LMStudio_v1.2.0-ref1.json` を開き、`mv-assets/曲名_日時_ID` の相対名を入力します。絶対パスは不要です。
 3. Upload one character sheet with the standard `LoadImage` node. Use a clean reference that shows the intended face, hair, body proportions, and clothing. / 標準 `LoadImage` へキャラクターシートを1枚アップロードします。顔・髪・体格・服装が分かる参照を使います。
 4. In the large Japanese direction field, describe the mood or write “お任せ”. The bundled rules ask LM Studio to retain the input's 2D anime, 3D, or live-action appearance and avoid unauthorized redesign. / 大きな日本語欄へMVの雰囲気を書くか「お任せ」と入力します。同梱ルールは入力が2Dアニメ・3D・実写のどれかを維持し、勝手な別デザイン化を避けるよう指示します。
 5. Select `任意秒数` for a short test such as 20 seconds, or `音源末尾まで（可変尺）` for a complete song. `start_seconds` can begin from another section. / 20秒等の検証は `任意秒数`、1曲完走は `音源末尾まで（可変尺）` を選びます。`start_seconds` で途中からも開始できます。

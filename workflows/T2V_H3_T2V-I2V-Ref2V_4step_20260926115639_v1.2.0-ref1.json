@@ -1,8 +1,8 @@
 {
-  "id": "1ae0edd6-0918-4b71-b617-beb4242fd4a1",
+  "id": "7e0a5ab4-1688-435c-9fcf-31c966c66e9b",
   "revision": 1,
   "last_node_id": 509,
-  "last_link_id": 439,
+  "last_link_id": 436,
   "nodes": [
     {
       "id": 115,
@@ -603,13 +603,6 @@
           "label": "上流で生成したH3下書き（自動入力・任意）"
         },
         {
-          "name": "reference_image_1",
-          "type": "IMAGE",
-          "shape": 7,
-          "link": 425,
-          "label": "LM Studio画像解析：reference image 1"
-        },
-        {
           "name": "external_h3_prompt",
           "type": "STRING",
           "link": null,
@@ -641,35 +634,35 @@
           "type": "STRING",
           "links": [
             419,
-            435
+            432
           ]
         },
         {
           "name": "実行計画",
           "type": "STRING",
           "links": [
-            439
+            436
           ]
         },
         {
           "name": "総フレーム数",
           "type": "INT",
           "links": [
-            436
+            433
           ]
         },
         {
           "name": "内部区間フレーム数",
           "type": "INT",
           "links": [
-            437
+            434
           ]
         },
         {
           "name": "区間プロンプト計画",
           "type": "MINIMAX_H3_LONG_PROMPT_PLAN",
           "links": [
-            438
+            435
           ]
         }
       ],
@@ -678,8 +671,8 @@
         "Node name for S&R": "H3StandardPrompt"
       },
       "widgets_values": [
-        "画像1を動画の開始フレームにする。画像に写る人物の顔・髪型・服装と背景を維持し、そよ風で髪と服が少し揺れ、自然に一度まばたきする。カメラはゆっくり近づく。連続した一場面。台詞なし、BGMなし。静かな風の音。字幕やロゴは入れない。",
-        "I2VA",
+        "柔らかなアニメ調。公園の小道に立つ成人の人物が、カメラに向かってゆっくり一度だけ手を振り、その後は穏やかに微笑む。固定カメラの連続した一場面。そよ風で髪と服が少し揺れる。台詞なし、BGMなし。葉擦れと遠くの鳥の声。字幕やロゴは入れない。",
+        "T2VA",
         15.0,
         "qwen-prompt-ja",
         "http://127.0.0.1:1234/v1",
@@ -694,70 +687,6 @@
       ],
       "color": "#322",
       "bgcolor": "#533"
-    },
-    {
-      "id": 137,
-      "type": "LoadImage",
-      "pos": [
-        730,
-        560
-      ],
-      "size": [
-        650,
-        360
-      ],
-      "flags": {},
-      "order": 14,
-      "mode": 0,
-      "inputs": [
-        {
-          "localized_name": "画像",
-          "name": "image",
-          "type": "COMBO",
-          "widget": {
-            "name": "image"
-          },
-          "link": null,
-          "label": "画像ファイルを選択"
-        },
-        {
-          "localized_name": "アップロードするファイルを選択",
-          "name": "upload",
-          "type": "IMAGEUPLOAD",
-          "widget": {
-            "name": "upload"
-          },
-          "link": null,
-          "label": "画像を追加"
-        }
-      ],
-      "outputs": [
-        {
-          "localized_name": "画像",
-          "name": "IMAGE",
-          "type": "IMAGE",
-          "links": [
-            425,
-            434
-          ]
-        },
-        {
-          "localized_name": "マスク",
-          "name": "MASK",
-          "type": "MASK",
-          "links": []
-        }
-      ],
-      "title": "開始画像：ここへアップロード（必須）",
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0",
-        "Node name for S&R": "LoadImage"
-      },
-      "widgets_values": [
-        "",
-        "image"
-      ]
     },
     {
       "id": 92,
@@ -825,7 +754,7 @@
         "Node name for S&R": "TimestampedSaveVideo"
       },
       "widgets_values": [
-        "video/MiniMax_H3/H3_T2V-I2V-Ref2V/I2V",
+        "video/MiniMax_H3/H3_T2V-I2V-Ref2V/T2V",
         "auto",
         "auto"
       ]
@@ -900,7 +829,7 @@
           "widget": {
             "name": "prompt"
           },
-          "link": 435,
+          "link": 432,
           "label": "H3最終プロンプト（自動入力）"
         },
         {
@@ -927,7 +856,7 @@
           "widget": {
             "name": "length"
           },
-          "link": 436,
+          "link": 433,
           "label": "総フレーム数（24fps・自動計算）"
         },
         {
@@ -936,7 +865,7 @@
           "widget": {
             "name": "max_raw_frames"
           },
-          "link": 437,
+          "link": 434,
           "label": "内部区間長（自動入力・最大362フレーム）"
         },
         {
@@ -947,13 +876,6 @@
           },
           "link": null,
           "label": "乱数シード"
-        },
-        {
-          "name": "first_frame",
-          "type": "IMAGE",
-          "shape": 7,
-          "link": 434,
-          "label": "開始フレーム（0秒）"
         },
         {
           "name": "segment_audit",
@@ -975,7 +897,7 @@
         {
           "name": "prompt_plan",
           "type": "MINIMAX_H3_LONG_PROMPT_PLAN",
-          "link": 438
+          "link": 435
         },
         {
           "name": "candidate_attempt_limit",
@@ -1038,7 +960,7 @@
         "39",
         42,
         "randomize",
-        "h3_long_video/H3_T2V-I2V-Ref2V/I2V/%date:yyyyMMdd-HHmmss%",
+        "h3_long_video/H3_T2V-I2V-Ref2V/T2V/%date:yyyyMMdd-HHmmss%",
         false,
         -1,
         18,
@@ -1160,7 +1082,7 @@
         {
           "name": "text",
           "type": "STRING",
-          "link": 439
+          "link": 436
         }
       ],
       "outputs": [
@@ -1197,7 +1119,7 @@
       "title": "はじめに・使い方",
       "properties": {},
       "widgets_values": [
-        "# I2V｜4ステップ Fused＋SLA\n\n画像1が最初のフレームです。画像をアップロードしてから実行します。開始構図を保って動かしたい用途です。\n\n## 最初に行うこと\n1. ZIPのREADME_JA.mdに沿ってComfyUIとカスタムノードを準備します。\n2. 右側の「必須モデル」から4ファイルを取得し、階層図の位置へ保存します。\n3. 日本語変換と区間AI検査には、LM Studioで画像対応モデルとサーバーを起動します。完成H3文章の直接入力では変換を省略しますが、区間AI検査がONならLMを使います。\n4. このワークフローを開き、必要な画像をアップロードします。画像は同梱していません。\n5. 「① 動画指示…」の上欄を自分の内容へ書き換え、比率と秒数を選び「実行する」を押します。\n6. 「H3最終プロンプト」と「実行計画」、右端の完成動画を確認します。\n\n初期状態は上欄に日本語サンプル、下欄は空欄です。生成結果や個人の画像・プロンプトは含みません。\n\n映像4ステップ／音声再精錬2ステップ／SLA音声保護ON。モデル・サンプラー・配線は初期設定のまま使えます。\n\n配布版 H3_T2V-I2V-Ref2V 20260922210437 v1.2.0\n区間ごとに累計最大5回。合格区間は保持。stop_after_segment（0始まり、-1は全区間）で確認用の停止位置を指定。30秒は継続39フレームで13+13+4秒。音声検査にはWhisper設定が必要。LM Studioは手動で起動し、変換時GPU・動画前CPU切替を使用。"
+        "# T2V｜4ステップ Fused＋SLA\n\n画像なし。文章から人物・背景・動作・音を生成します。\n\n## 最初に行うこと\n1. ZIPのREADME_JA.mdに沿ってComfyUIとカスタムノードを準備します。\n2. 右側の「必須モデル」から4ファイルを取得し、階層図の位置へ保存します。\n3. 日本語変換と区間AI検査には、LM Studioで画像対応モデルとサーバーを起動します。完成H3文章の直接入力では変換を省略しますが、区間AI検査がONならLMを使います。\n4. このワークフローを開き、必要な画像をアップロードします。画像は同梱していません。\n5. 「① 動画指示…」の上欄を自分の内容へ書き換え、比率と秒数を選び「実行する」を押します。\n6. 「H3最終プロンプト」と「実行計画」、右端の完成動画を確認します。\n\n初期状態は上欄に日本語サンプル、下欄は空欄です。生成結果や個人の画像・プロンプトは含みません。\n\n映像4ステップ／音声再精錬2ステップ／SLA音声保護ON。モデル・サンプラー・配線は初期設定のまま使えます。\n\n配布版 H3_T2V-I2V-Ref2V 20260926115639 v1.2.0-ref1\n区間ごとに累計最大5回。合格区間は保持。stop_after_segment（0始まり、-1は全区間）で確認用の停止位置を指定。30秒は継続39フレームで13+13+4秒。音声検査にはWhisper設定が必要。LM Studioは手動で起動し、変換時GPU・動画前CPU切替を使用。"
       ],
       "color": "#243645",
       "bgcolor": "#17232d"
@@ -1389,7 +1311,7 @@
       "title": "英語を直接使うサンプル",
       "properties": {},
       "widgets_values": [
-        "①を空欄にし、次の本文を③へコピーしてください。`Duration: 15 seconds`を変えると尺が変わります。文章変換ではLM Studioを使いません。区間AI検査がONならLM Studioが必要です。\n\n```text\nDuration: 15 seconds\n\nintegrated_multimodal_description: [Shot 1] For the target video, at 0.00 seconds into the target video, <Picture 1> is fully referenced. Preserve the person, clothing, scene and visual style of the first frame. A gentle breeze moves their hair and clothing. They blink once naturally while the camera moves slowly closer in a continuous shot. No speech or on-screen text.\n\noverall_soundscape: Gentle wind and quiet natural ambience.\n\nnon_diegetic_music: N/A\n```"
+        "①を空欄にし、次の本文を③へコピーしてください。`Duration: 15 seconds`を変えると尺が変わります。文章変換ではLM Studioを使いません。区間AI検査がONならLM Studioが必要です。\n\n```text\nDuration: 15 seconds\n\nintegrated_multimodal_description: Soft anime style. [Shot 1] One adult traveler stands on a quiet park path, waves once slowly at the camera, then rests their hand and smiles. A gentle breeze moves their hair and jacket. A single continuous shot with a fixed camera. No speech or on-screen text.\n\noverall_soundscape: Soft wind, rustling leaves and distant birds.\n\nnon_diegetic_music: N/A\n```"
       ],
       "color": "#243645",
       "bgcolor": "#17232d"
@@ -1525,14 +1447,6 @@
       "STRING"
     ],
     [
-      425,
-      137,
-      0,
-      138,
-      11,
-      "IMAGE"
-    ],
-    [
       431,
       127,
       0,
@@ -1541,15 +1455,7 @@
       "MODEL"
     ],
     [
-      434,
-      137,
-      0,
-      150,
-      14,
-      "IMAGE"
-    ],
-    [
-      435,
+      432,
       138,
       0,
       150,
@@ -1557,7 +1463,7 @@
       "STRING"
     ],
     [
-      436,
+      433,
       138,
       2,
       150,
@@ -1565,7 +1471,7 @@
       "INT"
     ],
     [
-      437,
+      434,
       138,
       3,
       150,
@@ -1573,15 +1479,15 @@
       "INT"
     ],
     [
-      438,
+      435,
       138,
       4,
       150,
-      17,
+      16,
       "MINIMAX_H3_LONG_PROMPT_PLAN"
     ],
     [
-      439,
+      436,
       138,
       1,
       162,
@@ -1601,7 +1507,7 @@
     },
     "frontendVersion": "1.51.9",
     "standard_h3": {
-      "input_mode": "I2VA",
+      "input_mode": "T2VA",
       "video_steps": 4,
       "scheduler": "simple",
       "sampler": "res_multistep",
@@ -1618,7 +1524,7 @@
     },
     "distribution": {
       "product": "H3_T2V-I2V-Ref2V-MV",
-      "mode": "I2V",
+      "mode": "T2V",
       "version": "1.2.0",
       "built_at_jst": "20260922210437"
     },

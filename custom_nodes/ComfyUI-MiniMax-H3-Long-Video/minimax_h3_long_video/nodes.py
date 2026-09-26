@@ -427,9 +427,10 @@ def _prepare_references(vae, audio_vae, width, height, frame_count, ref_image_si
     ref_items = []
     ref_blocks = []
 
-    for image in (ref_images or {}).values():
-        if image is None:
-            continue
+    # Encoding and auditing must use the same numeric socket order and batch expansion.
+    # Previously only the first item of each batch reached the sampler, while
+    # the audit counted every item and could bind <Picture N> to different pixels.
+    for image in _flatten_image_tensors(ref_images):
         image_height, image_width = image.shape[1], image.shape[2]
         if ref_image_size == "match":
             scale = min(1.0, math.sqrt((width * height) / (image_width * image_height)))
@@ -715,6 +716,16 @@ def _generation_fingerprint(graph_prompt, unique_id, model, audio_refine_model,
         "ref_image_size": ref_image_size,
         "segment_seed_strategy": SEGMENT_SEED_STRATEGY,
     }
+    # Preserve compatible ordinary single-image resumes, but never reuse a
+    # checkpoint conditioned with the previous insertion order / batch[:1].
+    if ref_images:
+        active_keys = [key for key, image in ref_images.items() if image is not None]
+        ordered_keys = sorted(active_keys, key=lambda key: [
+            (1, int(part)) if part.isdigit() else (0, part)
+            for part in re.split(r"(\d+)", str(key))])
+        if active_keys != ordered_keys or any(
+                ref_images[key].ndim != 4 or ref_images[key].shape[0] != 1 for key in active_keys):
+            payload["reference_image_order_strategy"] = "numeric-sockets-all-batch-items-v1"
     digest = hashlib.sha256(json.dumps(
         payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8"))
     for name, value in (
@@ -843,7 +854,9 @@ def _flatten_image_tensors(value):
         for item in value:
             images.extend(_flatten_image_tensors(item))
     elif isinstance(value, dict):
-        for key in sorted(value):
+        for key in sorted(value, key=lambda key: [
+                (1, int(part)) if part.isdigit() else (0, part)
+                for part in re.split(r"(\d+)", str(key))]):
             images.extend(_flatten_image_tensors(value[key]))
     return images
 
@@ -862,8 +875,9 @@ def _require_reference_images(prompt, ref_images, first_frame=None):
     )
     if required_picture_count > available_picture_count:
         raise ValueError(
-            "参照人物を固定するH3プロンプトですが、実画像がサンプラーへ届いていません。"
-            "Ref2Vの参照画像接続（ref_images.ref_image_0 以降）を確認してください。"
+            f"参照画像が不足しています。プロンプトはPicture {required_picture_count}まで要求していますが、"
+            f"サンプラーに届いた画像は{available_picture_count}枚です。"
+            "参照番号とRef2Vの画像接続（ref_images.ref_image_0 以降）を確認してください。"
         )
 
 
@@ -2056,7 +2070,7 @@ def _final_audit_summary(selected_segment_audits, completed, audit_applicable):
                if audit_applicable else [])
     failed = sorted(set(missing) | {
         index for index, row in verdicts.items()
-        if row.get('failed') or row.get('status') != 'pass'
+        if row.get('failed') or (audit_applicable and row.get('status') != 'pass')
     })
     status = ('warning' if failed else 'pass') if audit_applicable else 'not_applicable'
     return status, failed, missing

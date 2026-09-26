@@ -32,7 +32,7 @@ def verify_bilingual_readme_text(readme):
     )
     for heading in paired_headings:
         require(readme.count(heading)==1,'Missing or duplicated bilingual README section: '+heading)
-    for token in ('T2V','I2V','Ref2V','MV_H3_YuE2-LMStudio_v1.2.0.json','requirements.txt','models.json','LM Studio','Whisper','verify_package.py','VALIDATION.md','LICENSES_AND_NOTICES.md','ComfyUI-YuE2-Japanese'):
+    for token in ('T2V','I2V','Ref2V','MV_H3_YuE2-LMStudio_v1.2.0-ref1.json','requirements.txt','models.json','LM Studio','Whisper','verify_package.py','VALIDATION.md','LICENSES_AND_NOTICES.md','ComfyUI-YuE2-Japanese'):
         require(token in readme,'README content token missing: '+token)
     require(readme.count(' / ')>=50,'README does not contain enough paired English/Japanese units')
 def verify_bilingual_readme(root):
@@ -66,7 +66,7 @@ def verify(root=ROOT):
                 require(n['properties']['models']==[{k:m[k] for k in ('name','directory','url')}],'Model download metadata mismatch')
             if n['type']=='LoadImage':require(n['widgets_values'][0]=='','Image or private path remains')
         if kind=='MV':
-            require(f.name=='MV_H3_YuE2-LMStudio_v1.2.0.json','MV workflow name differs')
+            require(f.name=='MV_H3_YuE2-LMStudio_v1.2.0-ref1.json','MV workflow name differs')
             require(ns[200]['type']=='MVAssetBundlePrepare' and ns[201]['type']=='MVFinalize','MV bridge/finalizer missing')
             require(ns[204]['type']=='LoadImage','Standard ComfyUI image input missing')
             require(ns[200]['widgets_values'][:2]==['mv-assets/YOUR_BUNDLE_FOLDER',''],'Private or ambiguous MV input remains')
