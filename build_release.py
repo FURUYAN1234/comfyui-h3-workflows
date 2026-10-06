@@ -14,10 +14,13 @@ def files():
 def build(destination,update=False):
     dest=Path(destination).resolve()
     if dest==ROOT or ROOT in dest.parents: raise ValueError("Destination must be outside source tree")
+    if dest.exists(): raise FileExistsError("Refusing to overwrite an existing archive: "+str(dest))
+    from verify_package import verify_license_notices
+    verify_license_notices(ROOT)
     if (ROOT/"custom_nodes/ComfyUI-Custom-Scripts/pysssss.json").exists(): raise ValueError("Runtime UI configuration must be removed before packaging")
     data={p.relative_to(ROOT).as_posix():p.read_bytes() for p in files()}
     if any(p.is_symlink() for p in files()):raise ValueError("Symlink in payload")
-    manifest=(json.dumps({n:hashlib.sha256(b).hexdigest() for n,b in data.items()},ensure_ascii=False,indent=2)+"\n").encode()
+    manifest=(json.dumps({n:hashlib.sha256(b).hexdigest() for n,b in sorted(data.items())},ensure_ascii=False,indent=2)+"\n").encode()
     mf=ROOT/"SHA256SUMS.json"
     if update:mf.write_bytes(manifest)
     if mf.read_bytes()!=manifest:raise ValueError("Manifest is stale")
@@ -26,7 +29,7 @@ def build(destination,update=False):
     from datetime import datetime
     stamp=datetime.strptime(meta["built_at_jst"],"%Y%m%d%H%M%S").timetuple()[:6]
     dest.parent.mkdir(parents=True,exist_ok=True)
-    with zipfile.ZipFile(dest,"w",compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
+    with zipfile.ZipFile(dest,"x",compression=zipfile.ZIP_DEFLATED,compresslevel=9) as z:
         for n,b in sorted(data.items()):
             info=zipfile.ZipInfo(meta["archive_root"]+"/"+n,stamp)
             info.create_system=3;info.compress_type=zipfile.ZIP_DEFLATED;info.external_attr=0o100644<<16

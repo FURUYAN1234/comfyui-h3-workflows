@@ -6,12 +6,27 @@
 |---|---|---|
 | ComfyUI-MiniMax-H3-Long-Video | GPL-3.0-only | ソースコードを同梱。ComfyUI由来の処理についてソース内の表記を維持 |
 | ComfyUI-H3-AudioRefine | MIT | 著作権表示と許諾文を同梱 |
-| ComfyUI-PlagueKind-Nodes | MIT | 著作権表示と許諾文を同梱 |
+| ComfyUI-PlagueKind-Nodes | MIT + Apache-2.0（下記SLA由来ファイル） | 既存MITの著作権表示・許諾文と、LightX2V由来部分のApache-2.0全文を同梱 |
 | ComfyUI-Custom-Scripts | MIT | 著作権表示と許諾文を同梱 |
 | comfyui-h3-standard-prompt | 独自作成部分・配布用修正 | 作成者が配布を許可したソースを収録。第三者コードのライセンスを変更するものではない |
 | comfyui-mv-workflow | MIT | MV素材バンドル、字幕時刻合わせ、元曲仕上げ用の独自ノード |
 
 MITは著作権表示・許諾文の保持を求めます。GPL対象を変更して再配布する場合は変更の表示と適用ライセンス・対応ソースの提供等の条件を守ってください。バイナリだけに差し替えて、このZIPのソース同梱での確認を流用しないでください。
+
+### LightX2V由来のSLAコード / LightX2V-derived SLA code
+
+`custom_nodes/ComfyUI-PlagueKind-Nodes/` の既存MIT `LICENSE` とラッパーの著作権表示は維持しています。次の2ファイルはヘッダーに記載されたLightX2V由来のApache-2.0コードであり、MITのみの扱いではありません。 / The existing MIT license and wrapper copyright notices are retained. These two files contain Apache-2.0 code derived from LightX2V as identified in their headers.
+
+| 同梱ファイル（上記パックからの相対パス） / Bundled file | 上流ファイル / Upstream file |
+|---|---|
+| `ComfyUI-H3-SLA-Attention/sla/kernel.py` | `lightx2v/common/ops/attn/kernels/sla_kernel_ar.py` |
+| `ComfyUI-H3-SLA-Attention/sla/block_map.py` | `lightx2v/common/ops/attn/utils/sla_util_blhd.py` |
+
+照合した上流: [ModelTC/LightX2V commit 0c2edc124227fcb6e22399e12c35f23298a7299a](https://github.com/ModelTC/LightX2V/tree/0c2edc124227fcb6e22399e12c35f23298a7299a)。このcommitは照合用の参照であり、元の取り込みcommitを断定するものではありません。 / This is the upstream revision reviewed for comparison, not a claim about the original vendoring revision.
+
+Apache-2.0全文: [LICENSE-APACHE-2.0.txt](custom_nodes/ComfyUI-PlagueKind-Nodes/LICENSE-APACHE-2.0.txt)。ノード単体のコピーにも残る[適用範囲の説明](custom_nodes/ComfyUI-PlagueKind-Nodes/THIRD_PARTY_NOTICES.md)を同梱しています。対象2ファイル内の由来・改変表示、既存MIT本文・著作者表示は保持してください。 / Keep the full Apache-2.0 text, the node-local scope notice, the source attribution/change notices, and the existing MIT text and author notices when redistributing.
+
+2026-10-06: Apache-2.0本文の同梱不足と適用範囲の説明を修正。対象2ファイルのコードとヘッダーは変更していません。 / Added the missing license text and clarified its scope; the two source files and their headers are unchanged.
 
 ### 配布用の変更
 

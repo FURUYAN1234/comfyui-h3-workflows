@@ -1,6 +1,8 @@
-# MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.0-ref1
+# MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.0-ref1-license1
 
 <!-- bilingual-readme: paired english-japanese -->
+
+This license-only distribution revision includes the missing Apache-2.0 text for the two LightX2V-derived SLA files. All existing custom-node files and workflow JSON files retain the exact bytes of public v1.2.0-ref1; the functional version remains v1.2.0-ref1. See [release notes](docs/release-notes-v1.2.0-ref1-license1.md). / この配布修正版はLightX2V由来のSLA 2ファイルに必要なApache-2.0本文を追加します。既存カスタムノードとワークフローJSONは公開v1.2.0-ref1とバイト単位で同一で、機能版はv1.2.0-ref1のままです。[リリースノート](docs/release-notes-v1.2.0-ref1-license1.md)を参照してください。
 
 This ComfyUI distribution generates video with MiniMax H3 in four modes: **text to video (T2V)**, **video from a starting image (I2V)**, **video guided by reference images (Ref2V)**, and a **music-video workflow** that combines a finished song, exact lyrics, and a character image. It supports Japanese direction, fixed test clips or full-song variable duration, subtitles, source-audio lip-sync guidance, title/end-link overlays, fades, per-segment review, and resume. / MiniMax H3で、**文章から動画（T2V）**、**開始画像から動画（I2V）**、**参照画像から動画（Ref2V）**、さらに完成曲・正確な歌詞・キャラクター画像を組み合わせる**MVワークフロー**を提供します。日本語の演出指示、短い検証尺または曲末までの可変尺、字幕、元音源に合わせたリップシンク指示、タイトル／終了リンク表示、フェード、区間検査、途中再開に対応します。
 
@@ -581,12 +583,14 @@ This distribution contains components under several licenses. / この配布セ�
 |---|---|
 | `ComfyUI-MiniMax-H3-Long-Video` | GPL-3.0-only |
 | `ComfyUI-H3-AudioRefine` | MIT |
-| `ComfyUI-PlagueKind-Nodes` | MIT |
+| `ComfyUI-PlagueKind-Nodes` | MIT + Apache-2.0 for the LightX2V-derived SLA files / LightX2V由来のSLAファイルはApache-2.0 |
 | `ComfyUI-Custom-Scripts` | MIT |
 | `comfyui-h3-standard-prompt` | Original portions are MIT; see the bundled documents for the combined distribution's conditions / 独自作成部分はMIT。結合構成全体の条件は同梱文書を確認 |
 | `comfyui-mv-workflow` | MIT |
 
 When redistributing or modifying the package, review [LICENSES_AND_NOTICES.md](LICENSES_AND_NOTICES.md) and the `LICENSE` file in each folder, and retain copyright notices and license text. / 再配布・改変時は [LICENSES_AND_NOTICES.md](LICENSES_AND_NOTICES.md) と各フォルダーの `LICENSE` を確認し、著作権表示とライセンス本文を保持してください。
+
+SLA `kernel.py` and `block_map.py` retain their LightX2V attribution and modification notices. The [Apache-2.0 text](custom_nodes/ComfyUI-PlagueKind-Nodes/LICENSE-APACHE-2.0.txt) and [file mapping](custom_nodes/ComfyUI-PlagueKind-Nodes/THIRD_PARTY_NOTICES.md) accompany the existing MIT license inside the node pack. / SLAの `kernel.py` と `block_map.py` の由来・改変表示を保持し、ノードパック内に既存MIT本文とApache-2.0全文・対象ファイルの説明を同梱しています。
 
 The model weights are governed by their respective distributors' terms. MiniMax H3 is covered by the [MiniMax H3 Community License Agreement](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE), which includes terms related to region, use, commercial use, and redistribution. Before use, read the original agreement and confirm that your region and intended use qualify. / モデル本体には各配布元の条件が適用されます。MiniMax H3には地域、用途、商用利用、再配布などを定めた [MiniMax H3 Community License Agreement](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE) があります。利用前に、自分の地域と用途が条件を満たすか原文で確認してください。
 

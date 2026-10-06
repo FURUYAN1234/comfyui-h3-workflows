@@ -1,8 +1,54 @@
 """Verify an extracted package without installing nodes or downloading models."""
 import ast,hashlib,json,pathlib,re,sys
 ROOT=pathlib.Path(__file__).resolve().parent
+PLAGUEKIND=pathlib.Path('custom_nodes/ComfyUI-PlagueKind-Nodes')
+APACHE_LICENSE=PLAGUEKIND/'LICENSE-APACHE-2.0.txt'
+# SHA-256 of https://www.apache.org/licenses/LICENSE-2.0.txt (LF text).
+APACHE_SHA256='cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30'
+LIGHTX2V_COMMIT='0c2edc124227fcb6e22399e12c35f23298a7299a'
+LIGHTX2V_FILES={
+    'ComfyUI-H3-SLA-Attention/sla/kernel.py': (
+        'lightx2v/common/ops/attn/kernels/sla_kernel_ar.py',
+        'Vendored and reduced from LightX2V (Apache-2.0)',
+        'Two changes against upstream, both marked FIX',
+    ),
+    'ComfyUI-H3-SLA-Attention/sla/block_map.py': (
+        'lightx2v/common/ops/attn/utils/sla_util_blhd.py',
+        'Vendored from LightX2V (Apache-2.0)',
+        'Three changes against upstream, marked FIX',
+    ),
+}
 def require(value,message):
     if not value:raise AssertionError(message)
+def verify_license_notices(root):
+    """Check the vendored SLA licenses before building and after extraction."""
+    root=pathlib.Path(root)
+    apache=root/APACHE_LICENSE
+    require(apache.is_file(),'Missing Apache-2.0 license text: '+APACHE_LICENSE.as_posix())
+    require(hashlib.sha256(apache.read_bytes().replace(b'\r\n',b'\n')).hexdigest()==APACHE_SHA256,
+            'Apache-2.0 license text is incomplete or modified')
+    mit=root/PLAGUEKIND/'LICENSE'
+    require(mit.is_file(),'Missing PlagueKind MIT license')
+    mit_text=mit.read_text(encoding='utf-8')
+    for token in ('MIT License','Copyright (c) 2026 PlagueKind',
+                  'Permission is hereby granted, free of charge',
+                  'The above copyright notice and this permission notice shall be included'):
+        require(token in mit_text,'PlagueKind MIT notice was removed: '+token)
+    documents=(root/'LICENSES_AND_NOTICES.md',root/PLAGUEKIND/'THIRD_PARTY_NOTICES.md')
+    for document in documents:
+        require(document.is_file(),'Missing license scope notice: '+document.name)
+        notice=document.read_text(encoding='utf-8')
+        for token in ('Apache-2.0','MIT','LICENSE-APACHE-2.0.txt',LIGHTX2V_COMMIT):
+            require(token in notice,'Missing license scope in '+document.name+': '+token)
+        for local,(upstream,_,_) in LIGHTX2V_FILES.items():
+            require(local in notice and upstream in notice,
+                    'Missing LightX2V file mapping in '+document.name+': '+local)
+    for local,(upstream,attribution,changes) in LIGHTX2V_FILES.items():
+        source=root/PLAGUEKIND/local
+        require(source.is_file(),'Missing LightX2V-derived file: '+local)
+        header=ast.get_docstring(ast.parse(source.read_text(encoding='utf-8-sig'))) or ''
+        for token in (upstream,attribution,changes,'https://github.com/ModelTC/LightX2V'):
+            require(token in header,'Missing SLA attribution/change notice: '+local)
 def verify_bilingual_readme_text(readme):
     marker='<!-- bilingual-readme: paired english-japanese -->'
     require(readme.count(marker)==1,'README paired bilingual marker is missing or duplicated')
@@ -38,6 +84,7 @@ def verify_bilingual_readme_text(readme):
 def verify_bilingual_readme(root):
     verify_bilingual_readme_text((root/'README.md').read_text(encoding='utf-8'))
 def verify(root=ROOT):
+    verify_license_notices(root)
     verify_bilingual_readme(root)
     paths=list((root/'workflows').glob('*.json'))
     require(len(paths)==4,'Exactly four T2V/I2V/Ref2V/MV workflows are required')

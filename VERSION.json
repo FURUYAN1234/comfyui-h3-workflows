@@ -1,10 +1,13 @@
 {
   "version": "1.2.0-ref1",
+  "release_tag": "v1.2.0-ref1-license1",
+  "distribution_revision": "license1",
+  "functional_baseline_commit": "80448495ee400c2efc2529506c822765d8c1de41",
   "built_at_jst": "20260926115639",
   "timestamp_format": "yyyyMMddHHmmss",
   "product_id": "h3-t2v-i2v-ref2v-mv",
   "archive_prefix": "H3_T2V-I2V-Ref2V-MV",
-  "archive_root": "H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1",
+  "archive_root": "H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1-license1",
   "workflow_files": [
     "I2V_H3_T2V-I2V-Ref2V_4step_20260926115639_v1.2.0-ref1.json",
     "MV_H3_YuE2-LMStudio_v1.2.0-ref1.json",
@@ -19,6 +22,6 @@
     "comfyui-h3-standard-prompt",
     "comfyui-mv-workflow"
   ],
-  "source_release": "https://github.com/FURUYAN1234/comfyui-h3-workflows/tree/v1.2.0-ref1",
+  "source_release": "https://github.com/FURUYAN1234/comfyui-h3-workflows/tree/v1.2.0-ref1-license1",
   "scope": "T2V/I2V/Ref2V/MV; YuE2 asset bridge, variable or fixed duration, subtitles, source-audio lip-sync, Fused4 SLA, local LM and Japanese speech audit"
 }
