@@ -1,9 +1,15 @@
 import hashlib
+import importlib.util
 import json
 from aiohttp import web
 from server import PromptServer
-import folder_paths
 import os
+
+# The extension loads py/*.py with absolute-path module names, not packages.
+_spec = importlib.util.spec_from_file_location(
+    "pysssss_model_info_paths", os.path.join(os.path.dirname(__file__), "..", "model_info_paths.py"))
+paths = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(paths)
 
 
 def get_metadata(filepath):
@@ -25,91 +31,42 @@ def get_metadata(filepath):
 
 @PromptServer.instance.routes.post("/pysssss/metadata/notes/{name}")
 async def save_notes(request):
-    name = request.match_info["name"]
-    pos = name.index("/")
-    type = name[0:pos]
-    name = name[pos+1:]
-
-    file_path = None
-    if type == "embeddings" or type == "loras":
-        name = name.lower()
-        files = folder_paths.get_filename_list(type)
-        for f in files:
-            lower_f = f.lower()
-            if lower_f == name:
-                file_path = folder_paths.get_full_path(type, f)
-            else:
-                n = os.path.splitext(f)[0].lower()
-                if n == name:
-                    file_path = folder_paths.get_full_path(type, f)
-
-            if file_path is not None:
-                break
-    else:
-        file_path = folder_paths.get_full_path(
-            type, name)
-    if not file_path:
+    try:
+        model = paths.resolve_model(request.match_info["name"], match_stem=True)
+        paths.write_text(model.parent, model.sidecar(".txt"), await request.text())
+    except FileNotFoundError:
         return web.Response(status=404)
-
-    file_no_ext = os.path.splitext(file_path)[0]
-    info_file = file_no_ext + ".txt"
-    with open(info_file, "w") as f:
-        f.write(await request.text())
-
+    except (paths.InvalidPath, OSError):
+        return web.Response(status=400)
     return web.Response(status=200)
 
 
 @PromptServer.instance.routes.get("/pysssss/metadata/{name}")
 async def load_metadata(request):
-    name = request.match_info["name"]
-    pos = name.index("/")
-    type = name[0:pos]
-    name = name[pos+1:]
-
-    file_path = None
-    if type == "embeddings" or type == "loras":
-        name = name.lower()
-        files = folder_paths.get_filename_list(type)
-        for f in files:
-            lower_f = f.lower()
-            if lower_f == name:
-                file_path = folder_paths.get_full_path(type, f)
-            else:
-                n = os.path.splitext(f)[0].lower()
-                if n == name:
-                    file_path = folder_paths.get_full_path(type, f)
-
-            if file_path is not None:
-                break
-    else:
-        file_path = folder_paths.get_full_path(
-            type, name)
-    if not file_path:
-        return web.Response(status=404)
-
     try:
-        meta = get_metadata(file_path)
-    except:
-        meta = None
-
-    if meta is None:
-        meta = {}
-
-    file_no_ext = os.path.splitext(file_path)[0]
-
-    info_file = file_no_ext + ".txt"
-    if os.path.isfile(info_file):
-        with open(info_file, "r") as f:
-            meta["pysssss.notes"] = f.read()
-
-    hash_file = file_no_ext + ".sha256"
-    if os.path.isfile(hash_file):
-        with open(hash_file, "rt") as f:
-            meta["pysssss.sha256"] = f.read()
-    else:
-        with open(file_path, "rb") as f:
-            meta["pysssss.sha256"] = hashlib.sha256(f.read()).hexdigest()
-        with open(hash_file, "wt") as f:
-            f.write(meta["pysssss.sha256"])
-
+        model = paths.resolve_model(request.match_info["name"], match_stem=True)
+        info_file = model.sidecar(".txt")
+        hash_file = model.sidecar(".sha256")
+        try:
+            meta = get_metadata(model.path)
+        except (OSError, ValueError, BufferError, OverflowError, TypeError):
+            meta = None
+        if not isinstance(meta, dict):
+            meta = {}
+        if os.path.isfile(info_file):
+            meta["pysssss.notes"] = paths.read_notes(info_file)
+        if os.path.isfile(hash_file):
+            with open(hash_file, "rt", encoding="utf-8") as file:
+                meta["pysssss.sha256"] = file.read()
+        else:
+            digest = hashlib.sha256()
+            with open(model.path, "rb") as file:
+                for block in iter(lambda: file.read(1024 * 1024), b""):
+                    digest.update(block)
+            meta["pysssss.sha256"] = digest.hexdigest()
+            paths.write_text(model.parent, hash_file, meta["pysssss.sha256"])
+    except FileNotFoundError:
+        return web.Response(status=404)
+    except (paths.InvalidPath, OSError, UnicodeError):
+        return web.Response(status=400)
     return web.json_response(meta)

@@ -1,8 +1,36 @@
 import { $el, ComfyDialog } from "../../../../scripts/ui.js";
 import { api } from "../../../../scripts/api.js";
+import { app } from "../../../../scripts/app.js";
 import { addStylesheet } from "./utils.js";
 
 addStylesheet(import.meta.url);
+
+function httpUrl(value) {
+	if (typeof value !== "string" || !/^https?:\/\//i.test(value)) return null;
+	try {
+		const url = new URL(value);
+		return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+	} catch {
+		return null;
+	}
+}
+
+// Model metadata, local notes, and remote descriptions are text, never HTML.
+export function modelInfoText(value) {
+	const text = String(value ?? "");
+	const nodes = [];
+	let end = 0;
+	for (const match of text.matchAll(/\bhttps?:\/\/[^\s<>"']+/gi)) {
+		nodes.push($el("span", { textContent: text.slice(end, match.index) }));
+		const href = httpUrl(match[0]);
+		nodes.push(href
+			? $el("a", { href, textContent: match[0], target: "_blank", rel: "noopener noreferrer" })
+			: $el("span", { textContent: match[0] }));
+		end = match.index + match[0].length;
+	}
+	nodes.push($el("span", { textContent: text.slice(end) }));
+	return $el("span", { style: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }, nodes);
+}
 
 class MetadataDialog extends ComfyDialog {
 	constructor() {
@@ -91,45 +119,7 @@ export class ModelInfoDialog extends ComfyDialog {
 	getNoteInfo() {
 		function parseNote() {
 			if (!this.customNotes) return [];
-
-			let notes = [];
-			// Extract links from notes
-			const r = new RegExp("(\\bhttps?:\\/\\/[^\\s]+)", "g");
-			let end = 0;
-			let m;
-			do {
-				m = r.exec(this.customNotes);
-				let pos;
-				let fin = 0;
-				if (m) {
-					pos = m.index;
-					fin = m.index + m[0].length;
-				} else {
-					pos = this.customNotes.length;
-				}
-
-				let pre = this.customNotes.substring(end, pos);
-				if (pre) {
-					pre = pre.replaceAll("\n", "<br>");
-					notes.push(
-						$el("span", {
-							innerHTML: pre,
-						})
-					);
-				}
-				if (m) {
-					notes.push(
-						$el("a", {
-							href: m[0],
-							textContent: m[0],
-							target: "_blank",
-						})
-					);
-				}
-
-				end = fin;
-			} while (m);
-			return notes;
+			return [modelInfoText(this.customNotes)];
 		}
 
 		let textarea;
@@ -147,18 +137,19 @@ export class ModelInfoDialog extends ComfyDialog {
 				e.preventDefault();
 
 				if (textarea) {
-					this.customNotes = textarea.value;
-
-					const resp = await api.fetchApi("/pysssss/metadata/notes/" + encodeURIComponent(`${this.type}/${this.name}`), {
-						method: "POST",
-						body: this.customNotes,
-					});
-
-					if (resp.status !== 200) {
-						console.error(resp);
-						alert(`Error saving notes (${req.status}) ${req.statusText}`);
+					const notes = textarea.value;
+					try {
+						const resp = await api.fetchApi("/pysssss/metadata/notes/" + encodeURIComponent(`${this.type}/${this.name}`), {
+							method: "POST",
+							body: notes,
+						});
+						if (resp.status !== 200) throw new Error(`(${resp.status}) ${resp.statusText}`);
+					} catch (error) {
+						console.error(error);
+						alert(`Error saving notes ${error.message}`);
 						return;
 					}
+					this.customNotes = notes;
 
 					e.target.textContent = editText;
 					textarea.remove();
@@ -209,13 +200,13 @@ export class ModelInfoDialog extends ComfyDialog {
 			},
 			[
 				typeof name === "string" ? $el("label", { textContent: name + ": " }) : name,
-				typeof value === "string" ? $el("span", { textContent: value }) : value,
+				typeof value === "string" ? modelInfoText(value) : value,
 			]
 		);
 	}
 
 	async getCivitaiDetails() {
-		const req = await fetch("https://civitai.com/api/v1/model-versions/by-hash/" + this.hash);
+		const req = await fetch("https://civitai.com/api/v1/model-versions/by-hash/" + encodeURIComponent(this.hash));
 		if (req.status === 200) {
 			return await req.json();
 		} else if (req.status === 404) {
@@ -249,20 +240,21 @@ export class ModelInfoDialog extends ComfyDialog {
 			.then((info) => {
 				content.replaceChildren(
 					$el("a", {
-						href: "https://civitai.com/models/" + info.modelId,
+						href: "https://civitai.com/models/" + encodeURIComponent(info.modelId),
 						textContent: "View " + info.model.name,
 						target: "_blank",
+						rel: "noopener noreferrer",
 					})
 				);
 
 				const allPreviews = info.images?.filter((i) => i.type === "image");
-				const previews = allPreviews?.filter((i) => i.nsfwLevel <= ModelInfoDialog.nsfwLevel);
+				const previews = allPreviews?.filter((i) => i.nsfwLevel <= ModelInfoDialog.nsfwLevel && httpUrl(i.url));
 				if (previews?.length) {
 					let previewIndex = 0;
 					let preview;
 					const updatePreview = () => {
 						preview = previews[previewIndex];
-						this.img.src = preview.url;
+						this.img.src = httpUrl(preview.url);
 					};
 
 					updatePreview();
@@ -270,7 +262,7 @@ export class ModelInfoDialog extends ComfyDialog {
 
 					this.img.title = `${previews.length} previews.`;
 					if (allPreviews.length !== previews.length) {
-						this.img.title += ` ${allPreviews.length - previews.length} images hidden due to NSFW level.`;
+						this.img.title += ` ${allPreviews.length - previews.length} images hidden due to NSFW level or invalid URL.`;
 					}
 
 					this.imgSave = $el("button", {
@@ -294,12 +286,12 @@ export class ModelInfoDialog extends ComfyDialog {
 
 							if (resp.status !== 200) {
 								console.error(resp);
-								alert(`Error saving preview (${req.status}) ${req.statusText}`);
+								alert(`Error saving preview (${resp.status}) ${resp.statusText}`);
 								return;
 							}
 
 							// Use as preview
-							await api.fetchApi("/pysssss/save/" + encodeURIComponent(`${this.type}/${this.name}`), {
+							const saved = await api.fetchApi("/pysssss/save/" + encodeURIComponent(`${this.type}/${this.name}`), {
 								method: "POST",
 								body: JSON.stringify({
 									filename: name,
@@ -309,6 +301,11 @@ export class ModelInfoDialog extends ComfyDialog {
 									"content-type": "application/json",
 								},
 							});
+							if (saved.status !== 200) {
+								console.error(saved);
+								alert(`Error saving preview (${saved.status}) ${saved.statusText}`);
+								return;
+							}
 							app.refreshComboInNodes();
 						},
 					});
@@ -346,7 +343,7 @@ export class ModelInfoDialog extends ComfyDialog {
 						addNavButton("›", 1);
 					}
 				} else if (info.images?.length) {
-					$el("span", { style: { opacity: 0.6 }, textContent: "⚠️ All images hidden due to NSFW level setting.", parent: this.imgWrapper });
+					$el("span", { style: { opacity: 0.6 }, textContent: "⚠️ All images hidden due to NSFW level setting or invalid URL.", parent: this.imgWrapper });
 				}
 
 				return info;

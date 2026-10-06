@@ -7,6 +7,8 @@
 
 <!-- bilingual-readme: paired english-japanese -->
 
+Model Info security fixes: model descriptions and notes are displayed as text, and note/example saves are confined to the selected model's storage location. Apache-2.0 and MIT notices remain included. / Model Info の安全性修正：モデルの説明とメモを文字として表示し、メモ・例文の保存先を選択したモデルの所定位置に限定します。Apache-2.0 と MIT の権利表示を保持しています。
+
 This ComfyUI distribution generates video with MiniMax H3 in four modes: **text to video (T2V)**, **video from a starting image (I2V)**, **video guided by reference images (Ref2V)**, and a **music-video workflow** that combines a finished song, exact lyrics, and a character sheet containing one or more people. It supports Japanese direction, fixed test clips or full-song variable duration, subtitles, source-audio lip-sync guidance, title/end-link overlays, fades, per-segment review, and resume. / MiniMax H3で、**文章から動画（T2V）**、**開始画像から動画（I2V）**、**参照画像から動画（Ref2V）**、さらに完成曲・正確な歌詞・1人以上を含むキャラクターシートを組み合わせる**MVワークフロー**を提供します。日本語の演出指示、短い検証尺または曲末までの可変尺、字幕、元音源に合わせたリップシンク指示、タイトル／終了リンク表示、フェード、区間検査、途中再開に対応します。
 
 This README walks first-time users through choosing a workflow, installing every required component, placing the files correctly, and running the first generation. See [README_JA.md](README_JA.md) for additional node-level details and examples, and [VALIDATION.md](VALIDATION.md) for the exact validation scope and remaining unverified areas. / このREADMEでは、初めて使う人が「どれを選ぶか」「何を入れるか」「どこへ置くか」「最初に何を実行するか」を順番に確認できます。さらに詳しいノード設定と操作例は [README_JA.md](README_JA.md)、実施済みの検証と未確認範囲は [VALIDATION.md](VALIDATION.md) を参照してください。
