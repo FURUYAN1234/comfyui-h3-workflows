@@ -1,8 +1,8 @@
-# MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.0-ref1-license1
+# MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.0-ref1-security1
 
 <!-- bilingual-readme: paired english-japanese -->
 
-This license-only distribution revision includes the missing Apache-2.0 text for the two LightX2V-derived SLA files. All existing custom-node files and workflow JSON files retain the exact bytes of public v1.2.0-ref1; the functional version remains v1.2.0-ref1. See [release notes](docs/release-notes-v1.2.0-ref1-license1.md). / この配布修正版はLightX2V由来のSLA 2ファイルに必要なApache-2.0本文を追加します。既存カスタムノードとワークフローJSONは公開v1.2.0-ref1とバイト単位で同一で、機能版はv1.2.0-ref1のままです。[リリースノート](docs/release-notes-v1.2.0-ref1-license1.md)を参照してください。
+This security revision displays model metadata, descriptions and notes as text and restricts note/example writes to the selected model's storage location. The Apache-2.0 text and notices from license1 remain included. The workflow version remains v1.2.0-ref1; unpublished v1.2.1 features are not included. See [release notes](docs/release-notes-v1.2.0-ref1-security1.md). / このセキュリティ改訂版ではモデル情報・説明・メモを安全な文字として表示し、メモと例文の保存先を選択したモデルの所定位置に限定します。license1 の Apache-2.0 本文と権利表示を保持しています。ワークフロー版は v1.2.0-ref1 のままで、未公開 v1.2.1 機能は含みません。[リリースノート](docs/release-notes-v1.2.0-ref1-security1.md)を参照してください。
 
 This ComfyUI distribution generates video with MiniMax H3 in four modes: **text to video (T2V)**, **video from a starting image (I2V)**, **video guided by reference images (Ref2V)**, and a **music-video workflow** that combines a finished song, exact lyrics, and a character image. It supports Japanese direction, fixed test clips or full-song variable duration, subtitles, source-audio lip-sync guidance, title/end-link overlays, fades, per-segment review, and resume. / MiniMax H3で、**文章から動画（T2V）**、**開始画像から動画（I2V）**、**参照画像から動画（Ref2V）**、さらに完成曲・正確な歌詞・キャラクター画像を組み合わせる**MVワークフロー**を提供します。日本語の演出指示、短い検証尺または曲末までの可変尺、字幕、元音源に合わせたリップシンク指示、タイトル／終了リンク表示、フェード、区間検査、途中再開に対応します。
 
@@ -65,7 +65,7 @@ The Release ZIP contains: / Release ZIPには次のファイルが入ってい�
 **English / 英語**
 
 ```text
-H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1/
+H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1-security1/
 ├─ workflows/                 # T2V, I2V, Ref2V, and MV workflows
 ├─ custom_nodes/              # Six required custom-node packages
 ├─ docs/assets/               # Actual workflow diagrams and note thumbnail
@@ -82,7 +82,7 @@ H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1/
 **Japanese / 日本語**
 
 ```text
-H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1/
+H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1-security1/
 ├─ workflows/                 # T2V・I2V・Ref2V・MVのワークフロー4本
 ├─ custom_nodes/              # 導入に必要なカスタムノード6パッケージ
 ├─ docs/assets/               # 実ワークフロー図・noteサムネイル
@@ -197,13 +197,13 @@ For a Linux or WSL venv installation, run this from the ComfyUI directory: / Lin
 **English / 英語**
 
 ```bash
-.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1/requirements.txt"
+.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1-security1/requirements.txt"
 ```
 
 **Japanese / 日本語**
 
 ```bash
-.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1/requirements.txt"
+.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260926115639_v1.2.0-ref1-security1/requirements.txt"
 ```
 
 Install the Triton build required by SLA separately, matching your OS, PyTorch, and CUDA combination. For native Windows guidance, see [triton-windows](https://github.com/woct0rdho/triton-windows). / SLAに必要なTritonはOSとPyTorchの組み合わせに合わせて別途用意します。Windowsネイティブの情報は [triton-windows](https://github.com/woct0rdho/triton-windows) を確認してください。

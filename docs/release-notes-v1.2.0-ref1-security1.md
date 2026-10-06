@@ -1,0 +1,13 @@
+# v1.2.0-ref1-security1
+
+This security update fixes Model Info in the bundled ComfyUI-Custom-Scripts. Model descriptions and notes are rendered as literal text, with line breaks and HTTP(S) links preserved. Model metadata can no longer inject HTML through those fields. / 同梱 ComfyUI-Custom-Scripts の Model Info を修正しました。モデルの説明とメモは文字として表示し、改行と HTTP(S) リンクを保持します。これらの欄に含まれるモデル情報が HTML として実行される問題を防ぎます。
+
+Note and example saves validate the selected model and destination. Example names must be single filenames; absolute paths, traversal, path separators and Windows device/stream names are rejected. Linked destinations that escape the registered model storage are rejected. Failed saves remain visible as failures and unsaved note text stays available for correction. / メモと例文の保存では、選択されたモデルと保存先を検査します。例文名は単一のファイル名に限定し、絶対パス、親フォルダーへの移動、パス区切り、Windows のデバイス名・ストリーム名を拒否します。登録済みモデル領域の外へ抜ける保存先リンクも拒否します。保存失敗は失敗として表示し、未保存のメモを編集欄に保持します。
+
+Registered model folders may themselves be links. Model-file links remain usable when their containing folder is within registered storage; sidecars are saved beside the selected link. If a nested directory link leads outside registered storage, register that destination as a model folder and select the model directly from that registered location. / 登録するモデルフォルダー自体がリンクである構成に対応します。モデルファイルのリンクは、その親フォルダーが登録領域内にあれば利用でき、メモ等は選択したリンクの横に保存します。内側のディレクトリリンクが登録領域外を指す場合は、その宛先をモデルフォルダーとして登録し、その登録先からモデルを直接選択してください。
+
+This revision is based on public `v1.2.0-ref1-license1` (`377c8fbecd4e7d08eed4b0dd61622b93057a636c`). It retains the Apache-2.0 text, its two-file SLA scope, the existing MIT licenses, and attribution/change notices. The workflow version remains `v1.2.0-ref1`; workflow JSON and model-generation code are unchanged. Unpublished `v1.2.1` features are not included. / 公開済み `v1.2.0-ref1-license1` を基準にした改訂版です。Apache-2.0 全文、SLA の適用対象 2 ファイル、既存 MIT 本文、著作者・改変表示を保持しています。ワークフロー版は `v1.2.0-ref1` のままで、ワークフロー JSON とモデル生成コードは変更していません。未公開の `v1.2.1` 機能は含みません。
+
+Install the named ZIP from this release using the README instructions, update the bundled ComfyUI-Custom-Scripts files, restart ComfyUI, and reload the browser page. Existing releases and tags are preserved. / このリリースの名前付き ZIP を README の手順で導入し、同梱 ComfyUI-Custom-Scripts を更新して ComfyUI を再起動し、ブラウザーを再読み込みしてください。既存リリースとタグは保持しています。
+
+Validation uses isolated metadata and filesystem fixtures, including ordinary saves, hostile HTML, traversal and linked destinations. Package checks include every manifest entry and the official Apache text. No real user model data, GPU generation or paid API is used for these security tests. / 通常保存、不正 HTML、パス逸脱、リンク先を隔離したメタデータ・ファイルシステムのフィクスチャで検査します。配布物ではマニフェスト全件と公式 Apache 本文を検査します。この安全性検査に実ユーザーのモデルデータ、GPU 生成、有料 API は使用しません。

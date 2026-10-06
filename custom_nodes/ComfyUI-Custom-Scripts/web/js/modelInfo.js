@@ -1,7 +1,7 @@
 import { app } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
 import { $el } from "../../../scripts/ui.js";
-import { ModelInfoDialog } from "./common/modelInfoDialog.js";
+import { ModelInfoDialog, modelInfoText } from "./common/modelInfoDialog.js";
 
 const MAX_TAGS = 500;
 const NsfwLevel = {
@@ -187,12 +187,11 @@ export class LoraInfoDialog extends ModelInfoDialog {
 
 		$el("div", {
 			parent: this.content,
-			innerHTML: info?.description ?? this.metadata["modelspec.description"] ?? "[No description provided]",
 			style: {
 				maxHeight: "250px",
 				overflow: "auto",
 			},
-		});
+		}, [modelInfoText(info?.description ?? this.metadata["modelspec.description"] ?? "[No description provided]")]);
 	}
 
 	async saveAsExample(example, name = "example.txt") {
@@ -203,7 +202,7 @@ export class LoraInfoDialog extends ModelInfoDialog {
 			name = prompt("Enter example name", name);
 			if (!name) return;
 
-			await api.fetchApi("/pysssss/examples/" + encodeURIComponent(`${this.type}/${this.name}`), {
+			const resp = await api.fetchApi("/pysssss/examples/" + encodeURIComponent(`${this.type}/${this.name}`), {
 				method: "POST",
 				body: JSON.stringify({
 					name,
@@ -213,6 +212,7 @@ export class LoraInfoDialog extends ModelInfoDialog {
 					"content-type": "application/json",
 				},
 			});
+			if (resp.status < 200 || resp.status >= 300) throw new Error(`(${resp.status}) ${resp.statusText}`);
 			this.node?.["pysssss.updateExamples"]?.();
 			alert("Saved!");
 		} catch (error) {
@@ -289,12 +289,11 @@ class CheckpointInfoDialog extends ModelInfoDialog {
 
 			$el("div", {
 				parent: this.content,
-				innerHTML: info.description,
 				style: {
 					maxHeight: "250px",
 					overflow: "auto",
 				},
-			});
+			}, [modelInfoText(info.description)]);
 		}
 	}
 }
