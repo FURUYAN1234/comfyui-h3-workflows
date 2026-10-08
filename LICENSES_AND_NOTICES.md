@@ -1,5 +1,7 @@
 # ライセンスと再配布時の表示
 
+Current licenses and earlier grants remain in force; see [version/file/rights-holder scope](LICENSE_SCOPE.md) and [FURU usage guidance](FURU_TERMS.md). / 現行ライセンスと従前の許諾を維持します。[版・ファイル・権利者の範囲](LICENSE_SCOPE.md)と[FURUの利用案内](FURU_TERMS.md)を参照してください。
+
 このZIPは複数のパッケージをまとめたものです。パッケージごとのライセンスが適用されます。
 
 | パッケージ | 同梱ライセンス | 備考 |
@@ -8,7 +10,7 @@
 | ComfyUI-H3-AudioRefine | MIT | 著作権表示と許諾文を同梱 |
 | ComfyUI-PlagueKind-Nodes | MIT + Apache-2.0（下記SLA由来ファイル） | 既存MITの著作権表示・許諾文と、LightX2V由来部分のApache-2.0全文を同梱 |
 | ComfyUI-Custom-Scripts | MIT | 著作権表示と許諾文を同梱 |
-| comfyui-h3-standard-prompt | 独自作成部分・配布用修正 | 作成者が配布を許可したソースを収録。第三者コードのライセンスを変更するものではない |
+| comfyui-h3-standard-prompt | MIT | FURUYAN1234の著作権表示とMIT許諾文を同梱。第三者コードのライセンスを変更しません |
 | comfyui-mv-workflow | MIT | MV素材バンドル、字幕時刻合わせ、元曲仕上げ用の独自ノード |
 
 MITは著作権表示・許諾文の保持を求めます。GPL対象を変更して再配布する場合は変更の表示と適用ライセンス・対応ソースの提供等の条件を守ってください。バイナリだけに差し替えて、このZIPのソース同梱での確認を流用しないでください。
