@@ -9,7 +9,7 @@
 
 ## KomaOrbit — illustration orbit workflow / 一枚絵の回転ワークフロー
 
-[KomaOrbit documentation and source / 導入手順・ソース](docs/komaorbit/) · [KomaOrbit ZIP / 配布ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105142122) · [Usage page / 操作・導入ページ](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/)
+[KomaOrbit documentation and source / 導入手順・ソース](docs/komaorbit/) · [KomaOrbit ZIP / 配布ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105174959) · [Usage page / 操作・導入ページ](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/)
 
 KomaOrbit adds a separate local workflow for orbit, pan, zoom and PNG export at the input image dimensions. Its release contains workflow and custom-node source; models and inputs are obtained separately. / KomaOrbitは回転・平行移動・拡大縮小と元画像寸法のPNG保存を行う別のローカルワークフローです。配布物はワークフローとノードのソースで、モデル・入力画像は別途用意します。
 

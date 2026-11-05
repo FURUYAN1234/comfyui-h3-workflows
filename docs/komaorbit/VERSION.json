@@ -1,10 +1,10 @@
 {
   "product": "KomaOrbit",
-  "built_at_jst": "20261105142122",
-  "archive_root": "KomaOrbit_20261105142122",
-  "tag": "komaorbit-20261105142122",
+  "built_at_jst": "20261105174959",
+  "archive_root": "KomaOrbit_20261105174959",
+  "tag": "komaorbit-20261105174959",
   "source_only": true,
-  "release_url": "https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105142122",
-  "archive_name": "KomaOrbit_20261105142122.zip",
+  "release_url": "https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105174959",
+  "archive_name": "KomaOrbit_20261105174959.zip",
   "comfyui_commit": "426f5eea52a7ece1dd599fff4cb6cd1f352ddd24"
 }

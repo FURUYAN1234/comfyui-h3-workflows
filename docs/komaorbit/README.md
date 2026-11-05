@@ -7,24 +7,23 @@ The package contains workflow JSON, custom-node source, installation scripts, te
 
 ## Download / 入手先
 
-See the release link and exact build identifier in [VERSION.json](VERSION.json). Use its named KomaOrbit ZIP. / [VERSION.json](VERSION.json)の配布先と識別情報を確認し、名前付きKomaOrbit ZIPを取得してください。
+Download the named **KomaOrbit_20261105174959.zip** asset from [the KomaOrbit release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105174959), then follow Installation below. This repository also distributes other H3 workflows; choose the KomaOrbit ZIP. / [KomaOrbitの配布ページ](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105174959)で **KomaOrbit_20261105174959.zip** を取得し、下の導入手順へ進んでください。このリポジトリには別のH3ワークフローもあるため、KomaOrbitのZIPを選びます。
 
-[Usage page / 操作・導入ページ](demo/) · [Model list / モデル一覧](models.json)
+[Introduction / 紹介記事](https://note.com/happy_duck780/n/n3f68482d5edd) · [Usage page / 操作・導入ページ](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/) · [Model list / モデル一覧](models.json)
 
-## Features and controls / 機能と操作
+## What you can make / 作れるもの
 
-| Feature / 機能 | Operation and result / 操作と結果 |
+Start with one illustration. Generate the subject and surroundings once, then move the camera to find a side view, a low or high view, or a closer crop. Save the framed result as a PNG with the same width and height as the input. / 一枚のイラストから人物と周囲を生成し、横から見る、見上げる、見下ろす、顔へ寄るといった構図をマウスで探します。気に入った構図は、入力画像と同じ幅・高さのPNGに保存できます。
+
+Two result panels serve different purposes. The **3D composition viewer** lets you freely orbit, pan and zoom. The **angle-image viewer** lets you select and export a prepared set of views. Their on-screen titles and locations are explained under First generation. / 結果を見る画面は2つあります。**3D構図ビューアー**は回転・平行移動・拡大縮小を自由に操作する画面、**角度別画像ビューアー**はあらかじめ用意した視点の画像を選ぶ画面です。実際の表示名と場所は「最初の生成」で案内します。
+
+| Result / 得られるもの | Use / 用途 |
 |---|---|
-| Orbit / 回転 | Left drag inside ⑩; continuous horizontal orbit and low/high viewpoints / ⑩の画像内を左ドラッグ。左右の連続周回とアオリ・俯瞰 |
-| Pan / 平行移動 | Right drag moves the camera and target together / 右ドラッグでカメラと注視点を一緒に移動 |
-| Zoom / 拡大縮小 | Wheel changes the saved composition, 0.5–4× / ホイールで保存される構図を0.5～4倍に調整 |
-| Reset / 初期位置 | “中央に戻す” restores the base camera and model placement / カメラとモデル配置を初期化 |
-| PNG / 画像保存 | “この視点を保存”; original width, height and aspect ratio / 元画像と同じ幅・高さ・縦横比で保存 |
-| View grid / 角度別一覧 | ⑧: 3 heights × 73 directions = 219 PNGs, including the closing 360° view / 高さ3段階×73方位、終点360°を含む219枚 |
-| 3D export / 3D保存 | Gaussian-splat PLY from ⑩'s export menu / ⑩の書き出しからGaussian Splat形式のPLY |
-| Face detail / 顔の詳細 | Matched source face details are projected onto a fixed 3D surface / 元絵の顔の詳細を対応する固定3D曲面へ反映 |
+| Selected-view PNG / 選んだ構図のPNG | Save one composition at the original image dimensions / 元画像と同じ寸法で1枚保存 |
+| Angle-image folder / 角度別画像のフォルダー | Export low, level and high views: 73 directions per height, 219 images including the closing 360° view / 低・水平・高の3段階を各73方位、終点360度を含む219枚として一括保存 |
+| Gaussian-splat PLY / 3Dデータ | Open the subject in an app with a Gaussian-splat importer / Gaussian Splatの読み込みに対応した3Dアプリで人物を利用 |
 
-Gaussian PLY is a splat representation. Use a Gaussian-splat-compatible importer; it is not a rigged polygon mesh. / Gaussian PLYは点群状の表現です。Gaussian Splat対応の読込機能を使ってください。ボーン付きポリゴンメッシュではありません。
+The hidden sides and surroundings are AI estimates. Face detail uses the source image, but exact likeness at every viewpoint is not assured. / 見えない面や画像外の背景はAIが推定します。顔には元絵の詳細を反映しますが、どの角度でも同じ顔になることを保証するものではありません。
 
 ## Requirements / 必要な環境
 
@@ -75,26 +74,81 @@ The first face-restoration run automatically downloads missing hysts detector we
 
 There is no cloud generation API or API-key requirement. Model/code downloads contact their upstream hosts; image processing is local. / クラウド生成API・APIキーは不要です。モデル・コードの取得時は配布元へ通信し、画像処理はローカルで行います。
 
-## Generate and save / 生成と保存
+## First generation / 最初の生成
 
-1. Choose your illustration at ①. Begin with a clearly visible subject and face detail. / ①で画像を選びます。初回は人物と顔の線がはっきりした画像で試してください。
-2. Keep ② at long edge 1024, set ③ to “固定3Dを新規生成” and ⑥ to “背景用 FL2VA（73枚）”, then Run. / ②は長辺1024、③は固定3Dの新規生成、⑥はFL2VAを選んで実行します。
-3. Use left drag, right drag and wheel inside ⑩. The white frame is saved; dimmed areas are outside it. / ⑩の画像内で左ドラッグ・右ドラッグ・ホイールを操作します。白枠内が保存範囲です。
-4. Save with “この視点を保存”; use ⑧'s “全視点をフォルダー保存” for the full grid. / 1枚は「この視点を保存」、一括保存は⑧を使います。
+In ComfyUI, a **node** is one rectangular block in the workflow. You do not need to edit every block. Start with the image input and the existing defaults, then use the result viewers. / ComfyUIでいう**ノード**は、ワークフロー上に並ぶ四角い部品です。すべての部品を操作する必要はありません。最初は入力画像と配布時の設定を使い、生成後に結果のビューアーを操作します。
 
-Defaults: H3 28 steps/73 frames; Qwen angle references 4 Lightning steps; background passes 25 steps; Idol 50 steps. / 標準設定はH3が28ステップ・73枚、角度参照QwenがLightning4ステップ、背景が25ステップ、Idolが50ステップです。
+### 1. Load an illustration / 画像を読み込む
 
-The isolated 1024×1536 test took 18m03.489s from execution start to success, including loading and additional compilation; four image-description nodes were cached. Initial installation, prior renderer setup, input creation and later saves are excluded. See [VALIDATION.md](VALIDATION.md) for scope. / 分離環境の1024×1536検証は開始から成功まで18分03.489秒でした。読込と実行中の追加ビルドを含み、画像説明の4ノードはキャッシュを利用しています。初期導入・事前の描画環境構築・入力作成・後からの保存は含みません。検証範囲は[検証記録](VALIDATION.md)を参照してください。
+In the **Input and outpaint / 入力と画像外補完** group near the top, find **「一枚絵を読み込む / Import」** (its title starts with ①). Choose your image using the file-upload control. For a first test, use an illustration with a clearly visible person and face. / 上側の**「入力と画像外補完」**グループにある**「一枚絵を読み込む / Import」**を探し、ファイル選択から画像を取り込みます。タイトル先頭の①は場所を探す目印です。初回は人物と顔がはっきりした一枚絵で試してください。
 
-## Outputs and reopening / 出力と再開
+### 2. Keep the normal generation settings / 標準設定を確認する
 
-| Location / 場所 | Contents / 内容 |
+The distributed workflow already has these defaults. Check the following labels if you previously changed its settings. / 配布時は次の値になっています。以前に設定を変更した場合は、表示名を目印に確認してください。
+
+| Block title / 画面の表示名 | Setting / 設定 |
 |---|---|
-| `output/H3_ORB360/<scene-id>/` | Scene manifest, splats, textures and working data / シーン情報・3D・テクスチャ・中間データ |
-| `output/H3_ORB360/snapshots/` | Original-size selected-view PNGs / 元画像寸法の構図PNG |
-| Folder export / フォルダー保存 | Angle/elevation/zoom-named PNGs at processing resolution, retaining source aspect ratio, plus metadata / 方位・高さ・倍率を含む名前の処理解像度PNGと情報。元画像の縦横比を維持 |
+| 「画像準備 • 長辺px・縦横比維持」 | Long edge 1024; this is processing resolution / 長辺1024。生成処理に使う解像度です |
+| 「背景・上下の視点計画」 | 作成方法 → 「固定3Dを新規生成」 / 新しい画像から3Dを作る設定 |
+| 「生成方式 • FL2VA 28steps / 従来20steps」 | 「背景用 FL2VA（73枚）」 / 通常使う周回生成方式 |
 
-Keep the complete scene folder: the PLY alone does not include the external panorama/floor textures. With the same source image, select “固定3Dを開く（3D ID指定）” and supply the scene ID. / シーンフォルダー全体を保持してください。PLY単体には外部背景・床テクスチャは入りません。同じ元画像で固定3Dを開く方式を選び、シーンIDを指定します。
+Click ComfyUI's **「実行する」** button and wait for generation to finish. The workflow expands the background, generates reference/orbit images, builds the fixed subject and surroundings, and applies face detail. / ComfyUIの**「実行する」**を押し、完了まで待ちます。背景の拡張、参照画像と周回画像の生成、人物と周囲の3D化、顔の詳細反映が順に行われます。
+
+Defaults: H3 28 steps/73 frames; Qwen reference views 4 Lightning steps; background passes 25 steps; Idol 50 steps. / 標準設定はH3が28ステップ・73枚、参照視点のQwenがLightning4ステップ、背景補完が25ステップ、人物生成のIdolが50ステップです。
+
+One isolated test with a 1024×1536 input took **18m03.489s** from execution start to success. This includes model loading and additional compilation; four image-description nodes used cached results. Initial installation, prior renderer setup, input creation and subsequent saves are excluded. It is one measured run, not a per-image promise. / 分離環境で1024×1536の画像を試した際は、実行開始から成功まで**18分03.489秒**でした。モデル読込と実行中の追加ビルドを含み、画像説明の4ノードはキャッシュを使っています。初期導入・事前の描画環境構築・入力作成・後からの保存は含まない、1回の実測値です。
+
+### 3. Find the 3D composition viewer / 3D構図ビューアーを開く
+
+In the lower **Explore and save / 回転・構図・保存** group, find the large image panel titled **「固定3D • 左ドラッグ回転／右ドラッグパン／ホイール拡大縮小」**. Its title starts with ⑩. The buttons **「この視点を保存」** and **「中央に戻す」** sit below it. This guide calls that panel the **3D composition viewer**. / 下側の**「回転・構図・保存」**グループにある、大きな画像表示**「固定3D • 左ドラッグ回転／右ドラッグパン／ホイール拡大縮小」**を探します。先頭の⑩が目印で、下に**「この視点を保存」**と**「中央に戻す」**ボタンがあります。この説明では、この画面を**3D構図ビューアー**と呼びます。
+
+## Mouse controls / マウスで構図を決める
+
+Place the pointer **inside the viewer's image**, then use these gestures. Dragging or scrolling the workflow canvas outside the image operates ComfyUI's workspace instead. / ポインターを**ビューアーの画像の中**に置いて操作します。画像の外でドラッグやホイール操作をすると、ComfyUIの作業画面の移動・拡大縮小になります。
+
+| Gesture / 操作 | Result / 動き |
+|---|---|
+| Hold left button and drag left/right / 左ボタンを押したまま左右へドラッグ | Orbit around the subject continuously / 人物の周囲を一周し、見る方向を変える |
+| Hold left button and drag up/down / 左ボタンを押したまま上下へドラッグ | Change between low and high viewing angles / アオリ・俯瞰へ視点の角度を変える |
+| Hold right button and drag / 右ボタンを押したまま上下左右へドラッグ | Pan without rotating; move the composition across the frame / 向きを変えず、画面内の上下左右の位置をずらす |
+| Scroll the wheel / ホイールを回す | Zoom the saved composition from 0.5× to 4× / 保存する構図を0.5～4倍で拡大縮小 |
+| Click 「中央に戻す」 / 「中央に戻す」を押す | Restore the initial camera and model placement / カメラと人物の配置を初期状態へ戻す |
+
+Camera changes reuse the generated scene; you do not need to run the whole workflow again for each viewpoint. Saving a PNG starts a separate render job in ComfyUI's queue. / 視点を変えるときは生成済みのシーンを使うため、構図ごとにワークフロー全体を再生成する必要はありません。PNG保存は、現在の構図を描画する別の処理としてComfyUIのキューに入ります。
+
+## Save one composition / 気に入った構図を1枚保存する
+
+1. Compose the view inside the **white frame** of the 3D composition viewer. The dimmed area outside the frame will be omitted. / 3D構図ビューアーの**白枠内**に収まるように構図を決めます。暗く表示された枠外は保存されません。
+2. Click **「この視点を保存」** under that viewer. Wait until the status says **「保存しました: …」**. / 画像の下の**「この視点を保存」**を押し、**「保存しました: …」**という表示を待ちます。
+3. Open the indicated file under **`ComfyUI/output/H3_ORB360/snapshots/`**. / 表示されたファイルを **`ComfyUI/output/H3_ORB360/snapshots/`** から取り出します。
+
+For a 1024×1536 input, this PNG is also 1024×1536. Zooming changes the crop and how much of the surroundings is visible, while output width, height and aspect ratio stay the same. Resizing the node does not set the saved image dimensions. / 入力が1024×1536なら、このPNGも1024×1536です。拡大縮小では写る範囲や人物の大きさが変わり、保存画像の幅・高さ・縦横比は変わりません。ノードの表示サイズを広げても、保存画像の寸法は変わりません。
+
+## Export angle images or 3D data / 角度別画像や3Dデータを取り出す
+
+### Angle-image folder / 角度別画像をまとめて保存
+
+In the same **回転・構図・保存** group, use the other image panel, titled **「固定3D • 背景付き・低／水平／高の全視点」** (title prefix ⑧). This is the **angle-image viewer**. Click **「全視点をフォルダー保存」** to export low, level and high views, with 73 directions for each height. / 同じ**「回転・構図・保存」**グループにある、もう一つの画像表示**「固定3D • 背景付き・低／水平／高の全視点」**（先頭⑧）が**角度別画像ビューアー**です。**「全視点をフォルダー保存」**を押すと、低・水平・高の3段階を各73方位で書き出します。
+
+The 219 files include the closing 360° view. Filenames contain direction, elevation and zoom, such as `方位000.0deg_高さ+00deg_f000_倍率1.000x.png`. The exported images retain the source aspect ratio at the processing resolution; the test produced 682×1023 files from a 1024×1536 input. / 終点360度を含む219枚を保存します。名前には方位・高さ・倍率が入り、例は左記のとおりです。こちらの画像は元絵の縦横比を保った**処理解像度**で、1024×1536入力の検証では682×1023でした。
+
+For an original-size final image, use **「この視点を保存」 in the 3D composition viewer**. / 元画像と同じ画素数の仕上げ画像が必要なときは、**3D構図ビューアーの「この視点を保存」**を使ってください。
+
+### Gaussian-splat PLY / 他の3Dアプリ向けデータ
+
+Use the 3D viewer's built-in download/export control to obtain PLY. This is **Gaussian-splat data**: a collection of colored 3D samples. Choose an application or importer that explicitly supports Gaussian splats. A generic PLY mesh importer may not reproduce it. / 3Dビューアー内のダウンロード・書き出し操作でPLYを取得します。これは色の付いた立体的な点の集まりで表す**Gaussian Splat形式**です。Gaussian Splat対応と明記されたアプリや読込機能を使ってください。一般的なPLYメッシュ用の読込だけでは再現できない場合があります。
+
+It has no rig or editable polygon topology. The exported PLY alone does not contain the external panorama and floor textures. / ボーンや編集用のポリゴン構造は持ちません。また、PLY単体には外部のパノラマ・床テクスチャは含まれません。
+
+## Output folders and reopening / 保存先と後日の再開
+
+| Path relative to ComfyUI / ComfyUIからの相対パス | Contents / 内容 |
+|---|---|
+| `output/H3_ORB360/snapshots/` | Original-size PNGs saved from the 3D composition viewer / 3D構図ビューアーで保存した元画像寸法のPNG |
+| `output/H3_ORB360/exports/` | Angle-image folders and metadata / 方位・高さ・倍率別の一括保存画像と情報 |
+| `output/H3_ORB360/<scene-id>/` | Scene information, 3D data, textures and working data / シーン情報・3Dデータ・背景テクスチャ・中間データ |
+
+To reopen a scene with its background, keep the **original image and complete scene folder**. In **「背景・上下の視点計画」**, set 作成方法 to **「固定3Dを開く（3D ID指定）」**. Enter the saved scene ID in the `checkpoint` field of **「人物・服・姿勢を固定した3Dシーン」**, keep the same source image, and run. / 背景込みで開き直すには、**元画像とシーンフォルダー全体**を残します。**「背景・上下の視点計画」**の作成方法を**「固定3Dを開く（3D ID指定）」**に変え、**「人物・服・姿勢を固定した3Dシーン」**の`checkpoint`欄へ保存済みの3D IDを指定します。入力を同じ元画像にして実行してください。
 
 ## Troubleshooting and limitations / トラブル対応と制約
 
@@ -126,4 +180,6 @@ Build from the release tag's `docs/komaorbit/` directory. The builder includes o
 
 ## Changes / 更新
 
-2026-11-05: first source release with face recovery, precise face rendering, pan/zoom/reset, source-size PNG and portable runtime setup. / 顔復元、顔の描画精度、パン・ズーム・中央復帰、元画像寸法PNG、環境別ランタイム導入を含む初回ソース配布。
+2026-11-05 documentation revision: explained the image input, two result viewers, mouse gestures and three export formats by purpose and visible labels. Workflow and node code are unchanged from `komaorbit-20261105142122`. / 文書改訂：画像入力・2つの結果ビューアー・マウス操作・3種類の出力を、用途と画面の表示名で説明し直しました。ワークフローとノードのコードは初回配布版と同じです。
+
+2026-11-05 initial source release: fixed subject, face detail, pan/zoom/reset, source-size PNG and runtime setup. / 初回ソース配布：人物固定、顔の詳細、パン・ズーム・中央復帰、元画像寸法PNG、ランタイム導入。
