@@ -1,6 +1,10 @@
 # MV — music video from a finished song / 完成曲からMVを作る
 <!-- bilingual-readme: paired english-japanese -->
 
+[![H3 MV note cover / H3 MVのnote見出し画像](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/h3/mv-cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/h3-mv/demo/)
+
+**[Open the H3 MV guide / H3 MVの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/h3-mv/demo/)**
+
 Provide a completed song, exact lyrics and a character sheet. This workflow generates visuals and restores your original song in the final MP4, with optional timed subtitles, title, link and fades. It does not compose the song. / 完成音源・正確な歌詞・キャラクターシートから映像を作り、最終MP4には元曲を戻します。字幕、タイトル、終了リンク、フェードにも対応します。作曲するワークフローではありません。
 
 ![Song to MV / 曲からMVまで](../../assets/workflow-bridge-yue2-to-mv-v1.2.0.png)

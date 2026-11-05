@@ -13,25 +13,37 @@ Choose what you want to make. There are **three independent ZIP packages**; you 
 
 Each ZIP includes its custom-node source, instructions, model URLs, integrity checks and notices. Models and user inputs are separate. / 各ZIPに必要なノードのソース、説明書、モデル取得先、検査ファイル、権利表示を含みます。モデル本体と入力素材は別途用意します。
 
-## T2V — text to video / 文章から動画
+## H3 Video — three ways to make video / 動画を作る3方式
+
+[![H3 Video note cover / H3 Videoのnote見出し画像](docs/assets/h3/video-cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)
+
+**[Open the H3 Video guide / H3 Videoの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)**
+
+[H3 Video on note / 動画3方式のnote解説](https://note.com/happy_duck780/n/n15e732b3147b)
+
+### T2V — text to video / 文章から動画
 
 Write a scene and optional dialogue. No image is needed. Open the T2V JSON in **H3 Video**. / 場面や必要な台詞を書いて動画を作ります。画像は不要です。**H3 Video** ZIP内のT2V用JSONを開きます。
 
 **[T2V: installation, inputs, first run and output / T2Vの使い方](docs/h3/t2v/README.md)**
 
-## I2V — animate a starting image / 開始画像を動かす
+### I2V — animate a starting image / 開始画像を動かす
 
 Upload one starting image and describe its movement. The image anchors the opening frame. Open the I2V JSON in **H3 Video**. / 開始画像を1枚入れ、動きを指示します。その画像を起点とする動画です。**H3 Video** ZIP内のI2V用JSONを開きます。
 
 **[I2V: installation, inputs, first run and output / I2Vの使い方](docs/h3/i2v/README.md)**
 
-## Ref2V — generate from references / 参照画像から動画
+### Ref2V — generate from references / 参照画像から動画
 
 Use one to five references for characters, clothes, objects or places. These guide appearance without fixing the first frame. Open the Ref2V JSON in **H3 Video**. / 1～5枚で人物・衣装・物体・場所を指定します。開始フレームを固定するI2Vとは使い方が異なります。**H3 Video** ZIP内のRef2V用JSONを開きます。
 
 **[Ref2V: installation, inputs, first run and output / Ref2Vの使い方](docs/h3/ref2v/README.md)**
 
 ## MV — finished song to music video / 完成曲をMVにする
+
+[![H3 MV note cover / H3 MVのnote見出し画像](docs/assets/h3/mv-cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/h3-mv/demo/)
+
+**[Open the H3 MV guide / H3 MVの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/h3-mv/demo/)**
 
 Use **H3 MV** with a song bundle, exact lyrics and a character sheet. It generates visuals, restores the original song and adds optional subtitles and fades. / **H3 MV** ZIPへ完成音源バンドル・正確な歌詞・キャラクターシートを入力し、映像生成後に元音源、必要なら字幕とフェードを合成します。
 
@@ -41,7 +53,9 @@ Use **H3 MV** with a song bundle, exact lyrics and a character sheet. It generat
 
 ## KomaOrbit — illustration to 3D composition / 一枚絵から3Dで構図を探す
 
-![KomaOrbit original concept cover / 以前作成した紹介用サムネイル](docs/assets/komaorbit/cover.png)
+[![KomaOrbit original concept cover / 以前作成した紹介用サムネイル](docs/assets/komaorbit/cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/)
+
+**[Open the KomaOrbit guide / KomaOrbitの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/)**
 
 Use only **KomaOrbit**. Create a fixed 3D subject and inferred environment, move the camera with the mouse, and save a PNG at the original dimensions. This cover is a concept illustration; the guide shows the actual workflow and test input. / **KomaOrbit** ZIPだけで導入します。一枚絵から固定3Dの人物と補完背景を生成し、マウスで構図を決めて元画像寸法のPNGへ保存します。上は紹介用イラストで、ガイドには実ワークフローと検証入力を掲載しています。
 

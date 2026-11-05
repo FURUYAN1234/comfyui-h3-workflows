@@ -1,6 +1,10 @@
 # Ref2V — Reference images to video / 参照画像から動画
 <!-- bilingual-readme: paired english-japanese -->
 
+[![H3 Video note cover / H3 Videoのnote見出し画像](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/h3/video-cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)
+
+**[Open the H3 Video guide / H3 Videoの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)**
+
 One to five references for characters, clothing, objects or locations. References are not a fixed first frame. / 人物・服装・物体・場所などの参照画像1～5枚。開始フレーム固定ではありません。
 
 ## Download / 入手先

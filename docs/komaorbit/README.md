@@ -1,7 +1,9 @@
 # KomaOrbit — compose an illustration in 3D / 一枚絵から3Dで構図を探す
 <!-- bilingual-readme: paired english-japanese -->
 
-![KomaOrbit — original concept cover / 以前作成した紹介用サムネイル](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/cover.png)
+[![KomaOrbit — original concept cover / 以前作成した紹介用サムネイル](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/)
+
+**[Open the KomaOrbit guide / KomaOrbitの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/)**
 
 Concept cover, not a generated scene screenshot. / 紹介用のコンセプト画像で、実行結果の画面ではありません。
 

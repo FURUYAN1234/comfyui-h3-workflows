@@ -1,6 +1,10 @@
 # I2V — Starting image to video / 開始画像を動かす
 <!-- bilingual-readme: paired english-japanese -->
 
+[![H3 Video note cover / H3 Videoのnote見出し画像](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/h3/video-cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)
+
+**[Open the H3 Video guide / H3 Videoの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)**
+
 One starting image plus instructions for movement. / 開始画像1枚と、どのように動かすかの指示。
 
 ## Download / 入手先

@@ -1,6 +1,10 @@
 # T2V — Text to video / 文章から動画
 <!-- bilingual-readme: paired english-japanese -->
 
+[![H3 Video note cover / H3 Videoのnote見出し画像](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/h3/video-cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)
+
+**[Open the H3 Video guide / H3 Videoの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)**
+
 A written scene and optional dialogue. No image is required. / 映像にしたい場面と必要なら台詞。画像は使いません。
 
 ## Download / 入手先
