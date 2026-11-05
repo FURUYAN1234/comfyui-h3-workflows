@@ -11,6 +11,14 @@ KomaOrbit turns an illustration into a fixed 3D subject and an inferred environm
 
 The package contains workflow JSON, custom-node source, installation scripts, tests and notices. Supply your own images and obtain models separately. / 配布内容はワークフローJSON、ノードのソース、導入・検査用スクリプト、権利表示です。入力画像は利用者が用意し、モデルは別途取得します。
 
+## Mouse operation demo / マウス操作の実演
+
+[![Actual ComfyUI screen recording of orbiting and zooming / ComfyUIの実画面で回転・拡大縮小](<https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/komaorbit-mouse-preview.gif>)](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/komaorbit-mouse-demo.mp4)
+
+[Watch the 15-second screen recording (MP4) / 15秒の操作動画を見る（MP4）](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/komaorbit-mouse-demo.mp4)
+
+The recording shows horizontal and vertical orbiting with the mouse and wheel zoom in an early build of the 3D composition viewer. / 試作版の3D構図ビューアーを実際に操作した録画です。マウスで左右・上下に回転させ、ホイールで拡大・縮小しています。
+
 ## Download / 入手先
 
 Download the named **KomaOrbit_20261105183001.zip** asset from [the KomaOrbit release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105183001), then follow Installation below. This repository also distributes other H3 workflows; choose the KomaOrbit ZIP. / [KomaOrbitの配布ページ](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105183001)で **KomaOrbit_20261105183001.zip** を取得し、下の導入手順へ進んでください。このリポジトリには別のH3ワークフローもあるため、KomaOrbitのZIPを選びます。
