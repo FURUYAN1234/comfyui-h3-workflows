@@ -9,12 +9,12 @@
 </style>
 <main>
 <div class="eyebrow">COMFYUI WORKFLOW · LOCAL GENERATION</div>
-<h1>KomaOrbit</h1>
+<h1>KomaOrbit</h1><figure><img src="https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/cover.png" alt="KomaOrbit・以前作成した紹介用サムネイル" style="width:100%;height:auto"><figcaption>紹介用イラスト / Concept cover</figcaption></figure>
 <p>一枚絵を読み込み、人物と背景を3Dの構図として探索する。回転・平行移動・拡大縮小をマウスで操作し、元画像と同じ幅・高さで保存します。</p>
 <p class="en" lang="en">Explore a composition around an illustrated subject. Orbit, pan and zoom locally in ComfyUI, then export a PNG at the source image dimensions.</p>
-<nav aria-label="入手先"><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105174959">ZIPを取得 / Download</a><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/tree/main/docs/komaorbit">README・ソース / Source</a></nav>
+<nav aria-label="入手先"><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105183001">ZIPを取得 / Download</a><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/tree/main/docs/komaorbit">README・ソース / Source</a></nav>
 <p>このページは導入・操作の案内です。実行にはローカルのComfyUIを使います。配布物はワークフローとノードのソースで、入力画像・モデルは別途用意します。<br><span class="en" lang="en">This is a setup and usage guide. Run the workflow in local ComfyUI with your own input and separately obtained models.</span></p>
-<h2>3D構図ビューアーの操作 / Camera controls</h2>
+<h2>実ワークフローと入力 / Workflow and input</h2><figure><img src="https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/workflow-screen.png" alt="配布ワークフローの実画面" style="width:100%;height:auto"></figure><figure><img src="https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/reference-input.png" alt="通常経路で検証したモノクロの2D元画像" style="max-width:420px;width:100%;height:auto"><figcaption>実際に使用した2D入力画像 / Actual 2D test input</figcaption></figure><h2>3D構図ビューアーの操作 / Camera controls</h2><img src="https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/controls.png" alt="左ドラッグ回転、右ドラッグ平行移動、ホイール拡大縮小" style="width:100%;height:auto">
 <p>生成後は、下側の「回転・構図・保存」グループにある「固定3D • 左ドラッグ回転／右ドラッグパン／ホイール拡大縮小」という画像表示を使います。画像の中にマウスを置いて操作してください。<br><span class="en">After generation, find the 3D image viewer titled “固定3D • 左ドラッグ回転／右ドラッグパン／ホイール拡大縮小” in the lower Explore and save group. Place the pointer inside its image.</span></p><div class="controls"><section class="control"><strong>左ドラッグ</strong><p>回転 / Orbit</p><span class="en">左右の周回・アオリ・俯瞰</span></section><section class="control"><strong>右ドラッグ</strong><p>平行移動 / Pan</p><span class="en">構図を上下・左右に移動</span></section><section class="control"><strong>ホイール</strong><p>拡大縮小 / Zoom</p><span class="en">保存する画角を調整</span></section></div>
 <p>「中央に戻す」で初期構図へ。「この視点を保存」で白枠内を元画像の寸法でPNGにします。角度別画像が必要なときは、同じグループの「固定3D • 背景付き・低／水平／高の全視点」にある「全視点をフォルダー保存」を使います。こちらは処理解像度で、高さ3段階×73方位を書き出します。<br><span class="en" lang="en">Reset with “中央に戻す” and save the framed view with “この視点を保存”. Use the separate angle-image viewer and its folder-export button for 3 heights × 73 directions at processing resolution.</span></p>
 <h2>導入の流れ / Setup</h2>

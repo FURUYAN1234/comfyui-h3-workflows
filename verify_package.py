@@ -82,19 +82,41 @@ def verify_bilingual_readme_text(readme):
         require(token in readme,'README content token missing: '+token)
     require(readme.count(' / ')>=50,'README does not contain enough paired English/Japanese units')
 def verify_bilingual_readme(root):
-    verify_bilingual_readme_text((root/'README.md').read_text(encoding='utf-8'))
+    # The collection now has task-specific manuals instead of a mixed 24k README.
+    meta=json.loads((root/'VERSION.json').read_text())
+    kinds={'video':('T2V','I2V','Ref2V'),'mv':('MV',),'bundle':('T2V','I2V','Ref2V','MV')}[meta.get('distribution_kind','bundle')]
+    readme=(root/'README.md').read_text()
+    require(readme.count('<!-- bilingual-readme: paired english-japanese -->')==1,'README bilingual marker missing')
+    for kind in kinds:
+        path=root/'docs/h3'/kind.lower()/'README.md'
+        require(path.is_file(),'Missing individual guide: '+kind)
+        text=path.read_text()
+        for token in ('<!-- bilingual-readme: paired english-japanese -->','## Download / 入手先','## Requirements and installation / 必要な環境と導入','## Outputs and review / 出力と確認','## Limits and validation / 制約と検証','## Licenses and links / ライセンスと関連リンク','verify_package.py','models.json','LM Studio','workflows/'):
+            require(token in text,'Missing guide coverage '+kind+': '+token)
+        require(kind in text and ' / ' in text,'Missing paired guide content')
+    for name in ('SETUP.md','SETTINGS.md'):
+        text=(root/'docs/h3'/name).read_text()
+        require('<!-- bilingual-readme: paired english-japanese -->' in text,'Missing bilingual setup')
+    setup=(root/'docs/h3/SETUP.md').read_text()
+    for token in ('configure_audio_audit.py','requirements.txt','models.json','Triton','FFmpeg','LM Studio','Whisper','custom_nodes/'):
+        require(token in setup,'Missing setup detail: '+token)
 def verify(root=ROOT):
+    if (root/"docs/komaorbit").exists():
+        raise ValueError("Verify the extracted H3 Video or MV ZIP, not the collection checkout")
     verify_license_notices(root)
     verify_bilingual_readme(root)
     paths=list((root/'workflows').glob('*.json'))
-    require(len(paths)==4,'Exactly four T2V/I2V/Ref2V/MV workflows are required')
     version=json.loads((root/'VERSION.json').read_text(encoding='utf-8'))
+    kind=version.get('distribution_kind','bundle')
+    expected_kinds={'video':{'T2V','I2V','Ref2V'},'mv':{'MV'},'bundle':{'T2V','I2V','Ref2V','MV'}}[kind]
+    require(len(paths)==len(expected_kinds) and {p.name.split('_')[0] for p in paths}==expected_kinds,'Wrong or mixed workflow set')
     require(version['product_id']=='h3-t2v-i2v-ref2v-mv','Wrong product')
-    require(version['archive_prefix']=='H3_T2V-I2V-Ref2V-MV','Ambiguous archive name')
+    require(version['archive_prefix']=={'video':'H3_Video','mv':'H3_MV','bundle':'H3_T2V-I2V-Ref2V-MV'}[kind],'Ambiguous archive name')
     require(re.fullmatch(r'\d{14}',version['built_at_jst']),'Timestamp must include seconds')
     require((root/'VERSION').read_text().strip()==version['version'],'VERSION mismatch')
     models=json.loads((root/'models.json').read_text(encoding='utf-8'))
     required={'comfyui-h3-standard-prompt','ComfyUI-MiniMax-H3-Long-Video','ComfyUI-H3-AudioRefine','ComfyUI-PlagueKind-Nodes','ComfyUI-Custom-Scripts','comfyui-mv-workflow'}
+    if kind=='video': required.remove('comfyui-mv-workflow')
     require({p.name for p in (root/'custom_nodes').iterdir() if p.is_dir()}==required,'Custom-node package list differs')
     for f in paths:
         require('＿２' not in f.name,'Personal variant included')
@@ -132,7 +154,7 @@ def verify(root=ROOT):
         expected={'T2V':'T2VA','I2V':'I2VA','Ref2V':'Ref2VA (R2V)'}[kind]
         require(ns[138]['widgets_values'][1]==expected,'Wrong prompt mode')
         require(ns[138]['widgets_values'][11:]==['39',True],'Context or GPU handoff setting differs')
-        require('H3_T2V-I2V-Ref2V' in f.name and version['built_at_jst'] in f.name,'Workflow name ambiguous')
+        require('H3_T2V-I2V-Ref2V' in f.name and version.get('workflow_built_at_jst',version['built_at_jst']) in f.name,'Workflow name ambiguous')
         require(ns[138]['widgets_values'][5]==0.7,'LM sampling differs')
         require(ns[138]['widgets_values'][8] is False,'Raw fallback enabled')
         require(bool(ns[138]['widgets_values'][0].strip()) and ns[138]['widgets_values'][10]=='','Sample input route differs')

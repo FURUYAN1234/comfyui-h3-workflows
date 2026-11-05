@@ -12,6 +12,8 @@ def files():
         and p.name not in {"SHA256SUMS.json",".DS_Store"}
     )
 def build(destination,update=False):
+    if (ROOT/"docs/komaorbit").exists():
+        raise ValueError("This is the collection checkout. Use build_individual.py video or mv; build KomaOrbit from docs/komaorbit.")
     dest=Path(destination).resolve()
     if dest==ROOT or ROOT in dest.parents: raise ValueError("Destination must be outside source tree")
     if dest.exists(): raise FileExistsError("Refusing to overwrite an existing archive: "+str(dest))

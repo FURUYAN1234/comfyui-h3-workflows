@@ -1,15 +1,33 @@
 # KomaOrbit — compose an illustration in 3D / 一枚絵から3Dで構図を探す
 <!-- bilingual-readme: paired english-japanese -->
 
+![KomaOrbit — original concept cover / 以前作成した紹介用サムネイル](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/cover.png)
+
+Concept cover, not a generated scene screenshot. / 紹介用のコンセプト画像で、実行結果の画面ではありません。
+
 KomaOrbit turns an illustration into a fixed 3D subject and an inferred environment in local ComfyUI. Move the camera with the mouse and save your composition at the original image dimensions. / 一枚絵から固定3Dの人物と補完背景を作るローカルComfyUIワークフローです。マウスでカメラを動かし、選んだ構図を元画像と同じ画素数で保存します。
 
 The package contains workflow JSON, custom-node source, installation scripts, tests and notices. Supply your own images and obtain models separately. / 配布内容はワークフローJSON、ノードのソース、導入・検査用スクリプト、権利表示です。入力画像は利用者が用意し、モデルは別途取得します。
 
 ## Download / 入手先
 
-Download the named **KomaOrbit_20261105174959.zip** asset from [the KomaOrbit release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105174959), then follow Installation below. This repository also distributes other H3 workflows; choose the KomaOrbit ZIP. / [KomaOrbitの配布ページ](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105174959)で **KomaOrbit_20261105174959.zip** を取得し、下の導入手順へ進んでください。このリポジトリには別のH3ワークフローもあるため、KomaOrbitのZIPを選びます。
+Download the named **KomaOrbit_20261105183001.zip** asset from [the KomaOrbit release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105183001), then follow Installation below. This repository also distributes other H3 workflows; choose the KomaOrbit ZIP. / [KomaOrbitの配布ページ](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105183001)で **KomaOrbit_20261105183001.zip** を取得し、下の導入手順へ進んでください。このリポジトリには別のH3ワークフローもあるため、KomaOrbitのZIPを選びます。
 
 [Introduction / 紹介記事](https://note.com/happy_duck780/n/n3f68482d5edd) · [Usage page / 操作・導入ページ](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/) · [Model list / モデル一覧](models.json)
+
+## Workflow and input / 実ワークフローと入力例
+
+![Distributed workflow / 配布ワークフローの全体画面](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/workflow-screen.png)
+
+Actual ComfyUI screen from the clean import. Use the following complete graph to inspect its 78 nodes and 161 links at full size. / 配布物を新規読込した実際のComfyUI画面です。78ノード・161接続の詳細は、次の全体図を拡大して確認できます。
+
+![All actual nodes and links / 実JSONの全ノードと接続](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/workflow-map.png)
+
+[Open the scalable SVG / 拡大できるSVG](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/workflow-map.svg). This graph is drawn from the distributed JSON at its saved positions; it is not an application screenshot. Input/outpainting is at the top left; camera controls and saving are in the lower middle group. / 配布JSONの実ノードと接続を保存位置どおりに描いた構成図で、アプリ画面のスクリーンショットではありません。左上が入力・画像外補完、下段中央が回転・構図・保存です。
+
+![Actual 1024×1536 test input / 実検証で使った1024×1536の入力画像](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/reference-input.png)
+
+This generated monochrome illustration was the input for the recorded normal-path check. It is the 2D source, not a 3D output. / 記録済みの通常経路検証に使った、生成したモノクロの元絵です。3D化後の画像ではありません。
 
 ## What you can make / 作れるもの
 
@@ -104,6 +122,8 @@ In the lower **Explore and save / 回転・構図・保存** group, find the lar
 
 ## Mouse controls / マウスで構図を決める
 
+![Mouse controls / マウス操作の対応図](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/komaorbit/controls.png)
+
 Place the pointer **inside the viewer's image**, then use these gestures. Dragging or scrolling the workflow canvas outside the image operates ComfyUI's workspace instead. / ポインターを**ビューアーの画像の中**に置いて操作します。画像の外でドラッグやホイール操作をすると、ComfyUIの作業画面の移動・拡大縮小になります。
 
 | Gesture / 操作 | Result / 動き |
@@ -179,6 +199,8 @@ python build_release.py /absolute/path/outside-source/KomaOrbit.zip
 Build from the release tag's `docs/komaorbit/` directory. The builder includes only this source package and does not install dependencies. / Releaseタグの`docs/komaorbit/`から再構築します。このソース配布物だけを対象とし、依存物の導入は行いません。
 
 ## Changes / 更新
+
+2026-11-05 illustrated documentation revision: reused the original cover, added the actual workflow, JSON graph, source input and control diagram. / 図入り改訂：既存サムネイル、実画面、JSON全体図、入力画像、操作図を追加。
 
 2026-11-05 documentation revision: explained the image input, two result viewers, mouse gestures and three export formats by purpose and visible labels. Workflow and node code are unchanged from `komaorbit-20261105142122`. / 文書改訂：画像入力・2つの結果ビューアー・マウス操作・3種類の出力を、用途と画面の表示名で説明し直しました。ワークフローとノードのコードは初回配布版と同じです。
 

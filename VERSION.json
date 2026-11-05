@@ -19,6 +19,7 @@
     "comfyui-h3-standard-prompt",
     "comfyui-mv-workflow"
   ],
-  "source_release": "https://github.com/FURUYAN1234/comfyui-h3-workflows/tree/v1.2.1",
-  "scope": "T2V/I2V/Ref2V/MV; YuE2 asset bridge, variable or fixed duration, subtitles, source-audio lip-sync, Fused4 SLA, local LM and Japanese speech audit"
+  "source_release": "https://github.com/FURUYAN1234/comfyui-h3-workflows/tree/h3-split-20261105183000",
+  "scope": "T2V/I2V/Ref2V/MV; YuE2 asset bridge, variable or fixed duration, subtitles, source-audio lip-sync, Fused4 SLA, local LM and Japanese speech audit",
+  "distribution_note": "Collection source. Build H3 Video or MV separately; KomaOrbit is under docs/komaorbit."
 }

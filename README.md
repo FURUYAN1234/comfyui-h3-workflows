@@ -1,626 +1,66 @@
-
-<img width="1280" height="670" alt="rectangle_large_type_2_09221f4b6e6b5978dca02f3893ea476f" src="https://github.com/user-attachments/assets/790fffee-6618-4d32-a8a1-4cf1c60ee3de" />
-
-<img width="1280" height="670" alt="rectangle_large_type_2_59a7eaa00188c52e187dedbee72c137f" src="https://github.com/user-attachments/assets/1ae01f31-9fda-4863-a060-fbe1f4c8f392" />
-
-# MiniMax H3 T2V / I2V / Ref2V / Music Video Workflows for ComfyUI / ComfyUI向けMiniMax H3 T2V・I2V・Ref2V・MVワークフロー — v1.2.1
-
-**Source code is public and software use is free. Personal, business, internal and commissioned use, and free integration/provision require no application, prior contact or permission from FURU. Third-party and API terms remain separate. / ソースコード公開・利用無料。個人利用、業務、社内利用、受託制作、無料の組み込み・無料提供には、申請・事前連絡・FURUの許可は不要です。第三者とAPIの条件は別です。**
-
-## KomaOrbit — illustration orbit workflow / 一枚絵の回転ワークフロー
-
-[KomaOrbit documentation and source / 導入手順・ソース](docs/komaorbit/) · [KomaOrbit ZIP / 配布ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105174959) · [Usage page / 操作・導入ページ](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/)
-
-KomaOrbit adds a separate local workflow for orbit, pan, zoom and PNG export at the input image dimensions. Its release contains workflow and custom-node source; models and inputs are obtained separately. / KomaOrbitは回転・平行移動・拡大縮小と元画像寸法のPNG保存を行う別のローカルワークフローです。配布物はワークフローとノードのソースで、モデル・入力画像は別途用意します。
-
-## Usage terms / 利用条件
-
-> [!NOTE]
-> **Current scope / 現行の適用範囲:** H3 v1.2.1: MIT for FURU original contributions; per-package GPL-3.0-only/MIT/Apache-2.0 for bundled nodes. / FURU独自部分はMIT。同梱ノードはパッケージごとにGPL-3.0-only・MIT・Apache-2.0。
->
-> Source code is public and software use is free. Personal, business, internal and commissioned use, and free integration/provision require no application, prior contact or permission from FURU. Third-party and API terms remain separate. / ソースコード公開・利用無料。個人利用、業務、社内利用、受託制作、無料の組み込み・無料提供には、申請・事前連絡・FURUの許可は不要です。第三者とAPIの条件は別です。
->
-> You may publish, sell, monetize and deliver text, images, comics, videos and other outputs made with the software without application, individual permission, fees or attribution to FURU. / 道具として制作した文章・画像・漫画・動画等は公開・販売・収益化・納品できます。FURUへの申請・個別許可・利用料・クレジット表記は不要です。
->
-> Free Web articles, paid note introductions, and independently authored explanations, reviews and courses require no permission, prior contact or fees to FURU if copies or modified versions of the software are not included in the product. / 無料Web記事、note等の有料紹介記事、独自の解説・レビュー・講座は、対象ソフトウェアの複製・改変版を商品に含めなければ、FURUへの許可・事前連絡・利用料は不要です。
->
-> FURU permits screenshots and operation videos for introductions insofar as FURU can authorize them, and ordinary links to distribution pages. Check rights and conditions for third-party works, images, materials, audio and other content shown in them separately. / FURUが許諾できる操作画面・操作動画の紹介掲載と、通常の配布ページへのリンクを認めます。掲載した第三者の作品・画像・素材・音声等の権利と条件は別途確認してください。
->
-> Free redistribution and integration must follow each applicable license: retain the required copyright/license/third-party notices and identify modifications where required. FURU asks services to make their applicable notices available on an accessible information page, without adding obligations beyond existing licenses. Do not falsely imply official FURU publication, endorsement or partnership. / 無料再配布・無料組み込みでは各適用ライセンスに従い、必要な著作権表示・許諾文・第三者ライセンスを保持し、該当する改変を明示してください。サービスでは利用者が確認できる説明ページに適用条件を案内することをお願いしますが、既存ライセンスを超える義務は追加しません。FURUの公式・公認・提携と偽って表示しないでください。
->
-> Current MIT, Apache-2.0 and GPL-3.0 grants also allow software sales, paid distribution, integration into paid offerings, paid functionality and software copies in paid teaching materials or purchaser/member bonuses, subject to the respective license obligations. FURU prior permission is not additionally required for those licensed uses. The seven-app commercialization permission policy is not retroactively imposed on these already licensed projects. A third-party license, model or API may impose separate limits that FURU cannot waive. / 現行のMIT・Apache-2.0・GPL-3.0許諾では、各ライセンスの義務を満たせば、ソフトウェアの販売・有料配布、有料商品等への組み込み、機能の有料提供、有料教材・購入者限定特典・会員向け配布への複製同梱も認められます。その許諾内の利用へFURUの事前許可を追加で求めません。7アプリの商品化の事前許可方針を、既に許諾済みの本プロジェクトへ遡及適用しません。第三者ライセンス・モデル・APIには別の制限があり、FURUは免除できません。
->
-> Advertising revenue or voluntary donations alone do not make software access paid in FURU's usage guidance. Internal-only integration, use as your own production tool, commissioned creation and sales/delivery of completed works do not require FURU permission. This does not redefine third-party NonCommercial terms; free access with advertising can still require a separate assessment under those terms. / FURUの利用案内では広告収益や任意の寄付だけでは機能の有料提供として扱いません。社内だけの組み込み、自分で道具として使う受託制作・完成作品の販売・納品にはFURUの許可は不要です。この区分は第三者の非商用条件の意味を変更せず、広告付きの無料提供なども第三者条件を別途判断してください。
->
-> If you seek a separately negotiated permission beyond an applicable license, contact FURU with the project/version/files, use, recipients and charging arrangement. Permission is effective when FURU replies by email or another recorded method expressly granting permission and its scope. No paper contract or seal is needed. An inquiry, automatic reply or silence is not permission. The existing licensed uses above require no such inquiry. FURU cannot grant rights belonging to someone else. / 適用ライセンスの範囲外で個別の許可を求める場合は、プロジェクト・版・ファイル、利用方法、提供先、料金の有無を添えてFURUへお問い合わせください。FURUがメール等の記録に残る方法で許可の旨と対象範囲を返信すれば、その範囲で有効です。紙の契約書・押印は不要です。問い合わせ送信、自動返信、無応答だけでは許可になりません。前記の既存許諾内の利用には、この問い合わせは不要です。FURUは他者の権利を許可できません。
->
-> Using the software alone does not give FURU rights in your outputs or apply software terms to those outputs. Copies or modified software included in an output remain separately subject to their applicable software licenses. Copyright eligibility/ownership, third-party rights, contracts and API provider terms must be assessed separately. / 利用しただけでFURUが成果物の権利を取得したり、ソフトウェア条件を成果物へ適用したりしません。成果物中のソフトウェア自体の複製・改変部分は、別途その適用ライセンスに従います。著作権の成立・帰属、第三者の権利、契約、API提供元の条件は別途判断してください。
->
-> Valid previous MIT, GPL, Apache, Creative Commons and other grants are not revoked or narrowed. Previous releases, existing ZIPs and inherited licensed portions retain their existing permissions. This 2026-10-08 documentation revision clarifies the stated current source commits and designates no new software restrictions. A future change must identify the eligible version, files and rights holder and cannot take away valid earlier grants. / 過去に有効に付与されたMIT・GPL・Apache・Creative Commons等の許諾を取り消したり狭めたりしません。過去版・既存ZIP・従前の許諾を引き継ぐ部分は従来の許諾を保持します。2026-10-08の今回の文書改定は記載した現行ソースコミットの条件を明確化し、新たなソフトウェア制限は指定しません。将来変更する場合は適用可能な版・ファイル・権利者を明示し、以前の有効な許諾を狭めません。
->
-> MiniMax H3 has a separate Community License; Qwen and Whisper models retain their source terms. / MiniMax H3は別途Community License。Qwen・Whisper等のモデルも取得元の条件に従います。
->
-> [Full guidance / 利用案内全文](FURU_TERMS.md) · [Version, files and rights holders / 版・ファイル・権利者](LICENSE_SCOPE.md) · [Existing LICENSE / 既存LICENSE](LICENSE)
-
-
+# ComfyUI workflows / ComfyUIワークフロー案内
 <!-- bilingual-readme: paired english-japanese -->
 
-Model Info security fixes: model descriptions and notes are displayed as text, and note/example saves are confined to the selected model's storage location. Apache-2.0 and MIT notices remain included. / Model Info の安全性修正：モデルの説明とメモを文字として表示し、メモ・例文の保存先を選択したモデルの所定位置に限定します。Apache-2.0 と MIT の権利表示を保持しています。
+Choose what you want to make. There are **three independent ZIP packages**; you do not need every workflow in this repository. / 作りたいものから選んでください。配布は **3種類の独立したZIP** です。同じGitHubに置いていますが、全部を導入する必要はありません。
 
-This ComfyUI distribution generates video with MiniMax H3 in four modes: **text to video (T2V)**, **video from a starting image (I2V)**, **video guided by reference images (Ref2V)**, and a **music-video workflow** that combines a finished song, exact lyrics, and a character sheet containing one or more people. It supports Japanese direction, fixed test clips or full-song variable duration, subtitles, source-audio lip-sync guidance, title/end-link overlays, fades, per-segment review, and resume. / MiniMax H3で、**文章から動画（T2V）**、**開始画像から動画（I2V）**、**参照画像から動画（Ref2V）**、さらに完成曲・正確な歌詞・1人以上を含むキャラクターシートを組み合わせる**MVワークフロー**を提供します。日本語の演出指示、短い検証尺または曲末までの可変尺、字幕、元音源に合わせたリップシンク指示、タイトル／終了リンク表示、フェード、区間検査、途中再開に対応します。
+## Choose your package / 必要な配布物を選ぶ
 
-This README walks first-time users through choosing a workflow, installing every required component, placing the files correctly, and running the first generation. See [README_JA.md](README_JA.md) for additional node-level details and examples, and [VALIDATION.md](VALIDATION.md) for the exact validation scope and remaining unverified areas. / このREADMEでは、初めて使う人が「どれを選ぶか」「何を入れるか」「どこへ置くか」「最初に何を実行するか」を順番に確認できます。さらに詳しいノード設定と操作例は [README_JA.md](README_JA.md)、実施済みの検証と未確認範囲は [VALIDATION.md](VALIDATION.md) を参照してください。
-
-> [!IMPORTANT]
-> This project covers H3 T2V, I2V, Ref2V, and MV generation. The MV workflow is designed to consume the portable asset bundle exported by [ComfyUI-YuE2-Japanese](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese), while remaining usable with compatible bundles from other singing systems. For a first installation, use the named ZIP under Assets on the [latest Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest), not the GitHub source archive or an individual JSON. / 本プロジェクトはH3のT2V・I2V・Ref2V・MV生成を扱います。MVは [ComfyUI-YuE2-Japanese](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese) が書き出す可搬MV素材バンドルを直接読め、同形式を作れる他の歌声システムにも応用できます。初回導入ではGitHubのSource codeやJSON単体ではなく、[最新Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest)の名前付きZIPを使用してください。
-
-![YuE2 to MiniMax H3 MV bridge / YuE2からMiniMax H3 MVへの連携](docs/assets/workflow-bridge-yue2-to-mv-v1.2.0.png)
-
-YuE2 completes a song and simultaneously creates a separate `output/mv-assets/...` folder. The MV workflow reads that folder and adds the character image, H3-generated visuals, subtitles, lip-sync guidance, and finishing overlays. / YuE2は曲の完成と同時に、曲フォルダーとは別の `output/mv-assets/...` を作ります。MV側はそのフォルダーを読み、キャラクター画像、H3映像、字幕、リップシンク指示、タイトル／リンク表示を加えます。
-
-[![Latest release](https://img.shields.io/github/v/release/FURUYAN1234/comfyui-h3-workflows?label=release)](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest)
-[![ComfyUI](https://img.shields.io/badge/ComfyUI-workflow-2b2b2b)](https://github.com/comfyanonymous/ComfyUI)
-[![Local processing](https://img.shields.io/badge/LM%20%2F%20speech-local-2ea44f)](#configure-lm-studio)
-
-## What you can do / できること
-
-| Mode / 方式 | Required input / 必要な入力 | Best suited for / 向いている用途 |
+| Package / 配布物 | Input → result / 入力と結果 | Download / 入手先 |
 |---|---|---|
-| **T2V** | No image / 画像なし | Create characters, backgrounds, and action from text; also the best first-run check / 人物、背景、動作を文章から作る。初回の動作確認にも向く |
-| **I2V** | One starting image / 開始画像1枚 | Use an existing image as the first frame and animate its composition / 手元の画像を最初のフレームとして、その構図から動かす |
-| **Ref2V** | One to five reference images / 参照画像1〜5枚 | Reference a character, face, hairstyle, clothing, or other visual details while creating a different scene or composition / 人物、顔、髪型、服装などを参照し、別の場面や構図を作る |
-| **MV** | MV asset bundle + one character sheet image / MV素材バンドル＋キャラクターシート1枚 | Keep one or more registered characters distinct while turning a song into a fixed-length test MV or full-song MV / 登録された1人以上の人物を区別し、曲を短い検証MVまたは1曲MVにする |
+| **H3 Video**: T2V / I2V / Ref2V | Text or images → video with audio / 文章・画像から音声付き動画 | [動画3方式のZIP / Video ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261105183000/H3_Video_20261105183000_v1.2.1.zip) |
+| **H3 MV** | Song + lyrics + character sheet → MV / 完成曲・歌詞・キャラ画像からMV | [MV専用ZIP / MV ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261105183000/H3_MV_20261105183000_v1.2.1.zip) |
+| **KomaOrbit** | Illustration → camera control and PNG / 一枚絵の構図を動かしてPNG保存 | [KomaOrbit専用ZIP / KomaOrbit ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/komaorbit-20261105183001/KomaOrbit_20261105183001.zip) |
 
-Key features: / 主な機能は次のとおりです。
+Each ZIP includes its custom-node source, instructions, model URLs, integrity checks and notices. Models and user inputs are separate. / 各ZIPに必要なノードのソース、説明書、モデル取得先、検査ファイル、権利表示を含みます。モデル本体と入力素材は別途用意します。
 
-- Fused 4-step video generation with SLA; 2 additional audio-refinement steps at denoise 0.5 / 映像はFused 4ステップ＋SLA、音声は追加2ステップ・denoise 0.5
-- Local conversion of Japanese instructions into an H3 prompt through LM Studio / 日本語の指示をLM StudioのローカルモデルでH3向けプロンプトへ変換
-- A direct-input path for a finished English H3 prompt / 完成済みの英語H3プロンプトを直接入力する経路
-- Variable duration rather than a fixed 15 seconds; long videos are generated and joined in segments / 15秒固定ではない可変尺。長尺は複数区間に分けて生成・結合
-- Per-segment visual review, Japanese speech review, and up to five total attempts per segment including the first attempt / 区間ごとの画像検査、日本語音声検査、初回を含む累計最大5回の区間試行
-- Resume from intermediate data and regenerate from a selected segment / 中間データを使った途中再開と、指定区間からの再生成
-- Model download URLs, destinations, sizes, and SHA-256 hashes in [`models.json`](models.json) / モデル取得URL、配置先、サイズ、SHA-256を [`models.json`](models.json) に収録
-- No cloud API key; Japanese conversion, visual review, and speech review all run locally / クラウドAPIキー不要。日本語変換、画像検査、音声検査はローカル処理
-- Portable MV input: `master.flac`, exact display/singing lyrics, `lyrics.json`, and schema-v2 `mv_manifest.json` with an optional 1–12-character contract / 可搬MV入力：最終音源、表示／歌唱用歌詞、`lyrics.json`、任意の1～12人契約を持つschema v2の `mv_manifest.json`
-- MV duration can be a requested number of seconds or the remaining song length; the last image and audio are faded together / MVは任意秒数または音源末尾までを選択でき、最後に映像と音声を同時フェード
-- Original 2D, 3D, or live-action appearance is explicitly preserved in the generated direction; identity is reference-guided rather than guaranteed / 元画像が2D・3D・実写のどれかを判定して画風維持を明示。人物同一性は参照誘導であり完全保証ではない
+## T2V — text to video / 文章から動画
 
-The system does not always use all five attempts. It advances as soon as a segment passes. If the limit is reached, it selects the best candidate that meets the applicable conditions. Because AI review can still miss problems, always watch and listen to the finished video. / 区間試行は必ず5回行う仕組みではありません。合格した時点で次の区間へ進み、上限に達した場合は条件に合う候補から最良のものを使用します。AI検査にも見落としがあるため、完成動画は最後に目と耳で確認してください。
+Write a scene and optional dialogue. No image is needed. Open the T2V JSON in **H3 Video**. / 場面や必要な台詞を書いて動画を作ります。画像は不要です。**H3 Video** ZIP内のT2V用JSONを開きます。
 
-## Changes in v1.2.1 / v1.2.1の変更点
+**[T2V: installation, inputs, first run and output / T2Vの使い方](docs/h3/t2v/README.md)**
 
-The MV input now reads YuE2 schema-v2 character metadata and maps 1–12 people in the same sheet to separate `<Subject 1>`, `<Subject 2>`, and stable speaker IDs. Repeated poses remain views of the same person; distinct people may not merge, split, swap identity, or acquire unregistered clones. / MV入力はYuE2のschema v2人物情報を読み、同じシート内の1～12人を別々の `<Subject 1>`、`<Subject 2>`…と安定話者IDへ対応付けます。表情・ポーズ差分は同一人物として扱い、別人物の融合・分裂・入れ替わり・未登録の分身を禁止します。
+## I2V — animate a starting image / 開始画像を動かす
 
-For multi-character songs, the planner does not invent voice-to-person ownership from audio timbre. Each solo cue gets one visible singer, and the same lyric is not assigned to multiple mouths unless group singing is explicitly planned. Bundles without visual metadata keep the legacy single-person path. / 複数人物の曲では音声の声質だけから話者を捏造せず、ソロ区間は見える歌唱者を1人に限定し、明示したグループ歌唱以外で同じ歌詞を複数の口へ割り当てません。visual情報のない旧バンドルは従来の1人物経路で動きます。
+Upload one starting image and describe its movement. The image anchors the opening frame. Open the I2V JSON in **H3 Video**. / 開始画像を1枚入れ、動きを指示します。その画像を起点とする動画です。**H3 Video** ZIP内のI2V用JSONを開きます。
 
-The v1.2.1 checks cover two-character prompt contracts, malformed and duplicate metadata, and legacy fallback. The final generated MV still requires visual review because H3 reference guidance does not guarantee exact identity. / v1.2.1では2人物のプロンプト契約、不正・重複メタデータ、旧版フォールバックを検査します。H3の参照誘導は厳密な同一性を保証しないため、生成した完成MVは目視確認が必要です。
+**[I2V: installation, inputs, first run and output / I2Vの使い方](docs/h3/i2v/README.md)**
 
-The v1.1.9 timeline and mixed-audio-prohibition fixes remain included. / v1.1.9のタイムライン検査と混合音声禁止の修正も引き続き含みます。
+## Ref2V — generate from references / 参照画像から動画
 
-## Package contents / 配布内容
+Use one to five references for characters, clothes, objects or places. These guide appearance without fixing the first frame. Open the Ref2V JSON in **H3 Video**. / 1～5枚で人物・衣装・物体・場所を指定します。開始フレームを固定するI2Vとは使い方が異なります。**H3 Video** ZIP内のRef2V用JSONを開きます。
 
-The Release ZIP contains: / Release ZIPには次のファイルが入っています。
+**[Ref2V: installation, inputs, first run and output / Ref2Vの使い方](docs/h3/ref2v/README.md)**
 
+## MV — finished song to music video / 完成曲をMVにする
 
-```text
-H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/
-├─ workflows/                 # T2V, I2V, Ref2V, and MV workflows
-├─ custom_nodes/              # Six required custom-node packages
-├─ docs/assets/               # Actual workflow diagrams and note thumbnail
-├─ requirements.txt           # Python dependencies
-├─ models.json                # Model names, destinations, URLs, and hashes
-├─ configure_audio_audit.py   # Local Whisper setup helper
-├─ verify_package.py          # Extracted-package verifier
-├─ README.md / README_JA.md
-├─ VALIDATION.md
-├─ LICENSES_AND_NOTICES.md
-└─ SHA256SUMS.json
-```
+Use **H3 MV** with a song bundle, exact lyrics and a character sheet. It generates visuals, restores the original song and adds optional subtitles and fades. / **H3 MV** ZIPへ完成音源バンドル・正確な歌詞・キャラクターシートを入力し、映像生成後に元音源、必要なら字幕とフェードを合成します。
 
+![Song-to-MV relationship / 作曲側とMV側の関係](docs/assets/workflow-bridge-yue2-to-mv-v1.2.0.png)
 
-```text
-H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/
-├─ workflows/                 # T2V・I2V・Ref2V・MVのワークフロー4本
-├─ custom_nodes/              # 導入に必要なカスタムノード6パッケージ
-├─ docs/assets/               # 実ワークフロー図・noteサムネイル
-├─ requirements.txt           # Python依存ライブラリ
-├─ models.json                # モデル名・配置先・取得URL・ハッシュ
-├─ configure_audio_audit.py   # ローカルWhisper設定補助
-├─ verify_package.py          # 展開した配布物の検査
-├─ README.md / README_JA.md
-├─ VALIDATION.md
-├─ LICENSES_AND_NOTICES.md
-└─ SHA256SUMS.json
-```
+**[MV: installation, inputs, first run and output / MVの使い方](docs/h3/mv/README.md)** · [MV note article / note解説](https://note.com/happy_duck780/n/ne8a84cb6db37)
 
-It does not contain model weights, input images, generated videos, API keys, personal prompts, pronunciation dictionaries, or path settings from the development machine. / モデル本体、入力画像、生成動画、APIキー、個人用プロンプト、読み辞書、個人PCのパス設定は含みません。
+## KomaOrbit — illustration to 3D composition / 一枚絵から3Dで構図を探す
 
-## Requirements / 必要な環境
+![KomaOrbit original concept cover / 以前作成した紹介用サムネイル](docs/assets/komaorbit/cover.png)
 
-### Required / 必須
+Use only **KomaOrbit**. Create a fixed 3D subject and inferred environment, move the camera with the mouse, and save a PNG at the original dimensions. This cover is a concept illustration; the guide shows the actual workflow and test input. / **KomaOrbit** ZIPだけで導入します。一枚絵から固定3Dの人物と補完背景を生成し、マウスで構図を決めて元画像寸法のPNGへ保存します。上は紹介用イラストで、ガイドには実ワークフローと検証入力を掲載しています。
 
-- [ComfyUI](https://github.com/comfyanonymous/ComfyUI) with the MiniMax H3 and V3 node APIs and `ResolutionSelector` support / MiniMax H3とV3ノードAPI、`ResolutionSelector`に対応した [ComfyUI](https://github.com/comfyanonymous/ComfyUI)
-- An NVIDIA CUDA build of PyTorch / NVIDIA CUDA版PyTorchを使用できる環境
-- A Triton build compatible with the installed PyTorch; use a compatible `triton-windows` build on native Windows / 使用中のPyTorchと互換性があるTriton。Windowsネイティブでは対応する `triton-windows`
-- `ffmpeg` and `ffprobe` available on `PATH` / `ffmpeg` と `ffprobe` がPATHから実行できること
-- Four H3 model files, approximately 40.44 GB in total / H3用モデル4ファイル（合計約40.44GB）
-- LM Studio and a vision-capable local model when using Japanese conversion or per-segment AI review / 日本語変換・区間AI検査を使う場合はLM Studioと画像対応ローカルモデル
-- A Transformers-format Whisper model when using Japanese speech review / 日本語音声検査を使う場合はTransformers形式のWhisperモデル
+**[KomaOrbit illustrated guide / 図入りの使い方と導入](docs/komaorbit/README.md)** · [note article / note記事](https://note.com/happy_duck780/n/n3f68482d5edd) · [Usage page / 操作ページ](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/)
 
-The validated development environment is WSL2 Ubuntu with an NVIDIA RTX 5080 16 GB. A 16 GB GPU is neither a minimum requirement nor a guarantee for every resolution and duration. Keep substantially more free storage than the model size for the H3 models, LM Studio model, intermediate data, and completed videos. / 確認に使用した構成はWSL2 Ubuntu、NVIDIA RTX 5080 16GBです。16GBは最低要件でも、すべての解像度・尺で動く保証でもありません。H3モデル、LM Studioモデル、中間データ、完成動画を置くため、ストレージにはモデル容量より十分大きい空きを確保してください。
+## ZIP contents / ZIPの内容と重複の扱い
 
-> [!NOTE]
-> GPU generation on native Windows, other GPUs, and other PCs has not been verified. Start with the distributed settings: **5 seconds, 16:9, and 0.4 MP**. / Windowsネイティブ、別GPU、別PCでのGPU生成は未確認です。まず配布時の **5秒・16:9・0.4MP** で動作を確認してください。
+| ZIP | Workflow JSONs / JSON本数 | Custom-node folders / ノード | Other ZIPs required? / 他のZIPは必要？ |
+|---|---:|---:|---|
+| H3 Video | 3: T2V, I2V, Ref2V | 5 shared packages / 共通5種 | No / 不要 |
+| H3 MV | 1: MV | Same 5 + MV adapter / 共通5種＋MV専用1種 | No / 不要 |
+| KomaOrbit | 1: KomaOrbit | 3 separate packages / 専用3種 | No / 不要 |
 
-## Installation / インストール
+When using H3 Video and MV together, install their identical shared folders only once. KomaOrbit has its own installer and model list. / 動画3方式とMVを両方使う場合、共通ノードを二重配置せず1組だけ使います。KomaOrbitは導入スクリプトとモデル一覧が別です。
 
-### 1. Download and extract the Release ZIP / 1. Release ZIPを取得して展開する
+## Versions and terms / 版と利用条件
 
-1. Open the [latest Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest). / [最新Release](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/latest)を開きます。
-2. Download `H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1.zip` from Assets. / Assetsから `H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1.zip` を取得します。
-3. Extract the entire ZIP. Do not take only a workflow JSON out of the archive. / ZIPをすべて展開します。ZIPの中からJSONだけを取り出さないでください。
-4. If custom nodes with the same names are already installed, move those existing folders outside ComfyUI first. / 既に同名のカスタムノードを使っている場合は、ComfyUIの外へ退避します。
+H3 guides describe **v1.2.1**. The split distribution keeps the existing runtime; separately discussed Comfy Kitchen Attention experiments are not included. Older releases remain available. / H3の各ガイドは **v1.2.1** を説明します。分割配布では既存コードを維持し、別途紹介したComfy Kitchen Attentionの実験設定は追加していません。旧版ZIPは履歴として残します。
 
-### 2. Verify the extracted package / 2. 展開した配布物を検査する
+[H3 setup / H3共通導入](docs/h3/SETUP.md) · [Settings and recovery / 設定と再開](docs/h3/SETTINGS.md) · [Validation / 検証記録](VALIDATION.md) · [H3 note article / H3解説](https://note.com/happy_duck780/n/n15e732b3147b)
 
-Run the following command in the extracted directory. Models and a GPU are not required for this check. / 展開先で次を実行します。モデルやGPUは不要です。
-
-```bash
-python -B verify_package.py
-```
-
-If `python` is unavailable on Windows, use the command that matches your installed Python, such as `py -B verify_package.py`. A valid package finishes with: / Windowsで `python` が見つからない場合は、インストール済みのPythonに合わせて `py -B verify_package.py` などへ置き換えます。次の表示で終了すれば配布内容は正常です。
-
-```text
-Workflow OK: I2V
-Workflow OK: Ref2V
-Workflow OK: T2V
-Package checks passed.
-```
-
-### 3. Install the six custom-node folders / 3. カスタムノード6フォルダーを配置する
-
-Copy all six folders under `custom_nodes/` in the extracted ZIP into ComfyUI's `custom_nodes/` directory. / 展開したZIPの `custom_nodes/` にある次の6フォルダーを、ComfyUI本体の `custom_nodes/` へコピーします。
-
-```text
-ComfyUI/
-└─ custom_nodes/
-   ├─ comfyui-h3-standard-prompt/
-   ├─ ComfyUI-MiniMax-H3-Long-Video/
-   ├─ ComfyUI-H3-AudioRefine/
-   ├─ ComfyUI-PlagueKind-Nodes/
-   ├─ ComfyUI-Custom-Scripts/
-   └─ comfyui-mv-workflow/
-```
-
-Each folder must have `__init__.py` directly inside it. Do not create a duplicated nested folder such as: / 各フォルダーの直下に `__init__.py` がある状態が正しい配置です。次のように同じフォルダー名が二重にならないようにしてください。
-
-
-```text
-# Incorrect
-ComfyUI/custom_nodes/ComfyUI-H3-AudioRefine/ComfyUI-H3-AudioRefine/__init__.py
-```
-
-
-```text
-# 誤った例
-ComfyUI/custom_nodes/ComfyUI-H3-AudioRefine/ComfyUI-H3-AudioRefine/__init__.py
-```
-
-The four externally sourced packages are already included in the Release ZIP. Do not mix them with separately downloaded or older versions. / 外部由来の4パッケージもRelease ZIPに同梱済みです。別途取得した版や古い版と混在させないでください。
-
-### 4. Install the Python dependencies / 4. Python依存ライブラリを入れる
-
-Install the dependencies into **the Python interpreter actually used by ComfyUI**. / 依存ライブラリは、**ComfyUIが実際に使用するPython**へインストールします。
-
-For ComfyUI Portable on Windows, run this from the Portable root: / Windows Portable版では、Portableのルートから実行します。
-
-
-```powershell
-.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1\requirements.txt"
-```
-
-
-```powershell
-.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1\requirements.txt"
-```
-
-For a Linux or WSL venv installation, run this from the ComfyUI directory: / Linux・WSLのvenv版では、ComfyUIフォルダーから実行します。
-
-
-```bash
-.venv/bin/python -m pip install -r "/path/to/H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/requirements.txt"
-```
-
-
-```bash
-.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/requirements.txt"
-```
-
-Install the Triton build required by SLA separately, matching your OS, PyTorch, and CUDA combination. For native Windows guidance, see [triton-windows](https://github.com/woct0rdho/triton-windows). / SLAに必要なTritonはOSとPyTorchの組み合わせに合わせて別途用意します。Windowsネイティブの情報は [triton-windows](https://github.com/woct0rdho/triton-windows) を確認してください。
-
-Check CUDA and Triton using ComfyUI's Python: / ComfyUIのPythonでCUDAとTritonを確認します。
-
-```bash
-python -c "import torch,triton; print(torch.__version__, torch.cuda.is_available(), triton.__version__)"
-```
-
-If `torch.cuda.is_available()` is `False`, check the NVIDIA CUDA PyTorch build and driver first. Replace `python` above with `python_embeded/python.exe` for Portable or `.venv/bin/python` for a venv installation. / `torch.cuda.is_available()` が `False` の場合は、先にPyTorchとCUDA環境を確認してください。ここでの `python` も、Portable版なら `python_embeded/python.exe`、venv版なら `.venv/bin/python` へ置き換えます。
-
-Also check FFmpeg: / FFmpegも確認します。
-
-```bash
-ffmpeg -version
-ffprobe -version
-```
-
-## Install the four H3 model files / H3モデル4ファイルを配置する
-
-
-The models total approximately 40.44 GB. Review each model's license terms before downloading it. / モデルは合計約40.44GBです。リンクを開く前に、各モデルの利用条件も確認してください。
-
-| Type / 種類 | File and download / ファイル名・取得先 | Destination / 配置先 | Approx. size / 容量の目安 |
-|---|---|---|---:|
-| Video generation model / 動画生成モデル | [`minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors`](https://huggingface.co/MATLOWAI/minimax-h3-fused-turbo-int8-convrot/resolve/main/diffusion_models/minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors) | `ComfyUI/models/diffusion_models/` | 20.98 GB / 20.98GB |
-| H3 text encoder / H3用テキストエンコーダー | [`qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors`](https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors) | `ComfyUI/models/text_encoders/` | 15.69 GB / 15.69GB |
-| Video VAE / 映像VAE | [`minimax_h3_video_vae_int8_convrot.safetensors`](https://huggingface.co/Kijai/MiniMax-H3-experimental/resolve/main/minimax_h3_video_vae_int8_convrot.safetensors) | `ComfyUI/models/vae/` | 3.17 GB / 3.17GB |
-| Audio VAE / 音声VAE | [`minimax_h3_audio_vae_fp32.safetensors`](https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors) | `ComfyUI/models/vae/` | 0.61 GB / 0.61GB |
-
-After installation, the layout is: / 配置後は次の構成になります。
-
-```text
-ComfyUI/
-└─ models/
-   ├─ diffusion_models/
-   │  └─ minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors
-   ├─ text_encoders/
-   │  └─ qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
-   └─ vae/
-      ├─ minimax_h3_video_vae_int8_convrot.safetensors
-      └─ minimax_h3_audio_vae_fp32.safetensors
-```
-
-Do not place models under `workflows/` or `custom_nodes/`. A similarly named model may use a different quantization method or be incompatible with these loaders. Use the listed files for the first run. Exact byte counts and SHA-256 hashes are in [`models.json`](models.json). / モデルを `workflows/` や `custom_nodes/` へ置かないでください。ファイル名が似ている別モデルでも、量子化方式やローダーの互換性が同じとは限りません。最初は表の指定ファイルを使用してください。正確なバイト数とSHA-256は [`models.json`](models.json) にあります。
-
-<a id="configure-lm-studio"></a>
-
-
-
-| Type / 種類 | File and download / ファイル名・取得先 | Destination / 配置先 | Approx. size / 容量の目安 |
-|---|---|---|---:|
-| Video generation model / 動画生成モデル | [`minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors`](https://huggingface.co/MATLOWAI/minimax-h3-fused-turbo-int8-convrot/resolve/main/diffusion_models/minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors) | `ComfyUI/models/diffusion_models/` | 20.98 GB / 20.98GB |
-| H3 text encoder / H3用テキストエンコーダー | [`qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors`](https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors) | `ComfyUI/models/text_encoders/` | 15.69 GB / 15.69GB |
-| Video VAE / 映像VAE | [`minimax_h3_video_vae_int8_convrot.safetensors`](https://huggingface.co/Kijai/MiniMax-H3-experimental/resolve/main/minimax_h3_video_vae_int8_convrot.safetensors) | `ComfyUI/models/vae/` | 3.17 GB / 3.17GB |
-| Audio VAE / 音声VAE | [`minimax_h3_audio_vae_fp32.safetensors`](https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors) | `ComfyUI/models/vae/` | 0.61 GB / 0.61GB |
-
-
-```text
-ComfyUI/
-└─ models/
-   ├─ diffusion_models/
-   │  └─ minimax_h3_fused_refdelta_r1024_turbo8_mystic07_int8_convrot.safetensors
-   ├─ text_encoders/
-   │  └─ qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
-   └─ vae/
-      ├─ minimax_h3_video_vae_int8_convrot.safetensors
-      └─ minimax_h3_audio_vae_fp32.safetensors
-```
-
-
-## Configure LM Studio / LM Studioを設定する
-
-LM Studio is not the video generation model. It reads Japanese video instructions and input images and prepares an English prompt for H3. If per-segment AI review is enabled, LM Studio is also used during review even when the final prompt is entered directly in English. / LM Studioは動画生成モデルではありません。日本語の動画指示と入力画像を読み、H3向けの英語プロンプトへ整えるために使います。区間AI検査を有効にしている場合は、英語直接入力でも検査時にLM Studioを使います。
-
-1. Install [LM Studio](https://lmstudio.ai/). / [LM Studio](https://lmstudio.ai/)をインストールします。
-2. Download a vision-capable local model. Validation used **Qwen3.5-9B**. / 画像認識に対応したローカルモデルを取得します。検証では **Qwen3.5-9B** を使用しました。
-3. For I2V and Ref2V, install the Vision-related files needed to accept image input. / I2V・Ref2Vでは画像も渡すため、必要なVision用ファイルを揃えます。
-4. Load the model in the Developer view and start the local server. / Developer画面でモデルをロードし、ローカルサーバーを起動します。
-5. Set the workflow's "LM Studio model name" to the same identifier used by LM Studio. / ワークフローの「LM Studioのモデル名」を、LM Studio側の識別子と一致させます。
-
-The distributed example settings are: / 配布時の設定例は次のとおりです。
-
-
-```text
-Endpoint: http://127.0.0.1:1234/v1
-Model identifier: qwen-prompt-ja
-```
-
-
-```text
-接続先: http://127.0.0.1:1234/v1
-モデル識別子: qwen-prompt-ja
-```
-
-`qwen-prompt-ja` is only an example identifier. If you use another identifier in LM Studio, change the workflow to match. See [LM Studio Server](https://lmstudio.ai/docs/developer/core/server) for detailed server operation. / `qwen-prompt-ja` は任意の識別子です。LM Studioで別名を使う場合はワークフロー側も変更してください。詳しいサーバー操作は [LM Studio Server](https://lmstudio.ai/docs/developer/core/server) を参照してください。
-
-### Return the LM model from GPU to CPU / LMモデルをGPUからCPUへ戻す設定
-
-To enable "load the LM model onto the GPU only for conversion, then return it to the CPU before video generation," add LM Studio's bundled `lms` CLI to `PATH` and install the `lmstudio` package into ComfyUI's Python. If returning the model to the CPU fails, video generation will not start, which avoids a VRAM conflict. / 「LM変換時だけGPUへ読み込み、動画生成前にCPUへ戻す」を有効にする場合は、LM Studio同梱の `lms` CLIをPATHへ登録し、ComfyUIのPythonに `lmstudio` パッケージが必要です。CPU復帰に失敗した場合は、VRAM競合を避けるため動画生成を開始しません。
-
-If this automatic switch is unavailable, turn it off and load the LM model on the CPU from the beginning. Prompt conversion will be slower, but the model will not compete with H3 for VRAM. / この自動切替を使えない環境では設定をOFFにし、LMモデルを最初からCPUへロードしてください。文章変換は遅くなりますが、H3が使うVRAMとの競合を抑えられます。
-
-### Connect from WSL to LM Studio on Windows / WSLからWindowsのLM Studioへ接続する場合
-
-When ComfyUI runs in WSL and LM Studio runs on Windows, WSL may not reach Windows through `127.0.0.1`. In that case, configure an address for the Windows host that is reachable from WSL. / ComfyUIがWSL、LM StudioがWindowsで動いている場合、WSL側の `127.0.0.1` からWindows側へ届かないことがあります。その場合は、WSLから到達できるWindows側のアドレスを接続先に設定します。
-
-
-```text
-http://reachable-host-address:1234/v1
-```
-
-
-```text
-http://到達できるホストアドレス:1234/v1
-```
-
-Check it from the OS running ComfyUI: / ComfyUIを動かしているOS側から確認します。
-
-
-```bash
-curl http://host-address:1234/api/v1/models
-```
-
-
-```bash
-curl http://ホストアドレス:1234/api/v1/models
-```
-
-You do not need to expose the LM Studio port to the public internet. / 外部インターネットへLM Studioのポートを公開する必要はありません。
-
-## Configure Whisper for Japanese speech review / 日本語音声検査用Whisperを設定する
-
-Speech review uses [Whisper large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo) in **Transformers format**, not GGUF. Put the model weights, `config.json`, `preprocessor_config.json`, tokenizer files, and related required files in the same folder. / 音声検査には、[Whisper large-v3-turbo](https://huggingface.co/openai/whisper-large-v3-turbo)の**Transformers形式**を使います。GGUF形式ではありません。モデル本体、`config.json`、`preprocessor_config.json`、トークナイザー関連ファイルを同じフォルダーへ置きます。
-
-In the extracted Release ZIP directory, run this with ComfyUI's Python: / 展開したRelease ZIPのフォルダーで、ComfyUIのPythonを使って次を実行します。
-
-
-```bash
-python configure_audio_audit.py --comfyui "path/to/ComfyUI" --whisper-model "path/to/Whisper-model"
-```
-
-
-```bash
-python configure_audio_audit.py --comfyui "ComfyUI本体のフォルダー" --whisper-model "Whisperモデルのフォルダー"
-```
-
-Example for ComfyUI Portable on Windows: / Windows Portable版の例です。
-
-```powershell
-C:\ComfyUI_windows_portable\python_embeded\python.exe configure_audio_audit.py --comfyui "C:\ComfyUI_windows_portable\ComfyUI" --whisper-model "D:\AI_Models\whisper-large-v3-turbo"
-```
-
-The helper writes `local_audio_audit.json` inside the Long-Video node installed in ComfyUI and backs up an existing setting. You can alternatively use the `H3_LOCAL_WHISPER_MODEL` environment variable. / 設定先は、ComfyUIへ配置したLong-Videoノード内の `local_audio_audit.json` です。既存設定はバックアップされます。環境変数 `H3_LOCAL_WHISPER_MODEL` で指定することもできます。
-
-Speech review runs on the CPU and does not send audio to an external service. It also does not download a model automatically. If review is enabled without a configured model, execution stops. It may still miss short grunts or similar sounds, so always listen to the finished video. / 音声検査はCPUで実行し、音声を外部へ送信しません。モデルの自動ダウンロードも行いません。検査をONにしたままモデル未設定の場合は実行を停止します。短いうなり声などを見落とす場合があるため、最終動画は必ず試聴してください。
-
-## Generate the first video / 最初の動画を生成する
-
-Start with T2V and a short duration so the environment is easier to check. / 環境を確認しやすいT2Vから、短い設定で始めます。
-
-1. Fully restart ComfyUI. / ComfyUIを完全に再起動します。
-2. Load `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json`. / `workflows/T2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` を読み込みます。
-3. Confirm that no missing node is shown in red. / 赤い不足ノードがないことを確認します。
-4. Confirm that each of the four model loaders selects the specified file. / 4つのモデルローダーで、指定ファイルが選択されていることを確認します。
-5. Start the LM Studio server and load its model if you use Japanese input or per-segment AI review. / 日本語入力または区間AI検査を使う場合は、LM Studioのサーバーとモデルを起動します。
-6. Set duration to **5 seconds**, aspect ratio to **16:9**, and pixel target to **0.4 MP**. / 秒数を **5秒**、画面比率を **16:9**、画素数を **0.4MP** にします。
-7. If the prompt body also states a duration, use either "5 seconds total" or `Duration: 5 seconds` so both settings agree. / 本文にも尺を書く場合は「全体5秒」または `Duration: 5 seconds` にそろえます。
-8. Queue the workflow, then inspect the final prompt, execution plan, and completed video. / 「実行する」を押し、最終プロンプト、実行計画、完成動画を確認します。
-
-The first model load can take time. After T2V works, move to I2V or Ref2V as appropriate. / 初回はモデルの読み込みに時間がかかります。T2Vが動いたら、用途に応じてI2VまたはRef2Vへ進みます。
-
-### Use I2V / I2Vを使う
-
-Open `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` and upload one image to "Starting image." For the first run, match the source image and video aspect ratios so cropping or resizing effects are easy to identify. / `workflows/I2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` を開き、「開始画像」へ画像を1枚アップロードします。入力画像と動画の比率を最初はそろえると、切り抜きやリサイズの影響を確認しやすくなります。
-
-### Use Ref2V / Ref2Vを使う
-
-Open `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` and place an image in "Reference image 1," which is required. To use images 2 through 5, add them in order, select the corresponding nodes, and enable each with `Ctrl+B`. Enabling an empty image node stops execution before generation. / `workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json` を開き、「参照画像1」へ画像を入れます。画像1は必須です。画像2〜5を使う場合は順番に画像を入れ、対象ノードを選択して `Ctrl+B` で有効にします。空の画像ノードを有効にすると実行前に止まります。
-
-When using multiple images, describe each role in the prompt: / 複数画像を使う場合は、役割を文章で分けてください。
-
-
-```text
-Image 1 is the reference for the character's face and hairstyle.
-Image 2 is the clothing reference.
-Image 3 is the reference for the background atmosphere.
-Only one character appears in the finished video.
-```
-
-## Create a music video from YuE2 or another singing system / YuE2等の曲からMVを作る
-
-![Actual MV workflow layout / MVワークフロー実画面](docs/assets/workflow-mv-v1.2.0.png)
-
-1. In [ComfyUI-YuE2-Japanese v1.6.1](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.1), generate a song. Node ⑥ creates `ComfyUI/output/mv-assets/TITLE_TIMESTAMP_ID/` at the same time as the normal song folder. / [ComfyUI-YuE2-Japanese v1.6.1](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.1)で曲を生成します。通常の曲フォルダーと同じ実行で、⑥が `ComfyUI/output/mv-assets/曲名_日時_ID/` を別途作ります。
-2. Open `workflows/MV_H3_YuE2-LMStudio_v1.2.1.json`. Enter that relative folder as `mv-assets/TITLE_TIMESTAMP_ID`; an absolute path is not required. / `workflows/MV_H3_YuE2-LMStudio_v1.2.1.json` を開き、`mv-assets/曲名_日時_ID` の相対名を入力します。絶対パスは不要です。
-3. Upload one character sheet with the standard `LoadImage` node. Use a clean reference that shows the intended face, hair, body proportions, and clothing. / 標準 `LoadImage` へキャラクターシートを1枚アップロードします。顔・髪・体格・服装が分かる参照を使います。
-4. In the large Japanese direction field, describe the mood or write “お任せ”. The bundled rules ask LM Studio to retain the input's 2D anime, 3D, or live-action appearance and avoid unauthorized redesign. / 大きな日本語欄へMVの雰囲気を書くか「お任せ」と入力します。同梱ルールは入力が2Dアニメ・3D・実写のどれかを維持し、勝手な別デザイン化を避けるよう指示します。
-5. Select `任意秒数` for a short test such as 20 seconds, or `音源末尾まで（可変尺）` for a complete song. `start_seconds` can begin from another section. / 20秒等の検証は `任意秒数`、1曲完走は `音源末尾まで（可変尺）` を選びます。`start_seconds` で途中からも開始できます。
-6. For subtitles, enable alignment and point `whisper_model_path` to a Transformers-format Whisper folder, normally `models/whisper/whisper-large-v3-turbo`. The exporter intentionally does not invent timestamps; it passes exact lyrics with `timing_status: not_aligned`, and this node aligns them to the final master audio. / 字幕を使う場合は時刻合わせをONにし、`whisper_model_path` へTransformers形式Whisperを指定します。標準は `models/whisper/whisper-large-v3-turbo` です。書き出し側は時刻を捏造せず `timing_status: not_aligned` で正確な歌詞を渡し、このノードが最終音源へ合わせます。
-7. Queue the workflow. The final node restores the original song audio, burns subtitles when enabled, overlays a top-left title that fades out, adds the configured link at the lower right near the end, and fades picture and sound together. The node preview includes ComfyUI's normal download control. / 実行すると、最後のノードが元曲音声へ戻し、必要なら字幕を焼き込み、左上タイトルをフェードアウト、終盤に右下リンクを重ね、映像と音声を同時にフェードします。最終ノードのプレビューから通常どおりダウンロードできます。
-
-For a multi-character sheet without an explicit singer assignment, the workflow never guesses the singer from voice timbre. Whisper timing drives exact subtitles in the final renderer, while H3 receives vocal-activity windows and `<Audio 1>` without lyric text; exactly one visible registered subject is animated per solo window. / 歌唱者が明示されていない複数キャラシートでは、声質から人物を推測しません。Whisper時刻と正確な歌詞は最終字幕へ使い、H3へは歌詞本文を渡さず歌唱区間と `<Audio 1>` だけを渡し、ソロ区間では登録済み人物1人だけを動かします。
-
-Bundle contract / バンドル仕様:
-
-```text
-ComfyUI/output/mv-assets/TITLE_TIMESTAMP_ID/
-├─ master.flac            # final uncut source song / 最終元曲
-├─ lyrics_display.txt     # exact display lyrics / 表示用歌詞
-├─ lyrics_singing.txt     # readings used for singing / 歌唱用読み
-├─ lyrics.json            # machine-readable lyrics / 機械可読歌詞
-├─ mv_manifest.json       # schema, hashes and timing status / 仕様・ハッシュ・時刻状態
-└─ README.txt
-```
-
-Other singing systems can use the same MV workflow by producing this contract, or by connecting a compatible exporter that accepts standard ComfyUI `AUDIO` and metadata. / 他の歌声システムでも同じバンドル仕様を出すか、標準ComfyUI `AUDIO` とメタデータを受ける互換書き出しノードへ接続すれば再利用できます。
-
-The visual reference is guidance, not a face-lock guarantee. If the face, hairstyle, or clothing drifts, improve the sheet, shorten the shot, or regenerate the affected segment; do not treat one successful sample as a universal identity guarantee. / キャラクター画像は参照誘導であり、顔固定の保証ではありません。顔・髪・服が崩れた場合は、シート改善、カット短縮、該当区間の再生成で確認してください。単一サンプルの成功を全素材の保証にはしません。
-
-
-```text
-画像1は人物の顔と髪型の参照。
-画像2は服装の参照。
-画像3は背景の雰囲気の参照。
-完成動画には人物を一人だけ登場させる。
-```
-
-## Choose the correct prompt field / プロンプト入力欄の使い分け
-
-The large prompt node has three fields with different roles. / 大きなプロンプトノードには、役割が異なる3つの欄があります。
-
-| Field / 欄 | Content / 入れる内容 | Behavior / 動作 |
-|---|---|---|
-| ① Top / ① 一番上 | Video instructions written in Japanese or another language / 日本語などで書いた動画の指示 | Converted by LM Studio into an H3-oriented prompt / LM StudioでH3向け文章へ変換 |
-| ② Middle / ② 中央 | Base rules sent to LM Studio / LM Studioへ渡す基本ルール | Normally leave unchanged / 通常は変更しない |
-| ③ Bottom / ③ 一番下 | Finished English H3 prompt / 完成済みの英語H3プロンプト | Used directly when field ① is empty / ①が空欄のとき、そのまま使用 |
-
-When field ① contains text, it takes priority and LM Studio performs the conversion. To use field ③ directly, leave field ① completely empty. Execution is unavailable if both fields ① and ③ are empty. / ①に文章がある場合は①が優先され、LM Studioによる変換が行われます。③を直接使う場合は①を完全に空にしてください。①と③が両方空の場合は実行できません。
-
-Minimal T2V example using direct English input: / 英語を直接使うT2Vの最小例です。
-
-```text
-Duration: 5 seconds
-
-integrated_multimodal_description: Soft anime style. One adult traveler stands on a quiet park path, waves once slowly at the camera, then rests their hand and smiles. A gentle breeze moves their hair and jacket. One continuous shot with a fixed camera. No speech or on-screen text.
-
-overall_soundscape: Soft wind, rustling leaves and distant birds.
-
-non_diegetic_music: N/A
-```
-
-The displayed "Prompt sent to H3" and execution plan are read-only confirmation outputs. To change the next run, edit field ① or ③. / 「H3へ渡すプロンプト」や実行計画の表示欄は確認用です。次回の入力を変える場合は①または③を編集してください。
-
-## Default duration, resolution, and audio settings / 秒数・解像度・音の既定値
-
-| Item / 項目 | Distributed setting / 配布時の設定 |
-|---|---|
-| Duration / 秒数 | 15 seconds; 5 seconds recommended for the first check / 15秒。初回確認は5秒を推奨 |
-| Frame rate / フレームレート | 24 fps / 24fps |
-| Aspect ratio / 画面比率 | 16:9 |
-| Pixel target / 画素数 | 0.4 MP / 0.4MP |
-| Example actual output / 実出力の確認例 | 864×480 |
-| Video / 映像 | `res_multistep` / `simple` / 4 steps / `res_multistep` / `simple` / 4ステップ |
-| SLA | 0.9 |
-| Audio refinement / 音声再精錬 | 2 steps / denoise 0.5 / 2ステップ / denoise 0.5 |
-| Segment attempts / 区間試行 | Up to five total, including the first; ends early when accepted / 初回を含む累計最大5回。合格時は早期終了 |
-
-If the prompt body states `Duration: 30 seconds` or "30 seconds total," that explicit duration overrides the numeric field. Use only one duration statement in the prompt body. After queueing, check `duration_seconds` and `segment_count` in the execution plan. / 本文に `Duration: 30 seconds` や「全体30秒」と書いた場合は、数値欄より本文の明示尺が優先されます。尺指定は本文中で一つに統一してください。実行後は実行計画の `duration_seconds` と `segment_count` を確認します。
-
-Long videos are generated in segments. A 30-second configuration with a 39-frame continuation context uses 13 + 13 + 4-second segments and joins them into 720 frames at 24 fps. For longer durations, describing what happens in the first and second halves helps reduce unnatural repetition of the same action. / 長尺は区間に分けて生成します。39フレーム継続条件の30秒構成では、13＋13＋4秒の3区間として生成し、24fps・720フレームへ結合します。秒数を増やす場合は、前半・後半で何をするかも文章に書くと、同じ動作の不自然な反復を抑えやすくなります。
-
-Specify BGM in the prompt. For no BGM, write `non_diegetic_music: N/A`. This tells H3 whether to generate music; it is not a feature for adding a local music file afterward. / BGMはプロンプトで指定します。BGMなしの場合は `non_diegetic_music: N/A` と書きます。これは手元の音楽ファイルを後付けする機能ではなく、H3へ音楽生成を指示する項目です。
-
-## Output locations / 保存先
-
-Completed videos are saved below ComfyUI's `output` directory: / 完成動画はComfyUIの `output` 以下へ保存されます。
-
-```text
-ComfyUI/output/video/MiniMax_H3/H3_T2V-I2V-Ref2V/T2V/
-ComfyUI/output/video/MiniMax_H3/H3_T2V-I2V-Ref2V/I2V/
-ComfyUI/output/video/MiniMax_H3/H3_T2V-I2V-Ref2V/Ref2V/
-ComfyUI/output/video/MV/<title_timestamp>/final.mp4
-```
-
-Intermediate data is saved under: / 中間データは次の場所に保存されます。
-
-
-```text
-ComfyUI/output/h3_long_video/H3_T2V-I2V-Ref2V/<mode>/<cache>/
-```
-
-
-```text
-ComfyUI/output/h3_long_video/H3_T2V-I2V-Ref2V/<方式>/<キャッシュ>/
-```
-
-Longer videos create more segment data, prompts, and latent data. Check available disk space regularly. / 長尺ほど区間データ、プロンプト、潜在データが増えます。空き容量を定期的に確認してください。
-
-## Resume or regenerate from a segment / 途中から再開・区間を再生成する
-
-When resuming, keep these values consistent with the original run: / 再開時は、最初の実行と次の条件をそろえます。
-
-- `cache_name`: fix it to the exact cache name that was created / `cache_name`：実際に作成された同じキャッシュ名を固定
-- Model, input images, seed, and requested duration: keep them the same as the first run / 使用モデル、入力画像、シード、指定尺：最初の実行と同じ
-- `noise_seed`: `fixed` / `noise_seed`：`fixed`
-- `resume`: ON / `resume`：ON
-- `reroll_from_segment`: first segment to regenerate, using a **zero-based index** / `reroll_from_segment`：再生成を始める区間。**0始まり**
-- `stop_after_segment`: set a segment number only when stopping partway; use `-1` to continue through the end / `stop_after_segment`：途中で止める場合だけ区間番号を指定。最後まで進める場合は `-1`
-- `reroll_feedback`: optional description of what should be corrected in the current segment / `reroll_feedback`：現在区間で直したい点を記入可能
-
-For a 30-second video split into 13 + 13 + 4 seconds, `reroll_from_segment=1` regenerates everything from 13–26 seconds onward, while `2` regenerates only 26–30 seconds. A different `cache_name` cannot inherit the previous attempts or intermediate state. / 30秒を13＋13＋4秒に分ける構成では、`reroll_from_segment=1` は13〜26秒以降、`2` は26〜30秒だけを再生成します。別の `cache_name` では以前の試行回数や中間状態を引き継げません。
-
-## Troubleshooting / よくあるトラブル
-
-| Symptom / 症状 | What to check / 確認すること |
-|---|---|
-| A node is red or reported missing / ノードが赤い・不足と表示される | Check that all six folders are installed directly, no duplicated nesting exists, dependencies were installed into ComfyUI's Python, and the startup log has no `ImportError` / 6フォルダーを正しく配置したか、二重フォルダーになっていないか、ComfyUIのPythonへ依存を入れたか、起動ログにImportErrorがないか |
-| A model is absent from the list / モデルが一覧に出ない | Check filename, extension, destination, and download completion, then refresh the model list or restart ComfyUI / ファイル名、拡張子、配置先、ダウンロード完了を確認し、モデル一覧の更新またはComfyUI再起動を行う |
-| CUDA is unavailable / CUDAが使えない | Run `torch.cuda.is_available()` with ComfyUI's Python and check the NVIDIA CUDA PyTorch build and driver / ComfyUIのPythonで `torch.cuda.is_available()` を確認し、NVIDIA CUDA版PyTorchとドライバーを確認する |
-| Triton error / Triton関連で止まる | Confirm that Triton matches PyTorch, CUDA, and the OS; for native Windows, check the `triton-windows` compatibility table / PyTorch、CUDA、OSに対応するTritonか確認する。Windowsネイティブは `triton-windows` の対応表を確認する |
-| `ffmpeg` or `ffprobe` is missing / `ffmpeg` / `ffprobe` が見つからない | Confirm that both commands run from `PATH` / 両コマンドがPATHから実行できるか確認する |
-| Cannot connect to LM Studio / LM Studioへ接続できない | Confirm that the server is running, the model is loaded, and the identifier and endpoint match; from WSL, use an address that can reach Windows / サーバー起動、モデルのロード、識別子、接続先を確認する。WSLではWindows側へ届くアドレスを使う |
-| LM Studio server responds with 404 / LM Studioサーバーは動くが404 | Confirm that the model with the configured identifier is still loaded and was not unloaded by TTL or another setting / 指定した識別子のモデルがロード中か、TTLなどでアンロードされていないか確認する |
-| Stops while returning the LM model to CPU / LMモデルのCPU復帰で止まる | Check the `lms` CLI and `lmstudio` package; if automatic switching is unavailable, turn it off and load the LM model on CPU / `lms` CLIと `lmstudio` パッケージを確認する。自動切替を使わない場合はOFFにしてCPUロードする |
-| Stops during speech review / 音声検査で止まる | Configure a Transformers-format Whisper folder and confirm that all required files are together / Transformers形式Whisperのフォルダーを設定したか、必要ファイルが同じ場所にあるか確認する |
-| I2V or Ref2V stops before generation / I2V・Ref2Vが実行前に止まる | Add the required image and make sure an empty optional image node is not enabled / 必須画像を入れたか、空の追加画像ノードを有効にしていないか確認する |
-| Out of memory / メモリー不足 | Return to 0.4 MP and 5 seconds, and move the LM Studio model to CPU; shortening duration may not fix memory needed just to load the models / 0.4MP・5秒へ戻す。LM StudioモデルをCPUへ移す。モデル読込時点の不足は尺短縮だけでは解消しない場合がある |
-| Changing the numeric duration has no effect / 秒数欄を変えても長さが変わらない | Check whether `Duration` or an explicit total duration in the prompt body is overriding it / 本文中の `Duration` または「全体○秒」が優先されていないか確認する |
-| The same action repeats / 同じ動作が繰り返される | Describe the action for each part of the long video, then inspect the final prompt and execution plan / 長尺の各区間で何をするかを明記し、最終プロンプトと実行計画を確認する |
-| BGM or speech differs from the request / BGMや台詞が意図と違う | Inspect `overall_soundscape`, `non_diegetic_music`, and dialogue instructions in the exact final prompt sent to H3 / 実際にH3へ渡された最終プロンプトの `overall_soundscape` と `non_diegetic_music`、台詞指定を確認する |
-| MV bundle is not found / MV素材が見つからない | Use `mv-assets/FOLDER_NAME` relative to `ComfyUI/output`, or verify the absolute folder; do not select the normal `audio/YuE2` song folder / `ComfyUI/output` 基準の `mv-assets/フォルダー名` を指定し、通常の `audio/YuE2` 曲フォルダーと取り違えていないか確認する |
-| MV subtitles fail / MV字幕で止まる | Confirm the Transformers Whisper folder and `ffmpeg` fonts; turn subtitles OFF to isolate video generation from alignment / Transformers形式WhisperとFFmpegのフォントを確認し、切り分け時は字幕OFFで映像生成だけを試す |
-| Character looks different / キャラクターが似ない | Use a clearer sheet, keep style/identity rules enabled, reduce simultaneous characters, and regenerate the affected segment; H3 reference guidance is not exact face replacement / 明瞭なシート、画風・同一性ルール、人数削減、該当区間再生成を試す。H3参照は顔置換ではない |
-
-## Validated scope and limitations / 検証済みの範囲と制限
-
-- T2V, I2V, and Ref2V generation were run in the development environment / 開発環境ではT2V・I2V・Ref2Vの実生成を実施済み
-- For a 30-second T2V run, the ending was resumed from a cache generated through the middle, reaching 30 seconds and 720 frames / T2Vの30秒生成で、中盤まで生成したキャッシュから終盤だけ再開し、30秒・720フレームへの到達を確認
-- For v1.2.1, four workflow JSON files, six package imports, the relative MV-bundle + `IMAGE` path, variable/fixed duration logic, subtitle timing, finishing overlays, and Release ZIP reconstruction were checked / v1.2.1では4本のJSON、6パッケージ、相対MVバンドル＋`IMAGE`経路、可変／固定尺、字幕時刻、仕上げ表示、配布ZIP再構築を検査
-- The v1.2.1 two-character MV validation used the normal workflow path (`2ab581ce-9845-4df4-b58c-100371e4924c`); all five H3 segments passed review and the final output was exactly 60.000 seconds, 864×480, 24fps, H.264/AAC, with four visibly burned Japanese subtitle cues and source-audio correlation 0.999743 over the unfaded first 58 seconds. Akari (red/orange bob, no glasses) and Hikari (blonde bob, blue eyes, round glasses) remained visually distinct in the inspected frames, without a visible merge, clone, or identity swap. / v1.2.1の2人物MVは通常経路（`2ab581ce-9845-4df4-b58c-100371e4924c`）で実生成し、H3の5区間すべてが検査合格。完成映像は60.000秒、864×480、24fps、H.264/AACで、日本語字幕4区間の焼き込みを実フレームで確認し、フェード前58秒の元音源相関は0.999743でした。確認フレームでは、アカリ（赤橙ボブ・眼鏡なし）とヒカリ（金髪ボブ・青い目・丸眼鏡）を区別し、人物融合・分身・入れ替わりは見られませんでした。
-- GPU execution on another PC and on native Windows remains unverified / 別PCとWindowsネイティブでのGPU実行は未確認
-
-The generation model and automated review have limits. They do not guarantee identical characters or clothing in every frame, seamless long-video transitions, exact dialogue pronunciation, or complete removal of unwanted sounds and subtitles. Earlier validation videos included examples with minor subtitles or short grunts. Play the completed video and check both picture and sound. / 生成モデルと自動検査には限界があります。人物や服装の全フレーム一致、長尺の継ぎ目、台詞の正確な発音、不要音や字幕の完全排除を保証するものではありません。過去の確認動画では軽微な字幕や短いうなり声が残った例があります。完成動画を再生し、映像と音声の両方を確認してください。
-
-See [VALIDATION.md](VALIDATION.md) for detailed validation conditions and [REPRODUCE.md](REPRODUCE.md) for rebuilding the identical package. / 詳しい検証条件は [VALIDATION.md](VALIDATION.md)、同じ配布物を再構築する手順は [REPRODUCE.md](REPRODUCE.md) にあります。
-
-## Privacy and network access / プライバシーと通信
-
-- No cloud API key is required. / クラウドAPIキーは不要です。
-- LM Studio communication goes to a local server. / LM Studioとの通信先はローカルサーバーです。
-- Whisper speech review runs locally on the CPU and does not send audio externally. / Whisper音声検査はローカルCPUで実行し、音声を外部へ送信しません。
-- The Release ZIP excludes input images, generated outputs, credentials, personal paths, and personal settings. / Release ZIPに入力画像、生成物、認証情報、個人パス、個人用設定は含みません。
-- A local WSL-to-Windows connection does not require exposing a port to the public internet. / WSLとWindows間のローカル接続に、外部インターネットへのポート公開は不要です。
-
-## Licenses / ライセンス
-
-This distribution contains components under several licenses. / この配布セットは複数のライセンスを含みます。主な構成は次のとおりです。
-
-| Package / パッケージ | License / ライセンス |
-|---|---|
-| `ComfyUI-MiniMax-H3-Long-Video` | GPL-3.0-only |
-| `ComfyUI-H3-AudioRefine` | MIT |
-| `ComfyUI-PlagueKind-Nodes` | MIT + Apache-2.0 for the LightX2V-derived SLA files / LightX2V由来のSLAファイルはApache-2.0 |
-| `ComfyUI-Custom-Scripts` | MIT |
-| `comfyui-h3-standard-prompt` | Original portions are MIT; see the bundled documents for the combined distribution's conditions / 独自作成部分はMIT。結合構成全体の条件は同梱文書を確認 |
-| `comfyui-mv-workflow` | MIT |
-
-When redistributing or modifying the package, review [LICENSES_AND_NOTICES.md](LICENSES_AND_NOTICES.md) and the `LICENSE` file in each folder, and retain copyright notices and license text. / 再配布・改変時は [LICENSES_AND_NOTICES.md](LICENSES_AND_NOTICES.md) と各フォルダーの `LICENSE` を確認し、著作権表示とライセンス本文を保持してください。
-
-SLA `kernel.py` and `block_map.py` retain their LightX2V attribution and modification notices. The [Apache-2.0 text](custom_nodes/ComfyUI-PlagueKind-Nodes/LICENSE-APACHE-2.0.txt) and [file mapping](custom_nodes/ComfyUI-PlagueKind-Nodes/THIRD_PARTY_NOTICES.md) accompany the existing MIT license inside the node pack. / SLAの `kernel.py` と `block_map.py` の由来・改変表示を保持し、ノードパック内に既存MIT本文とApache-2.0全文・対象ファイルの説明を同梱しています。
-
-The [v1.2.0-ref1-license1 distribution](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/v1.2.0-ref1-license1) applies this license correction to the existing public v1.2.0-ref1 feature baseline. It does not include the v1.2.1 development features on main. / [v1.2.0-ref1-license1配布版](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/v1.2.0-ref1-license1)は、既存公開v1.2.0-ref1の機能を維持したライセンス修正版です。main上のv1.2.1開発機能は含みません。
-
-The model weights are governed by their respective distributors' terms. MiniMax H3 is covered by the [MiniMax H3 Community License Agreement](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE), which includes terms related to region, use, commercial use, and redistribution. Before use, read the original agreement and confirm that your region and intended use qualify. / モデル本体には各配布元の条件が適用されます。MiniMax H3には地域、用途、商用利用、再配布などを定めた [MiniMax H3 Community License Agreement](https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/LICENSE) があります。利用前に、自分の地域と用途が条件を満たすか原文で確認してください。
-
-## Related documentation / 関連ドキュメント
-
-- [README_JA.md](README_JA.md): additional node-level installation and usage details in Japanese / [README_JA.md](README_JA.md)：ノードごとの詳しい導入・操作説明
-- [VALIDATION.md](VALIDATION.md): completed validation and unverified areas / [VALIDATION.md](VALIDATION.md)：検証した内容と未確認範囲
-- [REPRODUCE.md](REPRODUCE.md): deterministic Release ZIP reconstruction / [REPRODUCE.md](REPRODUCE.md)：配布ZIPの決定的な再構築手順
-- [LICENSES_AND_NOTICES.md](LICENSES_AND_NOTICES.md): licenses and redistribution notices / [LICENSES_AND_NOTICES.md](LICENSES_AND_NOTICES.md)：ライセンスと再配布時の表示
-- [`models.json`](models.json): model downloads, destinations, sizes, and SHA-256 hashes / [`models.json`](models.json)：モデルの取得先、配置先、容量、SHA-256
-- [Japanese note article](https://note.com/happy_duck780/n/n15e732b3147b)：screen guide, input examples, installation, and detailed operation / [note解説記事](https://note.com/happy_duck780/n/n15e732b3147b)：画面の見方、入力例、導入と操作の詳しい説明
-- [ComfyUI-YuE2-Japanese](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese): creates songs and the portable MV bundle / 曲と可搬MV素材バンドルを同時生成
-- [YuE2 note guide](https://note.com/happy_duck780/n/n57df44cf7fd2): Japanese song workflow and the first half of the YuE2→MV path / 日本語作曲とYuE2→MV連携の前半
-- [MV note guide](https://note.com/happy_duck780/n/ne8a84cb6db37): setup, workflow screens, 20-second test and full-song mode / [MVのnote解説](https://note.com/happy_duck780/n/ne8a84cb6db37)：導入、画面、20秒確認、1曲完走
-- [GitHub Releases](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases): distribution ZIP files and release history / [GitHub Releases](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases)：配布ZIPと更新履歴
+[Usage guide / 利用案内](FURU_TERMS.md) · [License scope / 適用条件](LICENSE_SCOPE.md) · [H3 notices / H3権利表示](LICENSES_AND_NOTICES.md) · [KomaOrbit notices / KomaOrbit権利表示](docs/komaorbit/THIRD_PARTY_NOTICES.md). Source licenses grant no extra model/output rights. / ソースのライセンスがモデルや生成物に追加の権利を与えるものではありません。

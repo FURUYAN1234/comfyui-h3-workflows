@@ -1,34 +1,18 @@
-# v1.2.1 開発版の再構築
+# Rebuild the separate kits / 独立ZIPの再構築
 
-専用リポジトリのタグ v1.2.1 をクリーンに取得します。Python標準ライブラリだけで再構築できます。
+Use the release tag matching the asset. From the repository root / 対象Releaseタグを取得し、リポジトリ直下で実行:
 
-```text
-git clone --branch v1.2.1 --depth 1 https://github.com/FURUYAN1234/comfyui-h3-workflows.git h3-source
-cd h3-source
-python -B build_release.py ../H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1.zip
+```sh
+python -B build_individual.py video /absolute/output/H3_Video_20261105183000_v1.2.1.zip --stamp 20261105183000
+python -B build_individual.py mv /absolute/output/H3_MV_20261105183000_v1.2.1.zip --stamp 20261105183000
 ```
 
-再構築ZIPを新規フォルダーへ展開し、展開したルートで python -B verify_package.py を実行します。SHA256SUMS.jsonの全件一致、欠落と余分なファイルも検査します。マニフェスト自身のみ自己ハッシュ対象外です。
+For KomaOrbit, change to `docs/komaorbit` and run / KomaOrbitは専用ディレクトリへ移動して実行:
 
-同じタグの配布ZIPと再構築ZIPの全相対パス・SHA-256を照合します。圧縮ライブラリが同じ場合のZIPバイト一致も確認しますが、一般の再現条件は展開内容の一致です。
-
-GitHub自動生成のSource code (zip)はルート名やZIPメタデータが配布ZIPと異なります。ZIPそのもののSHA-256一致とは説明しません。ルート名を除いた全相対パスと内容ハッシュは配布ZIPと一致することを公開後に検査します。
-
-生成物はソースツリー外へ出力してください。ビルダーは `.git`、Python/pytest/mypy/ruffのキャッシュ、`.pyc`、`.DS_Store` とマニフェスト自身を除くファイルを収録します。`.gitignore` は参照しないため、原本ZIP、`dist/`、`scratch/`、仮想環境、検査ログのないクリーンなソースを使ってください。第三者LICENSEやrequirementsも保持されます。配布者が内容を更新した場合だけ `--update-manifest` を使い、再検査します。既存の出力ZIPは上書きせず、別名を指定してください。
-
-## 公開ライセンス修正版
-
-公開版は [v1.2.0-ref1-license1](https://github.com/FURUYAN1234/comfyui-h3-workflows/tree/v1.2.0-ref1-license1) のソースとREPRODUCE.mdを使用してください。これは公開v1.2.0-ref1の既存ノード・ワークフローを維持したライセンス修正版です。main/v1.2.1の開発機能は含みません。上の既存v1.2.1タグはこのライセンス修正より前の履歴であり、mainの最新ライセンス修正は含みません。
-
-mainにもApache-2.0本文、対象SLA2ファイルの適用説明、配布前・展開後の検査を反映しています。python -B -m unittest test_license_packaging -v で13件の回帰検査を実行できます。新しいライセンス修正版の公開に、mainの開発機能やmainのマニフェストを混入させないでください。
-
-## Model Info の回帰検査
-
-現在の main の Model Info 安全性修正は、既存 v1.2.1 タグより後の変更です。上記の旧タグを取得してもこの修正は含まれません。修正された main コミットをクリーンに取得して検査してください。
-
-```text
-python -B -m unittest test_license_packaging test_model_info_paths -v
-node --experimental-vm-modules --test test_model_info_security.mjs
+```sh
+python -B build_release.py /absolute/output/KomaOrbit_20261105183001.zip
 ```
 
-保存 API の隔離検査は aiohttp を使用します。実モデル・GPU・外部生成 API は使いません。
+Destinations must be outside the checkout and not exist. Extract each ZIP into a fresh directory and run its `python -B verify_package.py`. The collection root is not an installable combined package. / 保存先はチェックアウト外の未作成ファイルを指定します。各ZIPを新規フォルダーへ展開し、同梱の検査を実行してください。リポジトリ全体を一括でComfyUIへ入れる構成ではありません。
+
+The split H3 kits preserve v1.2.1 workflow filenames and runtime bytes. `RUNTIME_SHA256.json` lists those files; `SHA256SUMS.json` covers the entire kit, including documentation. / H3分割版はv1.2.1のJSON名と生成コードを維持しています。実行用ファイル一覧と全配布物のハッシュを別々に記録します。
