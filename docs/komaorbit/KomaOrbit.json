@@ -1,0 +1,7553 @@
+{
+  "id": "92827304-d352-49e5-bd4e-a14151f05a6e",
+  "revision": 8,
+  "last_node_id": 110,
+  "last_link_id": 161,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "MarkdownNote",
+      "pos": [
+        0,
+        70
+      ],
+      "size": [
+        660,
+        900
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "KomaOrbit | Quick start / 使い方",
+      "properties": {
+        "Node name for S&R": "MarkdownNote"
+      },
+      "widgets_values": [
+        "# KomaOrbit — one illustration, many viewpoints / 一枚絵から構図を探す\n\n## Start / はじめに\nImport your own illustration at ①, choose “固定3Dを新規生成” at ③, then Run. / ①で画像を選び、③を「固定3Dを新規生成」にして実行します。\n\nThe workflow builds a fixed 3D subject and an inferred environment. Hidden surfaces are AI estimates. / 人物を固定3Dにし、周囲の背景を補完します。見えない部分はAIの推定です。\n\n## Mouse controls in ⑩ / ⑩の画像内で操作\nLeft drag: orbit / 左ボタンを押しながらドラッグ＝回転\nRight drag: pan / 右ボタンを押しながらドラッグ＝平行移動\nWheel: zoom the saved composition / ホイール＝保存構図の拡大縮小\nReset: “中央に戻す” / 中央に戻すボタンで構図を初期化\n\n“この視点を保存” exports the clear framed area at the original image size and aspect ratio. / 「この視点を保存」は白枠内を元画像と同じ画素数・縦横比で保存します。暗い枠外は保存されません。\n\n## Pipeline / 処理の流れ\nImage → wider background → reference views → H3 orbit → fixed subject and scene → face detail → view/export. / 画像→画像外の背景→参照視点→H3周回→人物固定と背景→顔の詳細→操作・保存。\n\n⑧: three heights × 73 directions, including the closing 360° frame; export a folder of 219 images. / ⑧は高さ3段階×73方位（終点360°を含む）、219枚をフォルダー保存できます。\n⑩: continuous camera orbit, pan and zoom; save PNG or download Gaussian PLY. / ⑩は連続回転・パン・ズーム。PNG保存とGaussian PLY取得ができます。\n\n## Installation / 導入\nUse the supplied installer with your ComfyUI Python, then obtain the models listed in models.json. / 同梱install.pyをComfyUI用Pythonで実行し、models.jsonのモデルを取得します。\nCUDA toolkit + gsplat compilation are required. WorldMirror code/weights are obtained separately from upstream. / CUDA Toolkitとgsplatのビルドが必要です。WorldMirrorのコード・重みは配布元から別途取得します。\nAnime face detector weights are automatically fetched into the Hugging Face cache on first use. / 顔検出用の重みは初回にHugging Faceキャッシュへ自動取得します。\nRestart ComfyUI after node installation. Missing-model metadata provides upstream download links. / ノード導入後は再起動。不足モデル表示のリンクから配布元を確認できます。\n\n## Settings / 主な設定\n② long edge: 1024 by default / ②の長辺は標準1024\n③ height levels: 3 / ③の高さは3段階\n⑥ normal route: FL2VA, 28 steps, 73 frames / ⑥の標準経路はFL2VA・28ステップ・73枚\nRef2VA: optional comparison route / Ref2VAは比較用\n\n## Save locations / 保存先\nComfyUI/output/H3_ORB360 — scenes, angle grids and export folders / シーン・角度別画像・一括保存\nComfyUI/output/H3_ORB360/snapshots — selected PNG views / 選択した構図のPNG\n\n## Credits and requirements / クレジット・条件\nMiniMax H3; pablodawson (FL2VA 360 Orbit); MATLOWAI (Ref2VA ORB360); Tencent HunyuanWorld-Mirror; Qwen/Alibaba PAI; Idol/TripoSplat; hysts; Kim2091; Real-ESRGAN; T8mars; ComfyUI; gsplat/Spark.\nModels and external implementations retain their upstream licenses, including applicable usage and regional restrictions. / モデル・外部実装には各配布元の利用・地域条件が適用されます。\nRead README.md for exact versions, installation, downloads and validation scope. / 対応版・導入・取得先・検証範囲はREADME.mdを参照してください。\n"
+      ],
+      "widgets_values_named": {
+        "text": "# KomaOrbit — one illustration, many viewpoints / 一枚絵から構図を探す\n\n## Start / はじめに\nImport your own illustration at ①, choose “固定3Dを新規生成” at ③, then Run. / ①で画像を選び、③を「固定3Dを新規生成」にして実行します。\n\nThe workflow builds a fixed 3D subject and an inferred environment. Hidden surfaces are AI estimates. / 人物を固定3Dにし、周囲の背景を補完します。見えない部分はAIの推定です。\n\n## Mouse controls in ⑩ / ⑩の画像内で操作\nLeft drag: orbit / 左ボタンを押しながらドラッグ＝回転\nRight drag: pan / 右ボタンを押しながらドラッグ＝平行移動\nWheel: zoom the saved composition / ホイール＝保存構図の拡大縮小\nReset: “中央に戻す” / 中央に戻すボタンで構図を初期化\n\n“この視点を保存” exports the clear framed area at the original image size and aspect ratio. / 「この視点を保存」は白枠内を元画像と同じ画素数・縦横比で保存します。暗い枠外は保存されません。\n\n## Pipeline / 処理の流れ\nImage → wider background → reference views → H3 orbit → fixed subject and scene → face detail → view/export. / 画像→画像外の背景→参照視点→H3周回→人物固定と背景→顔の詳細→操作・保存。\n\n⑧: three heights × 73 directions, including the closing 360° frame; export a folder of 219 images. / ⑧は高さ3段階×73方位（終点360°を含む）、219枚をフォルダー保存できます。\n⑩: continuous camera orbit, pan and zoom; save PNG or download Gaussian PLY. / ⑩は連続回転・パン・ズーム。PNG保存とGaussian PLY取得ができます。\n\n## Installation / 導入\nUse the supplied installer with your ComfyUI Python, then obtain the models listed in models.json. / 同梱install.pyをComfyUI用Pythonで実行し、models.jsonのモデルを取得します。\nCUDA toolkit + gsplat compilation are required. WorldMirror code/weights are obtained separately from upstream. / CUDA Toolkitとgsplatのビルドが必要です。WorldMirrorのコード・重みは配布元から別途取得します。\nAnime face detector weights are automatically fetched into the Hugging Face cache on first use. / 顔検出用の重みは初回にHugging Faceキャッシュへ自動取得します。\nRestart ComfyUI after node installation. Missing-model metadata provides upstream download links. / ノード導入後は再起動。不足モデル表示のリンクから配布元を確認できます。\n\n## Settings / 主な設定\n② long edge: 1024 by default / ②の長辺は標準1024\n③ height levels: 3 / ③の高さは3段階\n⑥ normal route: FL2VA, 28 steps, 73 frames / ⑥の標準経路はFL2VA・28ステップ・73枚\nRef2VA: optional comparison route / Ref2VAは比較用\n\n## Save locations / 保存先\nComfyUI/output/H3_ORB360 — scenes, angle grids and export folders / シーン・角度別画像・一括保存\nComfyUI/output/H3_ORB360/snapshots — selected PNG views / 選択した構図のPNG\n\n## Credits and requirements / クレジット・条件\nMiniMax H3; pablodawson (FL2VA 360 Orbit); MATLOWAI (Ref2VA ORB360); Tencent HunyuanWorld-Mirror; Qwen/Alibaba PAI; Idol/TripoSplat; hysts; Kim2091; Real-ESRGAN; T8mars; ComfyUI; gsplat/Spark.\nModels and external implementations retain their upstream licenses, including applicable usage and regional restrictions. / モデル・外部実装には各配布元の利用・地域条件が適用されます。\nRead README.md for exact versions, installation, downloads and validation scope. / 対応版・導入・取得先・検証範囲はREADME.mdを参照してください。\n"
+      },
+      "color": "#233847",
+      "bgcolor": "#182936"
+    },
+    {
+      "id": 2,
+      "type": "UNETLoader",
+      "pos": [
+        750,
+        1662
+      ],
+      "size": [
+        420,
+        100
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "unet_name",
+          "name": "unet_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "unet_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "重みdtype",
+          "name": "weight_dtype",
+          "type": "COMBO",
+          "widget": {
+            "name": "weight_dtype"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            28
+          ]
+        }
+      ],
+      "title": "H3 Ref2VA • 通常モデル",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+            "directory": "diffusion_models"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 3,
+      "type": "LoraLoaderModelOnly",
+      "pos": [
+        1244,
+        1687
+      ],
+      "size": [
+        380,
+        125
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 28
+        },
+        {
+          "localized_name": "lora_name",
+          "name": "lora_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "lora_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "モデルの強度",
+          "name": "strength_model",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength_model"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            63
+          ]
+        }
+      ],
+      "title": "ORB360 • 周回LoRA（強度）",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "LoraLoaderModelOnly",
+        "models": [
+          {
+            "name": "minimax_h3_orb360_step1500.safetensors",
+            "directory": "loras",
+            "url": "https://huggingface.co/MATLOWAI/MiniMax-H3-ORB360-CardSpin/resolve/main/minimax_h3_orb360_step1500.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_orb360_step1500.safetensors",
+        1
+      ],
+      "widgets_values_named": {
+        "lora_name": "minimax_h3_orb360_step1500.safetensors",
+        "strength_model": 1
+      }
+    },
+    {
+      "id": 4,
+      "type": "CLIPLoader",
+      "pos": [
+        750,
+        1837
+      ],
+      "size": [
+        420,
+        125
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip名",
+          "name": "clip_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "clip_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "タイプ",
+          "name": "type",
+          "type": "COMBO",
+          "widget": {
+            "name": "type"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "デバイス",
+          "name": "device",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "device"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CLIP",
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            29,
+            56
+          ]
+        }
+      ],
+      "title": "H3 • 画像・文章エンコーダー",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors?download=true",
+            "hash": "35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6",
+            "hash_type": "SHA256",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "minimax",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "type": "minimax",
+        "device": "default"
+      }
+    },
+    {
+      "id": 5,
+      "type": "VAELoader",
+      "pos": [
+        750,
+        2037
+      ],
+      "size": [
+        420,
+        85
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "vae_name",
+          "name": "vae_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "vae_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "VAE",
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            30,
+            48,
+            57
+          ]
+        }
+      ],
+      "title": "H3 • Video VAE",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "minimax_h3_video_vae_fp16.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors?download=true",
+            "hash": "7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522",
+            "hash_type": "SHA256",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_video_vae_fp16.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+      }
+    },
+    {
+      "id": 6,
+      "type": "LoadImage",
+      "pos": [
+        750,
+        70
+      ],
+      "size": [
+        420,
+        440
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "画像",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "アップロードするファイルを選択",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "画像",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1,
+            26,
+            52,
+            93,
+            121,
+            161
+          ]
+        },
+        {
+          "localized_name": "マスク",
+          "name": "MASK",
+          "type": "MASK",
+          "links": []
+        }
+      ],
+      "title": "① 一枚絵を読み込む / Import",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 7,
+      "type": "H3OrbitPrepare",
+      "pos": [
+        750,
+        585
+      ],
+      "size": [
+        420,
+        165
+      ],
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "localized_name": "long_edge",
+          "name": "long_edge",
+          "type": "INT",
+          "widget": {
+            "name": "long_edge"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            98,
+            110,
+            119
+          ]
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": [
+            36,
+            59,
+            116
+          ]
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": [
+            37,
+            60,
+            117
+          ]
+        },
+        {
+          "localized_name": "geometry",
+          "name": "geometry",
+          "type": "H3_ORBIT_GEOMETRY",
+          "links": [
+            99,
+            111
+          ]
+        }
+      ],
+      "title": "② 画像準備 • 長辺px・縦横比維持",
+      "properties": {
+        "Node name for S&R": "H3OrbitPrepare"
+      },
+      "widgets_values": [
+        1024
+      ],
+      "widgets_values_named": {
+        "long_edge": 1024
+      },
+      "color": "#24395c",
+      "bgcolor": "#101c31"
+    },
+    {
+      "id": 9,
+      "type": "MiniMaxH3ReferenceToVideo",
+      "pos": [
+        1698,
+        1992
+      ],
+      "size": [
+        410,
+        505
+      ],
+      "flags": {},
+      "order": 52,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 29
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 30
+        },
+        {
+          "localized_name": "audio_vae",
+          "name": "audio_vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "localized_name": "ref_image_0",
+          "name": "ref_images.ref_image_0",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 31
+        },
+        {
+          "localized_name": "ref_image_1",
+          "name": "ref_images.ref_image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 32
+        },
+        {
+          "localized_name": "ref_image_2",
+          "name": "ref_images.ref_image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 33
+        },
+        {
+          "localized_name": "ref_video_0",
+          "name": "ref_videos.ref_video_0",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "ref_video_audio_0",
+          "name": "ref_video_audios.ref_video_audio_0",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "localized_name": "ref_audio_0",
+          "name": "ref_audios.ref_audio_0",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "localized_name": "ref_audio_1",
+          "name": "ref_audios.ref_audio_1",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "localized_name": "ref_audio_2",
+          "name": "ref_audios.ref_audio_2",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "localized_name": "プロンプト",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 35
+        },
+        {
+          "localized_name": "幅",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 36
+        },
+        {
+          "localized_name": "高さ",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 37
+        },
+        {
+          "localized_name": "長さ",
+          "name": "length",
+          "type": "INT",
+          "widget": {
+            "name": "length"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "リファレンス画像サイズ",
+          "name": "ref_image_size",
+          "type": "COMBO",
+          "widget": {
+            "name": "ref_image_size"
+          },
+          "link": null
+        },
+        {
+          "name": "ref_images.ref_image_3",
+          "type": "IMAGE",
+          "link": 34
+        },
+        {
+          "localized_name": "ref_image_4",
+          "name": "ref_images.ref_image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "ポジティブ",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            64
+          ]
+        },
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            65
+          ]
+        }
+      ],
+      "title": "⑥ H3 • 各高さを4方向の画像で参照",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "MiniMaxH3ReferenceToVideo"
+      },
+      "widgets_values": [
+        "",
+        1024,
+        768,
+        124,
+        "match"
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "width": 1024,
+        "height": 768,
+        "length": 124,
+        "ref_image_size": "match"
+      }
+    },
+    {
+      "id": 10,
+      "type": "BasicGuider",
+      "pos": [
+        2636,
+        1487
+      ],
+      "size": [
+        300,
+        85
+      ],
+      "flags": {},
+      "order": 56,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 38
+        },
+        {
+          "localized_name": "コンディショニング",
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 39
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "ガイダー",
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            43
+          ]
+        }
+      ],
+      "title": "H3 • Conditioning",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "BasicGuider"
+      }
+    },
+    {
+      "id": 11,
+      "type": "BasicScheduler",
+      "pos": [
+        2636,
+        1647
+      ],
+      "size": [
+        300,
+        150
+      ],
+      "flags": {},
+      "order": 57,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 40
+        },
+        {
+          "localized_name": "スケジューラ",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ステップ",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": 41
+        },
+        {
+          "localized_name": "ノイズ除去",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "シグマ",
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            44
+          ]
+        }
+      ],
+      "title": "H3 • ステップ数は生成方式に連動",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "BasicScheduler"
+      },
+      "widgets_values": [
+        "simple",
+        28,
+        1
+      ],
+      "widgets_values_named": {
+        "scheduler": "simple",
+        "steps": 28,
+        "denoise": 1
+      }
+    },
+    {
+      "id": 12,
+      "type": "KSamplerSelect",
+      "pos": [
+        2636,
+        1872
+      ],
+      "size": [
+        300,
+        85
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "サンプラー名",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "サンプラー",
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            45
+          ]
+        }
+      ],
+      "title": "H3 • res_multistep",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "res_multistep"
+      ],
+      "widgets_values_named": {
+        "sampler_name": "res_multistep"
+      }
+    },
+    {
+      "id": 13,
+      "type": "RandomNoise",
+      "pos": [
+        2636,
+        2032
+      ],
+      "size": [
+        300,
+        100
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "ノイズシード",
+          "name": "noise_seed",
+          "type": "INT",
+          "widget": {
+            "name": "noise_seed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "ノイズ",
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            46
+          ]
+        }
+      ],
+      "title": "H3 • Seed固定",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "RandomNoise"
+      },
+      "widgets_values": [
+        20261102,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "noise_seed": 20261102,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 14,
+      "type": "SamplerCustomAdvanced",
+      "pos": [
+        3010,
+        1487
+      ],
+      "size": [
+        320,
+        180
+      ],
+      "flags": {},
+      "order": 58,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "ノイズ",
+          "name": "noise",
+          "type": "NOISE",
+          "link": 46
+        },
+        {
+          "localized_name": "ガイダー",
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 43
+        },
+        {
+          "localized_name": "サンプラー",
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 45
+        },
+        {
+          "localized_name": "シグマ",
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 44
+        },
+        {
+          "localized_name": "潜在イメージ",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 42
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "出力",
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            47
+          ]
+        },
+        {
+          "localized_name": "ノイズ除去出力",
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": []
+        }
+      ],
+      "title": "⑦ 各高さの周回を生成",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "SamplerCustomAdvanced"
+      }
+    },
+    {
+      "id": 15,
+      "type": "VAEDecode",
+      "pos": [
+        3010,
+        1742
+      ],
+      "size": [
+        320,
+        85
+      ],
+      "flags": {},
+      "order": 59,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "サンプル",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 47
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 48
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "画像",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            49
+          ]
+        }
+      ],
+      "title": "H3 • 画像へ",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 16,
+      "type": "H3OrbitGridSave",
+      "pos": [
+        3404,
+        1487
+      ],
+      "size": [
+        650,
+        930
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 60,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 49
+        },
+        {
+          "localized_name": "references",
+          "name": "references",
+          "type": "H3_ORBIT_REFERENCES",
+          "link": 50
+        },
+        {
+          "localized_name": "geometry",
+          "name": "geometry",
+          "type": "H3_ORBIT_GEOMETRY",
+          "link": 51
+        },
+        {
+          "localized_name": "original",
+          "name": "original",
+          "type": "IMAGE",
+          "link": 52
+        },
+        {
+          "localized_name": "frame_count",
+          "name": "frame_count",
+          "shape": 7,
+          "type": "INT",
+          "widget": {
+            "name": "frame_count"
+          },
+          "link": 53
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "orbit_manifest",
+          "name": "orbit_manifest",
+          "type": "STRING",
+          "links": [
+            94
+          ]
+        }
+      ],
+      "title": "比較用画像周回・背景再構成の素材（体形は非固定）",
+      "properties": {
+        "Node name for S&R": "H3OrbitGridSave"
+      },
+      "widgets_values": [
+        73,
+        ""
+      ],
+      "widgets_values_named": {
+        "frame_count": 73,
+        "orbit_preview": ""
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 17,
+      "type": "H3OrbitPlan",
+      "pos": [
+        750,
+        825
+      ],
+      "size": [
+        420,
+        400
+      ],
+      "flags": {},
+      "order": 33,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "frame_basis_zoom",
+          "name": "frame_basis_zoom",
+          "shape": 7,
+          "type": "FLOAT",
+          "link": 2
+        },
+        {
+          "localized_name": "profile",
+          "name": "profile",
+          "type": "COMBO",
+          "widget": {
+            "name": "profile"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "scene_context",
+          "name": "scene_context",
+          "type": "STRING",
+          "widget": {
+            "name": "scene_context"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "mode"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "Qwen_prompts",
+          "name": "Qwen_prompts",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            9
+          ]
+        },
+        {
+          "localized_name": "plan",
+          "name": "plan",
+          "type": "H3_ORBIT_PLAN",
+          "links": [
+            24
+          ]
+        },
+        {
+          "localized_name": "stage",
+          "name": "stage",
+          "type": "COMBO",
+          "links": [
+            27
+          ]
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "STRING",
+          "links": [
+            92
+          ]
+        }
+      ],
+      "title": "③ 背景・上下の視点計画",
+      "properties": {
+        "Node name for S&R": "H3OrbitPlan"
+      },
+      "widgets_values": [
+        "上下3段階",
+        "",
+        "固定3Dを新規生成"
+      ],
+      "widgets_values_named": {
+        "profile": "上下3段階",
+        "scene_context": "",
+        "mode": "固定3Dを新規生成"
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 18,
+      "type": "UNETLoader",
+      "pos": [
+        3650,
+        70
+      ],
+      "size": [
+        380,
+        100
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "unet_name",
+          "name": "unet_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "unet_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "重みdtype",
+          "name": "weight_dtype",
+          "type": "COMBO",
+          "widget": {
+            "name": "weight_dtype"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "slot_index": 0,
+          "links": [
+            54
+          ]
+        }
+      ],
+      "title": "Qwen 2511 • 参照画像モデル",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "qwen_image_edit_2511_bf16.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2511_bf16.safetensors",
+            "directory": "diffusion_models"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen_image_edit_2511_bf16.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "qwen_image_edit_2511_bf16.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 19,
+      "type": "LoraLoaderModelOnly",
+      "pos": [
+        3650,
+        445
+      ],
+      "size": [
+        380,
+        125
+      ],
+      "flags": {},
+      "order": 30,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 3
+        },
+        {
+          "localized_name": "lora_name",
+          "name": "lora_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "lora_name"
+          },
+          "link": null
+        },
+        {
+          "label": "モデル適用強度",
+          "localized_name": "モデルの強度",
+          "name": "strength_model",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength_model"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            4
+          ]
+        }
+      ],
+      "title": "Multi-Angles • 視点LoRA",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "LoraLoaderModelOnly",
+        "models": [
+          {
+            "name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+            "directory": "loras",
+            "url": "https://huggingface.co/fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA/resolve/main/qwen-image-edit-2511-multiple-angles-lora.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+        0.9
+      ],
+      "widgets_values_named": {
+        "lora_name": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+        "strength_model": 0.9
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 20,
+      "type": "ModelSamplingAuraFlow",
+      "pos": [
+        4104,
+        70
+      ],
+      "size": [
+        380,
+        85
+      ],
+      "flags": {},
+      "order": 34,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 4
+        },
+        {
+          "label": "シフト値",
+          "localized_name": "シフト",
+          "name": "shift",
+          "type": "FLOAT",
+          "widget": {
+            "name": "shift"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "sampling",
+          "name": "sampling",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "sampling"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "title": "Qwen • Shift 3.1",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "ModelSamplingAuraFlow"
+      },
+      "widgets_values": [
+        3.1,
+        "flow"
+      ],
+      "widgets_values_named": {
+        "shift": 3.1,
+        "sampling": "flow"
+      }
+    },
+    {
+      "id": 21,
+      "type": "CFGNorm",
+      "pos": [
+        4104,
+        230
+      ],
+      "size": [
+        380,
+        85
+      ],
+      "flags": {},
+      "order": 36,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 5
+        },
+        {
+          "label": "適用強度",
+          "localized_name": "強度",
+          "name": "strength",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "pre_cfg",
+          "name": "pre_cfg",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "pre_cfg"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "修正済みモデル",
+          "name": "patched_model",
+          "type": "MODEL",
+          "links": [
+            17
+          ]
+        }
+      ],
+      "title": "Qwen • CFG Norm",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "CFGNorm"
+      },
+      "widgets_values": [
+        1,
+        false
+      ],
+      "widgets_values_named": {
+        "strength": 1,
+        "pre_cfg": false
+      }
+    },
+    {
+      "id": 22,
+      "type": "CLIPLoader",
+      "pos": [
+        4104,
+        390
+      ],
+      "size": [
+        380,
+        125
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip名",
+          "name": "clip_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "clip_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "タイプ",
+          "name": "type",
+          "type": "COMBO",
+          "widget": {
+            "name": "type"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "デバイス",
+          "name": "device",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "device"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CLIP",
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            6,
+            10
+          ]
+        }
+      ],
+      "title": "Qwen • 画像・文章エンコーダー",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/HunyuanVideo_1.5_repackaged/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+            "directory": "text_encoders"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "qwen_image",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "type": "qwen_image",
+        "device": "default"
+      }
+    },
+    {
+      "id": 23,
+      "type": "VAELoader",
+      "pos": [
+        4104,
+        590
+      ],
+      "size": [
+        380,
+        85
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "vae_name",
+          "name": "vae_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "vae_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "VAE",
+          "name": "VAE",
+          "type": "VAE",
+          "slot_index": 0,
+          "links": [
+            7,
+            11,
+            16,
+            22
+          ]
+        }
+      ],
+      "title": "Qwen • VAE",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "qwen_image_vae.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen_image_vae.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "qwen_image_vae.safetensors"
+      }
+    },
+    {
+      "id": 24,
+      "type": "TextEncodeQwenImageEditPlus",
+      "pos": [
+        4558,
+        70
+      ],
+      "size": [
+        340,
+        180
+      ],
+      "flags": {},
+      "order": 39,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 6
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 7
+        },
+        {
+          "localized_name": "画像1",
+          "name": "image1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 8
+        },
+        {
+          "localized_name": "画像2",
+          "name": "image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "画像3",
+          "name": "image3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "プロンプト",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "条件付け",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            13
+          ]
+        }
+      ],
+      "title": "Qwen • 視点ごとの生成指示",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "TextEncodeQwenImageEditPlus"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "prompt": ""
+      },
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 25,
+      "type": "TextEncodeQwenImageEditPlus",
+      "pos": [
+        4558,
+        325
+      ],
+      "size": [
+        340,
+        180
+      ],
+      "flags": {},
+      "order": 40,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 10
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 11
+        },
+        {
+          "localized_name": "画像1",
+          "name": "image1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 12
+        },
+        {
+          "localized_name": "画像2",
+          "name": "image2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "画像3",
+          "name": "image3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "プロンプト",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "条件付け",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            14
+          ]
+        }
+      ],
+      "title": "Qwen • Negative（空欄）",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "TextEncodeQwenImageEditPlus"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "prompt": ""
+      },
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 26,
+      "type": "FluxKontextMultiReferenceLatentMethod",
+      "pos": [
+        4972,
+        70
+      ],
+      "size": [
+        330,
+        85
+      ],
+      "flags": {},
+      "order": 43,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "コンディショニング",
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 13
+        },
+        {
+          "localized_name": "参照潜在変数メソッド",
+          "name": "reference_latents_method",
+          "type": "COMBO",
+          "widget": {
+            "name": "reference_latents_method"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "条件付け",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            18
+          ]
+        }
+      ],
+      "title": "Qwen • 参照の位置",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "FluxKontextMultiReferenceLatentMethod"
+      },
+      "widgets_values": [
+        "index_timestep_zero"
+      ],
+      "widgets_values_named": {
+        "reference_latents_method": "index_timestep_zero"
+      },
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 27,
+      "type": "FluxKontextMultiReferenceLatentMethod",
+      "pos": [
+        4972,
+        230
+      ],
+      "size": [
+        330,
+        85
+      ],
+      "flags": {},
+      "order": 44,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "コンディショニング",
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 14
+        },
+        {
+          "localized_name": "参照潜在変数メソッド",
+          "name": "reference_latents_method",
+          "type": "COMBO",
+          "widget": {
+            "name": "reference_latents_method"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "条件付け",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "title": "Qwen • Negativeの位置",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "FluxKontextMultiReferenceLatentMethod"
+      },
+      "widgets_values": [
+        "index_timestep_zero"
+      ],
+      "widgets_values_named": {
+        "reference_latents_method": "index_timestep_zero"
+      },
+      "color": "#222",
+      "bgcolor": "#000"
+    },
+    {
+      "id": 28,
+      "type": "VAEEncode",
+      "pos": [
+        4558,
+        580
+      ],
+      "size": [
+        340,
+        85
+      ],
+      "flags": {},
+      "order": 41,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "ピクセル",
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 15
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 16
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            20
+          ]
+        }
+      ],
+      "title": "Qwen • 元画像サイズのLatent",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "VAEEncode"
+      }
+    },
+    {
+      "id": 29,
+      "type": "KSampler",
+      "pos": [
+        4972,
+        390
+      ],
+      "size": [
+        330,
+        320
+      ],
+      "flags": {},
+      "order": 46,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 17
+        },
+        {
+          "localized_name": "ポジティブ",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 18
+        },
+        {
+          "localized_name": "ネガティブ",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 19
+        },
+        {
+          "localized_name": "潜在画像",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 20
+        },
+        {
+          "label": "シード値",
+          "localized_name": "シード",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "label": "生成ステップ数",
+          "localized_name": "ステップ",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "label": "プロンプト反映度（CFG）",
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "サンプラー名",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "スケジューラ",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "label": "ノイズ除去強度",
+          "localized_name": "ノイズ除去",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            21
+          ]
+        }
+      ],
+      "title": "④ 背景付き視点画像 • Lightning 4steps",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        20261102,
+        "fixed",
+        4,
+        1,
+        "euler",
+        "simple",
+        1
+      ],
+      "widgets_values_named": {
+        "seed": 20261102,
+        "control_after_generate": "fixed",
+        "steps": 4,
+        "cfg": 1,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      }
+    },
+    {
+      "id": 30,
+      "type": "VAEDecode",
+      "pos": [
+        4972,
+        785
+      ],
+      "size": [
+        330,
+        85
+      ],
+      "flags": {},
+      "order": 48,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "サンプル",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 21
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 22
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "画像",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            23
+          ]
+        }
+      ],
+      "title": "Qwen • 画像へ",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.5.1",
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 31,
+      "type": "H3OrbitReferences",
+      "pos": [
+        5376,
+        70
+      ],
+      "size": [
+        620,
+        850
+      ],
+      "flags": {
+        "collapsed": true
+      },
+      "order": 50,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 23
+        },
+        {
+          "localized_name": "plan",
+          "name": "plan",
+          "type": "H3_ORBIT_PLAN",
+          "link": 24
+        },
+        {
+          "localized_name": "geometry",
+          "name": "geometry",
+          "type": "H3_ORBIT_GEOMETRY",
+          "link": 25
+        },
+        {
+          "localized_name": "original",
+          "name": "original",
+          "type": "IMAGE",
+          "link": 26
+        },
+        {
+          "localized_name": "stage",
+          "name": "stage",
+          "type": "COMBO",
+          "widget": {
+            "name": "stage"
+          },
+          "link": 27
+        },
+        {
+          "localized_name": "checkpoint",
+          "name": "checkpoint",
+          "type": "STRING",
+          "widget": {
+            "name": "checkpoint"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "front",
+          "name": "front",
+          "shape": 6,
+          "type": "IMAGE",
+          "links": [
+            31,
+            61,
+            62
+          ]
+        },
+        {
+          "localized_name": "right",
+          "name": "right",
+          "shape": 6,
+          "type": "IMAGE",
+          "links": [
+            32
+          ]
+        },
+        {
+          "localized_name": "back",
+          "name": "back",
+          "shape": 6,
+          "type": "IMAGE",
+          "links": [
+            33
+          ]
+        },
+        {
+          "localized_name": "left",
+          "name": "left",
+          "shape": 6,
+          "type": "IMAGE",
+          "links": [
+            34
+          ]
+        },
+        {
+          "localized_name": "H3_prompts",
+          "name": "H3_prompts",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            35
+          ]
+        },
+        {
+          "localized_name": "references",
+          "name": "references",
+          "type": "H3_ORBIT_REFERENCES",
+          "links": [
+            50
+          ]
+        },
+        {
+          "localized_name": "FL_prompts",
+          "name": "FL_prompts",
+          "shape": 6,
+          "type": "STRING",
+          "links": [
+            58
+          ]
+        }
+      ],
+      "title": "⑤ 背景再構成用の参照画像・再開",
+      "properties": {
+        "Node name for S&R": "H3OrbitReferences"
+      },
+      "widgets_values": [
+        "周回まで生成",
+        "",
+        ""
+      ],
+      "widgets_values_named": {
+        "stage": "周回まで生成",
+        "checkpoint": "",
+        "orbit_preview": ""
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 32,
+      "type": "LoraLoaderModelOnly",
+      "pos": [
+        3650,
+        245
+      ],
+      "size": [
+        380,
+        125
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 54
+        },
+        {
+          "localized_name": "lora_name",
+          "name": "lora_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "lora_name"
+          },
+          "link": null
+        },
+        {
+          "label": "モデル適用強度",
+          "localized_name": "モデルの強度",
+          "name": "strength_model",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength_model"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            3
+          ]
+        }
+      ],
+      "title": "Qwen 2511 • Lightning 4steps",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "LoraLoaderModelOnly",
+        "models": [
+          {
+            "name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+            "directory": "loras",
+            "url": "https://huggingface.co/lightx2v/Qwen-Image-Edit-2511-Lightning/resolve/main/Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+        1
+      ],
+      "widgets_values_named": {
+        "lora_name": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+        "strength_model": 1
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 33,
+      "type": "UNETLoader",
+      "pos": [
+        750,
+        1487
+      ],
+      "size": [
+        420,
+        100
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "unet_name",
+          "name": "unet_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "unet_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "重みdtype",
+          "name": "weight_dtype",
+          "type": "COMBO",
+          "widget": {
+            "name": "weight_dtype"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            55
+          ]
+        }
+      ],
+      "title": "H3 FL2VA • 背景用モデル",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+            "directory": "diffusion_models",
+            "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 34,
+      "type": "LoraLoaderModelOnly",
+      "pos": [
+        1244,
+        1487
+      ],
+      "size": [
+        380,
+        125
+      ],
+      "flags": {},
+      "order": 25,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 55
+        },
+        {
+          "localized_name": "lora_name",
+          "name": "lora_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "lora_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "モデルの強度",
+          "name": "strength_model",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength_model"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            66
+          ]
+        }
+      ],
+      "title": "FL2VA • 360周回LoRA",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "LoraLoaderModelOnly",
+        "models": [
+          {
+            "name": "minimax_h3_flf2v_lora_v1.safetensors",
+            "directory": "loras",
+            "url": "https://huggingface.co/pablodawson/MiniMax-H3-360-Orbit-LoRA/resolve/main/minimax_h3_flf2v_lora_v1.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "minimax_h3_flf2v_lora_v1.safetensors",
+        1
+      ],
+      "widgets_values_named": {
+        "lora_name": "minimax_h3_flf2v_lora_v1.safetensors",
+        "strength_model": 1
+      }
+    },
+    {
+      "id": 35,
+      "type": "MiniMaxH3ImageToVideo",
+      "pos": [
+        1698,
+        1487
+      ],
+      "size": [
+        410,
+        430
+      ],
+      "flags": {},
+      "order": 53,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 56
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 57
+        },
+        {
+          "localized_name": "最初のフレーム",
+          "name": "first_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 61
+        },
+        {
+          "localized_name": "最後のフレーム",
+          "name": "last_frame",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 62
+        },
+        {
+          "localized_name": "プロンプト",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 58
+        },
+        {
+          "localized_name": "幅",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 59
+        },
+        {
+          "localized_name": "高さ",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 60
+        },
+        {
+          "localized_name": "長さ",
+          "name": "length",
+          "type": "INT",
+          "widget": {
+            "name": "length"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "ポジティブ",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            67
+          ]
+        },
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            68
+          ]
+        }
+      ],
+      "title": "H3 FL2VA • 最初と最後を同じ画像に固定",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "MiniMaxH3ImageToVideo"
+      },
+      "widgets_values": [
+        "",
+        1024,
+        768,
+        73
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "width": 1024,
+        "height": 768,
+        "length": 73
+      }
+    },
+    {
+      "id": 36,
+      "type": "H3OrbitBackend",
+      "pos": [
+        2182,
+        1487
+      ],
+      "size": [
+        380,
+        410
+      ],
+      "flags": {},
+      "order": 55,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "ref_model",
+          "name": "ref_model",
+          "type": "MODEL",
+          "link": 63
+        },
+        {
+          "localized_name": "ref_positive",
+          "name": "ref_positive",
+          "type": "CONDITIONING",
+          "link": 64
+        },
+        {
+          "localized_name": "ref_latent",
+          "name": "ref_latent",
+          "type": "LATENT",
+          "link": 65
+        },
+        {
+          "localized_name": "loop_model",
+          "name": "loop_model",
+          "type": "MODEL",
+          "link": 66
+        },
+        {
+          "localized_name": "loop_positive",
+          "name": "loop_positive",
+          "type": "CONDITIONING",
+          "link": 67
+        },
+        {
+          "localized_name": "loop_latent",
+          "name": "loop_latent",
+          "type": "LATENT",
+          "link": 68
+        },
+        {
+          "localized_name": "engine",
+          "name": "engine",
+          "type": "COMBO",
+          "widget": {
+            "name": "engine"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "links": [
+            38,
+            40
+          ]
+        },
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            39
+          ]
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            42
+          ]
+        },
+        {
+          "localized_name": "steps",
+          "name": "steps",
+          "type": "INT",
+          "links": [
+            41
+          ]
+        },
+        {
+          "localized_name": "frame_count",
+          "name": "frame_count",
+          "type": "INT",
+          "links": [
+            53
+          ]
+        }
+      ],
+      "title": "⑥ 生成方式 • FL2VA 28steps / 従来20steps",
+      "properties": {
+        "Node name for S&R": "H3OrbitBackend"
+      },
+      "widgets_values": [
+        "背景用 FL2VA（73枚）"
+      ],
+      "widgets_values_named": {
+        "engine": "背景用 FL2VA（73枚）"
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 40,
+      "type": "LoadBackgroundRemovalModel",
+      "pos": [
+        4224,
+        1487
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "bg_removal_name",
+          "name": "bg_removal_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "bg_removal_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "bg_model",
+          "name": "bg_model",
+          "type": "BACKGROUND_REMOVAL",
+          "links": [
+            69,
+            97
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "LoadBackgroundRemovalModel",
+        "models": [
+          {
+            "name": "birefnet.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/main/background_removal/birefnet.safetensors",
+            "directory": "background_removal"
+          }
+        ]
+      },
+      "widgets_values": [
+        "birefnet.safetensors"
+      ],
+      "widgets_values_named": {
+        "bg_removal_name": "birefnet.safetensors"
+      }
+    },
+    {
+      "id": 41,
+      "type": "RemoveBackground",
+      "pos": [
+        4678,
+        1487
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 42,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "bg_removal_model",
+          "name": "bg_removal_model",
+          "type": "BACKGROUND_REMOVAL",
+          "link": 69
+        },
+        {
+          "localized_name": "画像",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 70
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "マスク",
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            72
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "RemoveBackground"
+      }
+    },
+    {
+      "id": 42,
+      "type": "IdolPreprocessImage",
+      "pos": [
+        5132,
+        1487
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 45,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 71
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "type": "MASK",
+          "link": 72
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "mode"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "links": [
+            75,
+            160
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_fearnworksnodes",
+        "ver": "0.1.2",
+        "Node name for S&R": "IdolPreprocessImage"
+      },
+      "widgets_values": [
+        "synthetic"
+      ],
+      "widgets_values_named": {
+        "mode": "synthetic"
+      }
+    },
+    {
+      "id": 43,
+      "type": "CLIPVisionLoader",
+      "pos": [
+        4224,
+        1722
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "クリップ名",
+          "name": "clip_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "clip_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CLIP_VISION",
+          "name": "CLIP_VISION",
+          "type": "CLIP_VISION",
+          "links": [
+            73
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "CLIPVisionLoader",
+        "models": [
+          {
+            "name": "dino_v3_vit_h.safetensors",
+            "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/clip_vision/dino_v3_vit_h.safetensors",
+            "directory": "clip_vision"
+          }
+        ]
+      },
+      "widgets_values": [
+        "dino_v3_vit_h.safetensors"
+      ],
+      "widgets_values_named": {
+        "clip_name": "dino_v3_vit_h.safetensors"
+      }
+    },
+    {
+      "id": 44,
+      "type": "VAELoader",
+      "pos": [
+        4224,
+        1957
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "vae_name",
+          "name": "vae_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "vae_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "VAE",
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            74
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "flux2-vae.safetensors",
+            "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "flux2-vae.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "flux2-vae.safetensors"
+      }
+    },
+    {
+      "id": 45,
+      "type": "TripoSplatConditioning",
+      "pos": [
+        5132,
+        1722
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 47,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip_vision",
+          "name": "clip_vision",
+          "type": "CLIP_VISION",
+          "link": 73
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 74
+        },
+        {
+          "localized_name": "画像",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 75
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "ポジティブ",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            78
+          ]
+        },
+        {
+          "localized_name": "ネガティブ",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            79
+          ]
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            80
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "TripoSplatConditioning"
+      }
+    },
+    {
+      "id": 46,
+      "type": "UNETLoader",
+      "pos": [
+        4678,
+        1722
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "unet_name",
+          "name": "unet_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "unet_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "重みdtype",
+          "name": "weight_dtype",
+          "type": "COMBO",
+          "widget": {
+            "name": "weight_dtype"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            76
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "idol_fp32.safetensors",
+            "url": "https://huggingface.co/PedroMarinhoDev/Idol-ComfyUI/resolve/main/diffusion_models/idol_fp32.safetensors",
+            "directory": "diffusion_models"
+          }
+        ]
+      },
+      "widgets_values": [
+        "idol_fp32.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "idol_fp32.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 47,
+      "type": "IdolPrecision",
+      "pos": [
+        4678,
+        1957
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 26,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 76
+        },
+        {
+          "localized_name": "precision",
+          "name": "precision",
+          "type": "COMBO",
+          "widget": {
+            "name": "precision"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            77
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_fearnworksnodes",
+        "ver": "0.1.2",
+        "Node name for S&R": "IdolPrecision"
+      },
+      "widgets_values": [
+        "default"
+      ],
+      "widgets_values_named": {
+        "precision": "default"
+      }
+    },
+    {
+      "id": 48,
+      "type": "KSampler",
+      "pos": [
+        5586,
+        1487
+      ],
+      "size": [
+        380,
+        320
+      ],
+      "flags": {},
+      "order": 49,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 77
+        },
+        {
+          "localized_name": "ポジティブ",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 78
+        },
+        {
+          "localized_name": "ネガティブ",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 79
+        },
+        {
+          "localized_name": "潜在画像",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 80
+        },
+        {
+          "localized_name": "シード",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ステップ",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "サンプラー名",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "スケジューラ",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ノイズ除去",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            81,
+            83
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        42,
+        "fixed",
+        50,
+        4,
+        "euler",
+        "simple",
+        1
+      ],
+      "widgets_values_named": {
+        "seed": 42,
+        "control_after_generate": "fixed",
+        "steps": 50,
+        "cfg": 4,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      }
+    },
+    {
+      "id": 49,
+      "type": "VAELoader",
+      "pos": [
+        5586,
+        1882
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "vae_name",
+          "name": "vae_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "vae_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "VAE",
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            82
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "idol_vae_decoder_fp32.safetensors",
+            "url": "https://huggingface.co/PedroMarinhoDev/Idol-ComfyUI/resolve/main/vae/idol_vae_decoder_fp32.safetensors",
+            "directory": "vae"
+          }
+        ]
+      },
+      "widgets_values": [
+        "idol_vae_decoder_fp32.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "idol_vae_decoder_fp32.safetensors"
+      }
+    },
+    {
+      "id": 50,
+      "type": "VAEDecodeTripoSplat",
+      "pos": [
+        6040,
+        1487
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 51,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "samples",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 81
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 82
+        },
+        {
+          "localized_name": "num_gaussians",
+          "name": "num_gaussians",
+          "type": "INT",
+          "widget": {
+            "name": "num_gaussians"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "splat",
+          "name": "splat",
+          "type": "SPLAT",
+          "links": [
+            84,
+            95
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAEDecodeTripoSplat"
+      },
+      "widgets_values": [
+        262144,
+        42,
+        "fixed"
+      ],
+      "widgets_values_named": {
+        "num_gaussians": 262144,
+        "seed": 42,
+        "control_after_generate": "fixed"
+      }
+    },
+    {
+      "id": 51,
+      "type": "IdolInputCamera",
+      "pos": [
+        6040,
+        1722
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 54,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "samples",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 83
+        },
+        {
+          "localized_name": "splat",
+          "name": "splat",
+          "type": "SPLAT",
+          "link": 84
+        },
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "mode"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "camera_info",
+          "name": "camera_info",
+          "type": "LOAD3D_CAMERA",
+          "links": [
+            96
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui_fearnworksnodes",
+        "ver": "0.1.2",
+        "Node name for S&R": "IdolInputCamera"
+      },
+      "widgets_values": [
+        "synthetic"
+      ],
+      "widgets_values_named": {
+        "mode": "synthetic"
+      }
+    },
+    {
+      "id": 52,
+      "type": "H3OrbitRigidScene",
+      "pos": [
+        6494,
+        1487
+      ],
+      "size": [
+        460,
+        330
+      ],
+      "flags": {},
+      "order": 61,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "mode",
+          "name": "mode",
+          "type": "STRING",
+          "link": 92
+        },
+        {
+          "localized_name": "original",
+          "name": "original",
+          "type": "IMAGE",
+          "link": 93
+        },
+        {
+          "localized_name": "orbit_manifest",
+          "name": "orbit_manifest",
+          "type": "STRING",
+          "link": 94
+        },
+        {
+          "localized_name": "subject",
+          "name": "subject",
+          "type": "SPLAT",
+          "link": 95
+        },
+        {
+          "localized_name": "subject_camera",
+          "name": "subject_camera",
+          "type": "LOAD3D_CAMERA",
+          "link": 96
+        },
+        {
+          "localized_name": "background_removal",
+          "name": "background_removal",
+          "type": "BACKGROUND_REMOVAL",
+          "link": 97
+        },
+        {
+          "localized_name": "checkpoint",
+          "name": "checkpoint",
+          "type": "STRING",
+          "widget": {
+            "name": "checkpoint"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "scene",
+          "name": "scene",
+          "type": "SPLAT",
+          "links": []
+        },
+        {
+          "localized_name": "camera",
+          "name": "camera",
+          "type": "LOAD3D_CAMERA",
+          "links": []
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "links": [
+            122,
+            154
+          ]
+        },
+        {
+          "localized_name": "model_placement",
+          "name": "model_placement",
+          "type": "LOAD3D_MODEL_INFO",
+          "links": []
+        }
+      ],
+      "title": "⑨ 人物・服・姿勢を固定した3Dシーン",
+      "properties": {
+        "Node name for S&R": "H3OrbitRigidScene"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "checkpoint": ""
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 53,
+      "type": "SplatToFile3D",
+      "pos": [
+        3166,
+        2664
+      ],
+      "size": [
+        380,
+        160
+      ],
+      "flags": {},
+      "order": 75,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "splat",
+          "name": "splat",
+          "type": "SPLAT",
+          "link": 85
+        },
+        {
+          "localized_name": "フォーマット",
+          "name": "format",
+          "type": "COMBO",
+          "widget": {
+            "name": "format"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "3Dモデル",
+          "name": "model_3d",
+          "type": "FILE_3D_SPLAT_ANY",
+          "links": [
+            86
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "SplatToFile3D"
+      },
+      "widgets_values": [
+        "ply"
+      ],
+      "widgets_values_named": {
+        "format": "ply"
+      }
+    },
+    {
+      "id": 54,
+      "type": "SaveGaussianSplat",
+      "pos": [
+        4368.656205736134,
+        2679.772754174522
+      ],
+      "size": [
+        760,
+        960
+      ],
+      "flags": {},
+      "order": 77,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model_3d",
+          "name": "model_3d",
+          "type": "FILE_3D_SPLAT_ANY,FILE_3D_PLY,FILE_3D_SPLAT,FILE_3D_SPZ,FILE_3D_KSPLAT",
+          "link": 86
+        },
+        {
+          "localized_name": "model_3d_info",
+          "name": "model_3d_info",
+          "shape": 7,
+          "type": "LOAD3D_MODEL_INFO",
+          "link": 91
+        },
+        {
+          "localized_name": "camera_info",
+          "name": "camera_info",
+          "shape": 7,
+          "type": "LOAD3D_CAMERA",
+          "link": 90
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": 87
+        },
+        {
+          "localized_name": "viewport_state",
+          "name": "viewport_state",
+          "type": "LOAD_3D",
+          "widget": {
+            "name": "viewport_state"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 88
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 89
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "model_3d",
+          "name": "model_3d",
+          "type": "FILE_3D_SPLAT_ANY",
+          "links": []
+        },
+        {
+          "localized_name": "model_3d_info",
+          "name": "model_3d_info",
+          "type": "LOAD3D_MODEL_INFO",
+          "links": []
+        },
+        {
+          "localized_name": "camera_info",
+          "name": "camera_info",
+          "type": "LOAD3D_CAMERA",
+          "links": []
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": []
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": []
+        }
+      ],
+      "title": "⑩ 固定3D • 左ドラッグ回転／右ドラッグパン／ホイール拡大縮小",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "SaveGaussianSplat",
+        "h3_rigid_preview": true,
+        "Scene Config": {
+          "showGrid": false,
+          "backgroundColor": "#101217",
+          "backgroundImage": "",
+          "backgroundRenderMode": "tiled",
+          "models": []
+        },
+        "Model Config": {
+          "upDirection": "original",
+          "materialMode": "original",
+          "showSkeleton": false,
+          "gizmo": {
+            "enabled": false
+          }
+        }
+      },
+      "widgets_values": [
+        "3d/ComfyUI",
+        "",
+        1024,
+        1024,
+        ""
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "3d/ComfyUI",
+        "viewport_state": "",
+        "width": 1024,
+        "height": 1024,
+        "h3_scene_save": ""
+      }
+    },
+    {
+      "id": 80,
+      "type": "H3OrbitWideCanvas",
+      "pos": [
+        1698,
+        645
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 29,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "IMAGE",
+          "link": 98
+        },
+        {
+          "localized_name": "geometry",
+          "name": "geometry",
+          "type": "H3_ORBIT_GEOMETRY",
+          "link": 99
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "canvas",
+          "name": "canvas",
+          "type": "IMAGE",
+          "links": [
+            103
+          ]
+        },
+        {
+          "localized_name": "outside_mask",
+          "name": "outside_mask",
+          "type": "MASK",
+          "links": [
+            104
+          ]
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "links": []
+        },
+        {
+          "localized_name": "geometry",
+          "name": "geometry",
+          "type": "H3_ORBIT_GEOMETRY",
+          "links": [
+            25,
+            51
+          ]
+        },
+        {
+          "localized_name": "frame_basis_zoom",
+          "name": "frame_basis_zoom",
+          "type": "FLOAT",
+          "links": [
+            2
+          ]
+        }
+      ],
+      "title": "背景を広げる領域を準備（50%まで）",
+      "properties": {
+        "Node name for S&R": "H3OrbitWideCanvas"
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 81,
+      "type": "UNETLoader",
+      "pos": [
+        1244,
+        335
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "unet_name",
+          "name": "unet_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "unet_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "重みdtype",
+          "name": "weight_dtype",
+          "type": "COMBO",
+          "widget": {
+            "name": "weight_dtype"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            100,
+            127,
+            137,
+            148
+          ]
+        }
+      ],
+      "title": "背景補完 • Qwen Image 2.1",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "UNETLoader",
+        "models": [
+          {
+            "name": "qwen_image_2.1_int8_convrot.safetensors",
+            "directory": "diffusion_models",
+            "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/aacf31a6d48e707f352ecba714cee0680da3479b/diffusion_models/qwen_image_2.1_int8_convrot.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen_image_2.1_int8_convrot.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 82,
+      "type": "CLIPLoader",
+      "pos": [
+        1244,
+        600
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip名",
+          "name": "clip_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "clip_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "タイプ",
+          "name": "type",
+          "type": "COMBO",
+          "widget": {
+            "name": "type"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "デバイス",
+          "name": "device",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "device"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CLIP",
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            105,
+            123,
+            133,
+            144
+          ]
+        }
+      ],
+      "title": "背景補完 • 画像エンコーダー",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "qwen3vl_8b_int8_convrot.safetensors",
+            "directory": "text_encoders",
+            "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen3vl_8b_int8_convrot.safetensors",
+        "qwen_image",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+        "type": "qwen_image",
+        "device": "default"
+      }
+    },
+    {
+      "id": 83,
+      "type": "VAELoader",
+      "pos": [
+        1244,
+        865
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "vae_name",
+          "name": "vae_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "vae_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "VAE",
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            102,
+            108,
+            124,
+            132,
+            134,
+            142,
+            145,
+            153
+          ]
+        }
+      ],
+      "title": "背景補完 • VAE",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAELoader",
+        "models": [
+          {
+            "name": "qwen_image_2.1_vae_bf16.safetensors",
+            "directory": "vae",
+            "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen_image_2.1_vae_bf16.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+      }
+    },
+    {
+      "id": 84,
+      "type": "QwenImage21UnionLoader",
+      "pos": [
+        1244,
+        1130
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "union_model",
+          "name": "union_model",
+          "type": "COMBO",
+          "widget": {
+            "name": "union_model"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "union_patch",
+          "name": "union_patch",
+          "type": "MODEL_PATCH",
+          "links": [
+            101
+          ]
+        }
+      ],
+      "title": "背景補完 • マスク用ControlNet",
+      "properties": {
+        "Node name for S&R": "QwenImage21UnionLoader",
+        "models": [
+          {
+            "name": "Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors",
+            "directory": "controlnet",
+            "url": "https://huggingface.co/t8star/Qwen-Image-2.1-Fun-Controlnet-Union-Comfy/resolve/main/Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors"
+      ],
+      "widgets_values_named": {
+        "union_model": "Qwen-Image-2.1-Fun-Controlnet-Union-ComfyUI.safetensors"
+      }
+    },
+    {
+      "id": 85,
+      "type": "QwenImage21UnionApply",
+      "pos": [
+        2646,
+        70
+      ],
+      "size": [
+        380,
+        330
+      ],
+      "flags": {},
+      "order": 32,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 100
+        },
+        {
+          "localized_name": "union_patch",
+          "name": "union_patch",
+          "type": "MODEL_PATCH",
+          "link": 101
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 102
+        },
+        {
+          "localized_name": "control_image",
+          "name": "control_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "inpaint_image",
+          "name": "inpaint_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 103
+        },
+        {
+          "localized_name": "mask",
+          "name": "mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": 104
+        },
+        {
+          "localized_name": "control_mode",
+          "name": "control_mode",
+          "type": "COMBO",
+          "widget": {
+            "name": "control_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "strength",
+          "name": "strength",
+          "type": "FLOAT",
+          "widget": {
+            "name": "strength"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "start_percent",
+          "name": "start_percent",
+          "type": "FLOAT",
+          "widget": {
+            "name": "start_percent"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "end_percent",
+          "name": "end_percent",
+          "type": "FLOAT",
+          "widget": {
+            "name": "end_percent"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "モデル",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            112
+          ]
+        }
+      ],
+      "title": "元絵の位置を保って外側を描く",
+      "properties": {
+        "Node name for S&R": "QwenImage21UnionApply"
+      },
+      "widgets_values": [
+        "Canny",
+        1,
+        0,
+        1
+      ],
+      "widgets_values_named": {
+        "control_mode": "Canny",
+        "strength": 1,
+        "start_percent": 0,
+        "end_percent": 1
+      }
+    },
+    {
+      "id": 86,
+      "type": "TextEncodeQwenImage21",
+      "pos": [
+        2172,
+        70
+      ],
+      "size": [
+        400,
+        380
+      ],
+      "flags": {},
+      "order": 31,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 105
+        },
+        {
+          "localized_name": "image_1",
+          "name": "images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 106
+        },
+        {
+          "localized_name": "negative_prompt",
+          "name": "negative_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "negative_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            113
+          ]
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            114
+          ]
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": []
+        }
+      ],
+      "title": "背景補完 • 自動説明を反映",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "TextEncodeQwenImage21"
+      },
+      "widgets_values": [
+        "",
+        "border, frame, picture on a wall, gray background, empty space, duplicate person, extra person",
+        0
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "negative_prompt": "border, frame, picture on a wall, gray background, empty space, duplicate person, extra person",
+        "resolution": 0
+      }
+    },
+    {
+      "id": 87,
+      "type": "VAEDecode",
+      "pos": [
+        3100,
+        70
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 37,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "サンプル",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 107
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 108
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "画像",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            109
+          ]
+        }
+      ],
+      "title": "背景補完 • 画像化",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 88,
+      "type": "H3OrbitWideComposite",
+      "pos": [
+        3100,
+        335
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 38,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "generated",
+          "name": "generated",
+          "type": "IMAGE",
+          "link": 109
+        },
+        {
+          "localized_name": "original",
+          "name": "original",
+          "type": "IMAGE",
+          "link": 110
+        },
+        {
+          "localized_name": "geometry",
+          "name": "geometry",
+          "type": "H3_ORBIT_GEOMETRY",
+          "link": 111
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "wide_image",
+          "name": "wide_image",
+          "type": "IMAGE",
+          "links": [
+            8,
+            12,
+            15,
+            70,
+            71
+          ]
+        },
+        {
+          "localized_name": "geometry",
+          "name": "geometry",
+          "type": "H3_ORBIT_GEOMETRY",
+          "links": []
+        },
+        {
+          "localized_name": "frame_basis_zoom",
+          "name": "frame_basis_zoom",
+          "type": "FLOAT",
+          "links": []
+        }
+      ],
+      "title": "元絵を保って周囲と接続",
+      "properties": {
+        "Node name for S&R": "H3OrbitWideComposite"
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 92,
+      "type": "KSampler",
+      "pos": [
+        2646,
+        475
+      ],
+      "size": [
+        380,
+        330
+      ],
+      "flags": {},
+      "order": 35,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 112
+        },
+        {
+          "localized_name": "ポジティブ",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 113
+        },
+        {
+          "localized_name": "ネガティブ",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 114
+        },
+        {
+          "localized_name": "潜在画像",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 115
+        },
+        {
+          "localized_name": "シード",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ステップ",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "サンプラー名",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "スケジューラ",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ノイズ除去",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            107
+          ]
+        }
+      ],
+      "title": "背景補完 • 25ステップ",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        20261103,
+        "fixed",
+        25,
+        3,
+        "euler",
+        "simple",
+        1
+      ],
+      "widgets_values_named": {
+        "seed": 20261103,
+        "control_after_generate": "fixed",
+        "steps": 25,
+        "cfg": 3,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      }
+    },
+    {
+      "id": 93,
+      "type": "EmptyLatentImage",
+      "pos": [
+        2172,
+        525
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 28,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "幅",
+          "name": "width",
+          "type": "INT",
+          "widget": {
+            "name": "width"
+          },
+          "link": 116
+        },
+        {
+          "localized_name": "高さ",
+          "name": "height",
+          "type": "INT",
+          "widget": {
+            "name": "height"
+          },
+          "link": 117
+        },
+        {
+          "localized_name": "バッチサイズ",
+          "name": "batch_size",
+          "type": "INT",
+          "widget": {
+            "name": "batch_size"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            115
+          ]
+        }
+      ],
+      "title": "背景補完 • 元の縦横比",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "EmptyLatentImage"
+      },
+      "widgets_values": [
+        1024,
+        1024,
+        1
+      ],
+      "widgets_values_named": {
+        "width": 1024,
+        "height": 1024,
+        "batch_size": 1
+      }
+    },
+    {
+      "id": 94,
+      "type": "CLIPLoader",
+      "pos": [
+        1244,
+        70
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip名",
+          "name": "clip_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "clip_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "タイプ",
+          "name": "type",
+          "type": "COMBO",
+          "widget": {
+            "name": "type"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "デバイス",
+          "name": "device",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "device"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CLIP",
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            118
+          ]
+        }
+      ],
+      "title": "元絵の背景を読み取る",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "CLIPLoader",
+        "models": [
+          {
+            "name": "qwen3.5_4b_bf16.safetensors",
+            "directory": "text_encoders",
+            "url": "https://huggingface.co/Comfy-Org/Qwen3.5/resolve/5d50a2252bf1bcd49e5fee9b5f296986d442682b/text_encoders/qwen3.5_4b_bf16.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "qwen3.5_4b_bf16.safetensors",
+        "qwen_image",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "qwen3.5_4b_bf16.safetensors",
+        "type": "qwen_image",
+        "device": "default"
+      }
+    },
+    {
+      "id": 95,
+      "type": "TextGenerate",
+      "pos": [
+        1698,
+        70
+      ],
+      "size": [
+        400,
+        500
+      ],
+      "flags": {},
+      "order": 27,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 118
+        },
+        {
+          "localized_name": "画像",
+          "name": "image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 119
+        },
+        {
+          "localized_name": "ビデオ",
+          "name": "video",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "オーディオ",
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "localized_name": "system_prompt",
+          "name": "system_prompt",
+          "shape": 7,
+          "type": "STRING",
+          "link": null
+        },
+        {
+          "localized_name": "プロンプト",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "最大長",
+          "name": "max_length",
+          "type": "INT",
+          "widget": {
+            "name": "max_length"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "サンプリングモード",
+          "name": "sampling_mode",
+          "type": "COMFY_DYNAMICCOMBO_V3",
+          "widget": {
+            "name": "sampling_mode"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "思考モード",
+          "name": "thinking",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "thinking"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "use_default_template",
+          "name": "use_default_template",
+          "shape": 7,
+          "type": "BOOLEAN",
+          "widget": {
+            "name": "use_default_template"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "mtp",
+          "name": "mtp",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "mtp"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "生成テキスト",
+          "name": "generated_text",
+          "type": "STRING",
+          "links": [
+            106
+          ]
+        },
+        {
+          "localized_name": "思考",
+          "name": "thinking",
+          "type": "STRING",
+          "links": []
+        }
+      ],
+      "title": "構図・場所・絵柄を自動で説明",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "TextGenerate"
+      },
+      "widgets_values": [
+        "Describe this image as an English image-generation prompt, imagining a wider view of the SAME environment. State the camera elevation and viewing direction, then describe ground, background objects, perspective, lighting, colors and artistic style. Briefly mention the existing subject at a small scale in the center. Use 80 to 120 words in one paragraph. Describe actual scene content only. Do not mention images, canvas, borders, references, editing, or instructions. Do not invent additional people.",
+        256,
+        "off",
+        false,
+        true,
+        "off"
+      ],
+      "widgets_values_named": {
+        "prompt": "Describe this image as an English image-generation prompt, imagining a wider view of the SAME environment. State the camera elevation and viewing direction, then describe ground, background objects, perspective, lighting, colors and artistic style. Briefly mention the existing subject at a small scale in the center. Use 80 to 120 words in one paragraph. Describe actual scene content only. Do not mention images, canvas, borders, references, editing, or instructions. Do not invent additional people.",
+        "max_length": 256,
+        "sampling_mode": "off",
+        "thinking": false,
+        "use_default_template": true,
+        "mtp": "off"
+      }
+    },
+    {
+      "id": 96,
+      "type": "H3OrbitRigidViews",
+      "pos": [
+        3620,
+        2664
+      ],
+      "size": [
+        650,
+        930
+      ],
+      "flags": {},
+      "order": 76,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "scene_prefix",
+          "name": "scene_prefix",
+          "type": "STRING",
+          "link": 120
+        },
+        {
+          "localized_name": "original",
+          "name": "original",
+          "type": "IMAGE",
+          "link": 121
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "orbit_manifest",
+          "name": "orbit_manifest",
+          "type": "STRING",
+          "links": null
+        }
+      ],
+      "title": "⑧ 固定3D • 背景付き・低／水平／高の全視点",
+      "properties": {
+        "Node name for S&R": "H3OrbitRigidViews"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "orbit_preview": ""
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 97,
+      "type": "H3OrbitSceneTexturePrepare",
+      "pos": [
+        750,
+        2664
+      ],
+      "size": [
+        390,
+        200
+      ],
+      "flags": {},
+      "order": 62,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "scene_prefix",
+          "name": "scene_prefix",
+          "type": "STRING",
+          "link": 122
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "panorama",
+          "name": "panorama",
+          "type": "IMAGE",
+          "links": [
+            125
+          ]
+        },
+        {
+          "localized_name": "ground",
+          "name": "ground",
+          "type": "IMAGE",
+          "links": [
+            135
+          ]
+        },
+        {
+          "localized_name": "panorama_prompt",
+          "name": "panorama_prompt",
+          "type": "STRING",
+          "links": [
+            126
+          ]
+        },
+        {
+          "localized_name": "ground_prompt",
+          "name": "ground_prompt",
+          "type": "STRING",
+          "links": [
+            136
+          ]
+        }
+      ],
+      "title": "背景の連続パノラマと床の参照を準備",
+      "properties": {
+        "Node name for S&R": "H3OrbitSceneTexturePrepare"
+      },
+      "color": "#24395c",
+      "bgcolor": "#101c31"
+    },
+    {
+      "id": 98,
+      "type": "TextEncodeQwenImage21",
+      "pos": [
+        1214,
+        2664
+      ],
+      "size": [
+        400,
+        380
+      ],
+      "flags": {},
+      "order": 63,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 123
+        },
+        {
+          "localized_name": "image_1",
+          "name": "images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 125
+        },
+        {
+          "localized_name": "image_2",
+          "name": "images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_3",
+          "name": "images.image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_4",
+          "name": "images.image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 124
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 126
+        },
+        {
+          "localized_name": "negative_prompt",
+          "name": "negative_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "negative_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            128
+          ]
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            129
+          ]
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            130
+          ]
+        }
+      ],
+      "title": "連続背景を生成する指示",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "TextEncodeQwenImage21"
+      },
+      "widgets_values": [
+        "",
+        "people, characters, floating wall, disconnected roof, collage, blank floor, blurry, foreground fence, frame, text",
+        0
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "negative_prompt": "people, characters, floating wall, disconnected roof, collage, blank floor, blurry, foreground fence, frame, text",
+        "resolution": 0
+      }
+    },
+    {
+      "id": 99,
+      "type": "KSampler",
+      "pos": [
+        1688,
+        2664
+      ],
+      "size": [
+        380,
+        330
+      ],
+      "flags": {},
+      "order": 65,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 127
+        },
+        {
+          "localized_name": "ポジティブ",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 128
+        },
+        {
+          "localized_name": "ネガティブ",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 129
+        },
+        {
+          "localized_name": "潜在画像",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 130
+        },
+        {
+          "localized_name": "シード",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ステップ",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "サンプラー名",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "スケジューラ",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ノイズ除去",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            131
+          ]
+        }
+      ],
+      "title": "連続背景 • Qwen2.1",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        20261103,
+        "fixed",
+        25,
+        3,
+        "euler",
+        "simple",
+        1
+      ],
+      "widgets_values_named": {
+        "seed": 20261103,
+        "control_after_generate": "fixed",
+        "steps": 25,
+        "cfg": 3,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      }
+    },
+    {
+      "id": 100,
+      "type": "VAEDecode",
+      "pos": [
+        2142,
+        2664
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 67,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "サンプル",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 131
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 132
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "画像",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            143,
+            155
+          ]
+        }
+      ],
+      "title": "連続背景を画像化",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 101,
+      "type": "TextEncodeQwenImage21",
+      "pos": [
+        1214,
+        3119
+      ],
+      "size": [
+        400,
+        380
+      ],
+      "flags": {},
+      "order": 64,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 133
+        },
+        {
+          "localized_name": "image_1",
+          "name": "images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 135
+        },
+        {
+          "localized_name": "image_2",
+          "name": "images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_3",
+          "name": "images.image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_4",
+          "name": "images.image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 134
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 136
+        },
+        {
+          "localized_name": "negative_prompt",
+          "name": "negative_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "negative_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            138
+          ]
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            139
+          ]
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            140
+          ]
+        }
+      ],
+      "title": "床の素材を生成する指示",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "TextEncodeQwenImage21"
+      },
+      "widgets_values": [
+        "",
+        "people, characters, floating wall, disconnected roof, collage, blank floor, blurry, foreground fence, frame, text",
+        0
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "negative_prompt": "people, characters, floating wall, disconnected roof, collage, blank floor, blurry, foreground fence, frame, text",
+        "resolution": 0
+      }
+    },
+    {
+      "id": 102,
+      "type": "KSampler",
+      "pos": [
+        1688,
+        3069
+      ],
+      "size": [
+        380,
+        330
+      ],
+      "flags": {},
+      "order": 66,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 137
+        },
+        {
+          "localized_name": "ポジティブ",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 138
+        },
+        {
+          "localized_name": "ネガティブ",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 139
+        },
+        {
+          "localized_name": "潜在画像",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 140
+        },
+        {
+          "localized_name": "シード",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ステップ",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "サンプラー名",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "スケジューラ",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ノイズ除去",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            141
+          ]
+        }
+      ],
+      "title": "床の素材 • Qwen2.1",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        20261103,
+        "fixed",
+        25,
+        3,
+        "euler",
+        "simple",
+        1
+      ],
+      "widgets_values_named": {
+        "seed": 20261103,
+        "control_after_generate": "fixed",
+        "steps": 25,
+        "cfg": 3,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      }
+    },
+    {
+      "id": 103,
+      "type": "VAEDecode",
+      "pos": [
+        2142,
+        2929
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 68,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "サンプル",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 141
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 142
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "画像",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            157
+          ]
+        }
+      ],
+      "title": "床の素材を画像化",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 104,
+      "type": "H3OrbitTextureWrap",
+      "pos": [
+        1214,
+        3574
+      ],
+      "size": [
+        390,
+        200
+      ],
+      "flags": {},
+      "order": 69,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "panorama",
+          "name": "panorama",
+          "type": "IMAGE",
+          "link": 143
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "seam_image",
+          "name": "seam_image",
+          "type": "IMAGE",
+          "links": [
+            146
+          ]
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "links": [
+            147
+          ]
+        }
+      ],
+      "title": "一周の継ぎ目を中央に移動",
+      "properties": {
+        "Node name for S&R": "H3OrbitTextureWrap"
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 105,
+      "type": "TextEncodeQwenImage21",
+      "pos": [
+        1214,
+        3849
+      ],
+      "size": [
+        400,
+        380
+      ],
+      "flags": {},
+      "order": 70,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 144
+        },
+        {
+          "localized_name": "image_1",
+          "name": "images.image_1",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 146
+        },
+        {
+          "localized_name": "image_2",
+          "name": "images.image_2",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_3",
+          "name": "images.image_3",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "image_4",
+          "name": "images.image_4",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": 145
+        },
+        {
+          "localized_name": "prompt",
+          "name": "prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "prompt"
+          },
+          "link": 147
+        },
+        {
+          "localized_name": "negative_prompt",
+          "name": "negative_prompt",
+          "type": "STRING",
+          "widget": {
+            "name": "negative_prompt"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "resolution",
+          "name": "resolution",
+          "type": "INT",
+          "widget": {
+            "name": "resolution"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "links": [
+            149
+          ]
+        },
+        {
+          "localized_name": "negative",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "links": [
+            150
+          ]
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "links": [
+            151
+          ]
+        }
+      ],
+      "title": "一周の継ぎ目を生成する指示",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "TextEncodeQwenImage21"
+      },
+      "widgets_values": [
+        "",
+        "people, characters, floating wall, disconnected roof, collage, blank floor, blurry, foreground fence, frame, text",
+        0
+      ],
+      "widgets_values_named": {
+        "prompt": "",
+        "negative_prompt": "people, characters, floating wall, disconnected roof, collage, blank floor, blurry, foreground fence, frame, text",
+        "resolution": 0
+      }
+    },
+    {
+      "id": 106,
+      "type": "KSampler",
+      "pos": [
+        1688,
+        3474
+      ],
+      "size": [
+        380,
+        330
+      ],
+      "flags": {},
+      "order": 71,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル",
+          "name": "model",
+          "type": "MODEL",
+          "link": 148
+        },
+        {
+          "localized_name": "ポジティブ",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 149
+        },
+        {
+          "localized_name": "ネガティブ",
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 150
+        },
+        {
+          "localized_name": "潜在画像",
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 151
+        },
+        {
+          "localized_name": "シード",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ステップ",
+          "name": "steps",
+          "type": "INT",
+          "widget": {
+            "name": "steps"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "cfg",
+          "name": "cfg",
+          "type": "FLOAT",
+          "widget": {
+            "name": "cfg"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "サンプラー名",
+          "name": "sampler_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "sampler_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "スケジューラ",
+          "name": "scheduler",
+          "type": "COMBO",
+          "widget": {
+            "name": "scheduler"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "ノイズ除去",
+          "name": "denoise",
+          "type": "FLOAT",
+          "widget": {
+            "name": "denoise"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "潜在",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            152
+          ]
+        }
+      ],
+      "title": "一周の継ぎ目 • Qwen2.1",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        20261103,
+        "fixed",
+        25,
+        3,
+        "euler",
+        "simple",
+        1
+      ],
+      "widgets_values_named": {
+        "seed": 20261103,
+        "control_after_generate": "fixed",
+        "steps": 25,
+        "cfg": 3,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      }
+    },
+    {
+      "id": 107,
+      "type": "VAEDecode",
+      "pos": [
+        2142,
+        3194
+      ],
+      "size": [
+        380,
+        190
+      ],
+      "flags": {},
+      "order": 72,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "サンプル",
+          "name": "samples",
+          "type": "LATENT",
+          "link": 152
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 153
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "画像",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            156
+          ]
+        }
+      ],
+      "title": "一周の継ぎ目を画像化",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "VAEDecode"
+      }
+    },
+    {
+      "id": 108,
+      "type": "UpscaleModelLoader",
+      "pos": [
+        2142,
+        3459
+      ],
+      "size": [
+        390,
+        200
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "モデル名",
+          "name": "model_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "model_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "アップスケールモデル",
+          "name": "UPSCALE_MODEL",
+          "type": "UPSCALE_MODEL",
+          "links": [
+            158
+          ]
+        }
+      ],
+      "title": "背景と床を高精細化",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.43.0",
+        "Node name for S&R": "UpscaleModelLoader",
+        "models": [
+          {
+            "name": "RealESRGAN_x4plus.safetensors",
+            "directory": "upscale_models",
+            "url": "https://huggingface.co/Comfy-Org/Real-ESRGAN_repackaged/resolve/main/RealESRGAN_x4plus.safetensors"
+          }
+        ]
+      },
+      "widgets_values": [
+        "RealESRGAN_x4plus.safetensors"
+      ],
+      "widgets_values_named": {
+        "model_name": "RealESRGAN_x4plus.safetensors"
+      }
+    },
+    {
+      "id": 109,
+      "type": "H3OrbitSceneTextureFinish",
+      "pos": [
+        2606,
+        2664
+      ],
+      "size": [
+        390,
+        200
+      ],
+      "flags": {},
+      "order": 73,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "scene_prefix",
+          "name": "scene_prefix",
+          "type": "STRING",
+          "link": 154
+        },
+        {
+          "localized_name": "panorama",
+          "name": "panorama",
+          "type": "IMAGE",
+          "link": 155
+        },
+        {
+          "localized_name": "seam",
+          "name": "seam",
+          "type": "IMAGE",
+          "link": 156
+        },
+        {
+          "localized_name": "ground",
+          "name": "ground",
+          "type": "IMAGE",
+          "link": 157
+        },
+        {
+          "localized_name": "upscale_model",
+          "name": "upscale_model",
+          "type": "UPSCALE_MODEL",
+          "link": 158
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "scene",
+          "name": "scene",
+          "type": "SPLAT",
+          "links": null
+        },
+        {
+          "localized_name": "camera",
+          "name": "camera",
+          "type": "LOAD3D_CAMERA",
+          "links": null
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "links": [
+            159
+          ]
+        },
+        {
+          "localized_name": "model_placement",
+          "name": "model_placement",
+          "type": "LOAD3D_MODEL_INFO",
+          "links": null
+        }
+      ],
+      "title": "接地・連続背景を合成した固定3D",
+      "properties": {
+        "Node name for S&R": "H3OrbitSceneTextureFinish"
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    },
+    {
+      "id": 110,
+      "type": "H3OrbitSubjectDetail",
+      "pos": [
+        2606,
+        2940
+      ],
+      "size": [
+        390,
+        240
+      ],
+      "flags": {},
+      "order": 74,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "scene_prefix",
+          "name": "scene_prefix",
+          "type": "STRING",
+          "link": 159
+        },
+        {
+          "localized_name": "reference_image",
+          "name": "reference_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 160
+        },
+        {
+          "localized_name": "original_image",
+          "name": "original_image",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": 161
+        },
+        {
+          "localized_name": "detail_model",
+          "name": "detail_model",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "detail_model"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "scene",
+          "name": "scene",
+          "type": "SPLAT",
+          "links": [
+            85
+          ]
+        },
+        {
+          "localized_name": "camera",
+          "name": "camera",
+          "type": "LOAD3D_CAMERA",
+          "links": [
+            90
+          ]
+        },
+        {
+          "localized_name": "width",
+          "name": "width",
+          "type": "INT",
+          "links": [
+            88
+          ]
+        },
+        {
+          "localized_name": "height",
+          "name": "height",
+          "type": "INT",
+          "links": [
+            89
+          ]
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "links": [
+            87,
+            120
+          ]
+        },
+        {
+          "localized_name": "model_placement",
+          "name": "model_placement",
+          "type": "LOAD3D_MODEL_INFO",
+          "links": [
+            91
+          ]
+        }
+      ],
+      "title": "元絵の瞳・口を復元 ＋ 3Dテクスチャ高精細化",
+      "properties": {
+        "Node name for S&R": "H3OrbitSubjectDetail",
+        "models": [
+          {
+            "name": "4x-AnimeSharp.pth",
+            "directory": "upscale_models",
+            "url": "https://huggingface.co/Kim2091/AnimeSharp/resolve/94dab98f2766c5a182c7f86aa7a2eed388f0257c/4x-AnimeSharp.pth"
+          }
+        ]
+      },
+      "widgets_values": [
+        "4x-AnimeSharp.pth"
+      ],
+      "widgets_values_named": {
+        "detail_model": "4x-AnimeSharp.pth"
+      },
+      "color": "#443066",
+      "bgcolor": "#211635"
+    }
+  ],
+  "links": [
+    [
+      1,
+      6,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      80,
+      4,
+      17,
+      0,
+      "FLOAT"
+    ],
+    [
+      3,
+      32,
+      0,
+      19,
+      0,
+      "MODEL"
+    ],
+    [
+      4,
+      19,
+      0,
+      20,
+      0,
+      "MODEL"
+    ],
+    [
+      5,
+      20,
+      0,
+      21,
+      0,
+      "MODEL"
+    ],
+    [
+      6,
+      22,
+      0,
+      24,
+      0,
+      "CLIP"
+    ],
+    [
+      7,
+      23,
+      0,
+      24,
+      1,
+      "VAE"
+    ],
+    [
+      8,
+      88,
+      0,
+      24,
+      2,
+      "IMAGE"
+    ],
+    [
+      9,
+      17,
+      0,
+      24,
+      5,
+      "STRING"
+    ],
+    [
+      10,
+      22,
+      0,
+      25,
+      0,
+      "CLIP"
+    ],
+    [
+      11,
+      23,
+      0,
+      25,
+      1,
+      "VAE"
+    ],
+    [
+      12,
+      88,
+      0,
+      25,
+      2,
+      "IMAGE"
+    ],
+    [
+      13,
+      24,
+      0,
+      26,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      14,
+      25,
+      0,
+      27,
+      0,
+      "CONDITIONING"
+    ],
+    [
+      15,
+      88,
+      0,
+      28,
+      0,
+      "IMAGE"
+    ],
+    [
+      16,
+      23,
+      0,
+      28,
+      1,
+      "VAE"
+    ],
+    [
+      17,
+      21,
+      0,
+      29,
+      0,
+      "MODEL"
+    ],
+    [
+      18,
+      26,
+      0,
+      29,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      19,
+      27,
+      0,
+      29,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      20,
+      28,
+      0,
+      29,
+      3,
+      "LATENT"
+    ],
+    [
+      21,
+      29,
+      0,
+      30,
+      0,
+      "LATENT"
+    ],
+    [
+      22,
+      23,
+      0,
+      30,
+      1,
+      "VAE"
+    ],
+    [
+      23,
+      30,
+      0,
+      31,
+      0,
+      "IMAGE"
+    ],
+    [
+      24,
+      17,
+      1,
+      31,
+      1,
+      "H3_ORBIT_PLAN"
+    ],
+    [
+      25,
+      80,
+      3,
+      31,
+      2,
+      "H3_ORBIT_GEOMETRY"
+    ],
+    [
+      26,
+      6,
+      0,
+      31,
+      3,
+      "IMAGE"
+    ],
+    [
+      27,
+      17,
+      2,
+      31,
+      4,
+      "COMBO"
+    ],
+    [
+      28,
+      2,
+      0,
+      3,
+      0,
+      "MODEL"
+    ],
+    [
+      38,
+      36,
+      0,
+      10,
+      0,
+      "MODEL"
+    ],
+    [
+      39,
+      36,
+      1,
+      10,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      40,
+      36,
+      0,
+      11,
+      0,
+      "MODEL"
+    ],
+    [
+      42,
+      36,
+      2,
+      14,
+      4,
+      "LATENT"
+    ],
+    [
+      43,
+      10,
+      0,
+      14,
+      1,
+      "GUIDER"
+    ],
+    [
+      44,
+      11,
+      0,
+      14,
+      3,
+      "SIGMAS"
+    ],
+    [
+      45,
+      12,
+      0,
+      14,
+      2,
+      "SAMPLER"
+    ],
+    [
+      46,
+      13,
+      0,
+      14,
+      0,
+      "NOISE"
+    ],
+    [
+      47,
+      14,
+      0,
+      15,
+      0,
+      "LATENT"
+    ],
+    [
+      48,
+      5,
+      0,
+      15,
+      1,
+      "VAE"
+    ],
+    [
+      49,
+      15,
+      0,
+      16,
+      0,
+      "IMAGE"
+    ],
+    [
+      50,
+      31,
+      5,
+      16,
+      1,
+      "H3_ORBIT_REFERENCES"
+    ],
+    [
+      51,
+      80,
+      3,
+      16,
+      2,
+      "H3_ORBIT_GEOMETRY"
+    ],
+    [
+      52,
+      6,
+      0,
+      16,
+      3,
+      "IMAGE"
+    ],
+    [
+      53,
+      36,
+      4,
+      16,
+      4,
+      "INT"
+    ],
+    [
+      54,
+      18,
+      0,
+      32,
+      0,
+      "MODEL"
+    ],
+    [
+      55,
+      33,
+      0,
+      34,
+      0,
+      "MODEL"
+    ],
+    [
+      56,
+      4,
+      0,
+      35,
+      0,
+      "CLIP"
+    ],
+    [
+      57,
+      5,
+      0,
+      35,
+      1,
+      "VAE"
+    ],
+    [
+      58,
+      31,
+      6,
+      35,
+      4,
+      "STRING"
+    ],
+    [
+      59,
+      7,
+      1,
+      35,
+      5,
+      "INT"
+    ],
+    [
+      60,
+      7,
+      2,
+      35,
+      6,
+      "INT"
+    ],
+    [
+      61,
+      31,
+      0,
+      35,
+      2,
+      "IMAGE"
+    ],
+    [
+      62,
+      31,
+      0,
+      35,
+      3,
+      "IMAGE"
+    ],
+    [
+      63,
+      3,
+      0,
+      36,
+      0,
+      "MODEL"
+    ],
+    [
+      64,
+      9,
+      0,
+      36,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      65,
+      9,
+      1,
+      36,
+      2,
+      "LATENT"
+    ],
+    [
+      66,
+      34,
+      0,
+      36,
+      3,
+      "MODEL"
+    ],
+    [
+      67,
+      35,
+      0,
+      36,
+      4,
+      "CONDITIONING"
+    ],
+    [
+      68,
+      35,
+      1,
+      36,
+      5,
+      "LATENT"
+    ],
+    [
+      69,
+      40,
+      0,
+      41,
+      0,
+      "BACKGROUND_REMOVAL"
+    ],
+    [
+      70,
+      88,
+      0,
+      41,
+      1,
+      "IMAGE"
+    ],
+    [
+      71,
+      88,
+      0,
+      42,
+      0,
+      "IMAGE"
+    ],
+    [
+      72,
+      41,
+      0,
+      42,
+      1,
+      "MASK"
+    ],
+    [
+      73,
+      43,
+      0,
+      45,
+      0,
+      "CLIP_VISION"
+    ],
+    [
+      74,
+      44,
+      0,
+      45,
+      1,
+      "VAE"
+    ],
+    [
+      75,
+      42,
+      0,
+      45,
+      2,
+      "IMAGE"
+    ],
+    [
+      76,
+      46,
+      0,
+      47,
+      0,
+      "MODEL"
+    ],
+    [
+      77,
+      47,
+      0,
+      48,
+      0,
+      "MODEL"
+    ],
+    [
+      78,
+      45,
+      0,
+      48,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      79,
+      45,
+      1,
+      48,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      80,
+      45,
+      2,
+      48,
+      3,
+      "LATENT"
+    ],
+    [
+      81,
+      48,
+      0,
+      50,
+      0,
+      "LATENT"
+    ],
+    [
+      82,
+      49,
+      0,
+      50,
+      1,
+      "VAE"
+    ],
+    [
+      83,
+      48,
+      0,
+      51,
+      0,
+      "LATENT"
+    ],
+    [
+      84,
+      50,
+      0,
+      51,
+      1,
+      "SPLAT"
+    ],
+    [
+      85,
+      110,
+      0,
+      53,
+      0,
+      "SPLAT"
+    ],
+    [
+      86,
+      53,
+      0,
+      54,
+      0,
+      "FILE_3D_SPLAT_ANY"
+    ],
+    [
+      87,
+      110,
+      4,
+      54,
+      3,
+      "STRING"
+    ],
+    [
+      90,
+      110,
+      1,
+      54,
+      2,
+      "LOAD3D_CAMERA"
+    ],
+    [
+      91,
+      110,
+      5,
+      54,
+      1,
+      "LOAD3D_MODEL_INFO"
+    ],
+    [
+      92,
+      17,
+      3,
+      52,
+      0,
+      "STRING"
+    ],
+    [
+      93,
+      6,
+      0,
+      52,
+      1,
+      "IMAGE"
+    ],
+    [
+      94,
+      16,
+      0,
+      52,
+      2,
+      "STRING"
+    ],
+    [
+      95,
+      50,
+      0,
+      52,
+      3,
+      "SPLAT"
+    ],
+    [
+      96,
+      51,
+      0,
+      52,
+      4,
+      "LOAD3D_CAMERA"
+    ],
+    [
+      97,
+      40,
+      0,
+      52,
+      5,
+      "BACKGROUND_REMOVAL"
+    ],
+    [
+      98,
+      7,
+      0,
+      80,
+      0,
+      "IMAGE"
+    ],
+    [
+      99,
+      7,
+      3,
+      80,
+      1,
+      "H3_ORBIT_GEOMETRY"
+    ],
+    [
+      100,
+      81,
+      0,
+      85,
+      0,
+      "MODEL"
+    ],
+    [
+      101,
+      84,
+      0,
+      85,
+      1,
+      "MODEL_PATCH"
+    ],
+    [
+      102,
+      83,
+      0,
+      85,
+      2,
+      "VAE"
+    ],
+    [
+      103,
+      80,
+      0,
+      85,
+      4,
+      "IMAGE"
+    ],
+    [
+      104,
+      80,
+      1,
+      85,
+      5,
+      "MASK"
+    ],
+    [
+      105,
+      82,
+      0,
+      86,
+      0,
+      "CLIP"
+    ],
+    [
+      107,
+      92,
+      0,
+      87,
+      0,
+      "LATENT"
+    ],
+    [
+      108,
+      83,
+      0,
+      87,
+      1,
+      "VAE"
+    ],
+    [
+      109,
+      87,
+      0,
+      88,
+      0,
+      "IMAGE"
+    ],
+    [
+      110,
+      7,
+      0,
+      88,
+      1,
+      "IMAGE"
+    ],
+    [
+      111,
+      7,
+      3,
+      88,
+      2,
+      "H3_ORBIT_GEOMETRY"
+    ],
+    [
+      112,
+      85,
+      0,
+      92,
+      0,
+      "MODEL"
+    ],
+    [
+      113,
+      86,
+      0,
+      92,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      114,
+      86,
+      1,
+      92,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      115,
+      93,
+      0,
+      92,
+      3,
+      "LATENT"
+    ],
+    [
+      116,
+      7,
+      1,
+      93,
+      0,
+      "INT"
+    ],
+    [
+      117,
+      7,
+      2,
+      93,
+      1,
+      "INT"
+    ],
+    [
+      106,
+      95,
+      0,
+      86,
+      3,
+      "STRING"
+    ],
+    [
+      120,
+      110,
+      4,
+      96,
+      0,
+      "STRING"
+    ],
+    [
+      121,
+      6,
+      0,
+      96,
+      1,
+      "IMAGE"
+    ],
+    [
+      122,
+      52,
+      4,
+      97,
+      0,
+      "STRING"
+    ],
+    [
+      127,
+      81,
+      0,
+      99,
+      0,
+      "MODEL"
+    ],
+    [
+      128,
+      98,
+      0,
+      99,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      129,
+      98,
+      1,
+      99,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      130,
+      98,
+      2,
+      99,
+      3,
+      "LATENT"
+    ],
+    [
+      131,
+      99,
+      0,
+      100,
+      0,
+      "LATENT"
+    ],
+    [
+      132,
+      83,
+      0,
+      100,
+      1,
+      "VAE"
+    ],
+    [
+      137,
+      81,
+      0,
+      102,
+      0,
+      "MODEL"
+    ],
+    [
+      138,
+      101,
+      0,
+      102,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      139,
+      101,
+      1,
+      102,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      140,
+      101,
+      2,
+      102,
+      3,
+      "LATENT"
+    ],
+    [
+      141,
+      102,
+      0,
+      103,
+      0,
+      "LATENT"
+    ],
+    [
+      142,
+      83,
+      0,
+      103,
+      1,
+      "VAE"
+    ],
+    [
+      143,
+      100,
+      0,
+      104,
+      0,
+      "IMAGE"
+    ],
+    [
+      148,
+      81,
+      0,
+      106,
+      0,
+      "MODEL"
+    ],
+    [
+      149,
+      105,
+      0,
+      106,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      150,
+      105,
+      1,
+      106,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      151,
+      105,
+      2,
+      106,
+      3,
+      "LATENT"
+    ],
+    [
+      152,
+      106,
+      0,
+      107,
+      0,
+      "LATENT"
+    ],
+    [
+      153,
+      83,
+      0,
+      107,
+      1,
+      "VAE"
+    ],
+    [
+      154,
+      52,
+      4,
+      109,
+      0,
+      "STRING"
+    ],
+    [
+      155,
+      100,
+      0,
+      109,
+      1,
+      "IMAGE"
+    ],
+    [
+      156,
+      107,
+      0,
+      109,
+      2,
+      "IMAGE"
+    ],
+    [
+      157,
+      103,
+      0,
+      109,
+      3,
+      "IMAGE"
+    ],
+    [
+      158,
+      108,
+      0,
+      109,
+      4,
+      "UPSCALE_MODEL"
+    ],
+    [
+      159,
+      109,
+      4,
+      110,
+      0,
+      "STRING"
+    ],
+    [
+      41,
+      36,
+      3,
+      11,
+      2,
+      "INT"
+    ],
+    [
+      88,
+      110,
+      2,
+      54,
+      5,
+      "INT"
+    ],
+    [
+      89,
+      110,
+      3,
+      54,
+      6,
+      "INT"
+    ],
+    [
+      160,
+      42,
+      0,
+      110,
+      1,
+      "IMAGE"
+    ],
+    [
+      161,
+      6,
+      0,
+      110,
+      2,
+      "IMAGE"
+    ],
+    [
+      123,
+      82,
+      0,
+      98,
+      0,
+      "CLIP"
+    ],
+    [
+      125,
+      97,
+      0,
+      98,
+      1,
+      "IMAGE"
+    ],
+    [
+      133,
+      82,
+      0,
+      101,
+      0,
+      "CLIP"
+    ],
+    [
+      135,
+      97,
+      1,
+      101,
+      1,
+      "IMAGE"
+    ],
+    [
+      144,
+      82,
+      0,
+      105,
+      0,
+      "CLIP"
+    ],
+    [
+      146,
+      104,
+      0,
+      105,
+      1,
+      "IMAGE"
+    ],
+    [
+      29,
+      4,
+      0,
+      9,
+      0,
+      "CLIP"
+    ],
+    [
+      30,
+      5,
+      0,
+      9,
+      1,
+      "VAE"
+    ],
+    [
+      31,
+      31,
+      0,
+      9,
+      3,
+      "IMAGE"
+    ],
+    [
+      32,
+      31,
+      1,
+      9,
+      4,
+      "IMAGE"
+    ],
+    [
+      33,
+      31,
+      2,
+      9,
+      5,
+      "IMAGE"
+    ],
+    [
+      35,
+      31,
+      4,
+      9,
+      11,
+      "STRING"
+    ],
+    [
+      36,
+      7,
+      1,
+      9,
+      12,
+      "INT"
+    ],
+    [
+      37,
+      7,
+      2,
+      9,
+      13,
+      "INT"
+    ],
+    [
+      34,
+      31,
+      3,
+      9,
+      16,
+      "IMAGE"
+    ],
+    [
+      124,
+      83,
+      0,
+      98,
+      5,
+      "VAE"
+    ],
+    [
+      126,
+      97,
+      2,
+      98,
+      6,
+      "STRING"
+    ],
+    [
+      134,
+      83,
+      0,
+      101,
+      5,
+      "VAE"
+    ],
+    [
+      136,
+      97,
+      3,
+      101,
+      6,
+      "STRING"
+    ],
+    [
+      145,
+      83,
+      0,
+      105,
+      5,
+      "VAE"
+    ],
+    [
+      147,
+      104,
+      1,
+      105,
+      6,
+      "STRING"
+    ],
+    [
+      118,
+      94,
+      0,
+      95,
+      0,
+      "CLIP"
+    ],
+    [
+      119,
+      7,
+      0,
+      95,
+      1,
+      "IMAGE"
+    ]
+  ],
+  "groups": [
+    {
+      "id": 1,
+      "title": "01  Input and outpaint / 入力と画像外補完",
+      "bounding": [
+        720,
+        18,
+        2815,
+        1334
+      ],
+      "color": "#397184",
+      "flags": {}
+    },
+    {
+      "id": 2,
+      "title": "02  Reference views / 背景付き視点",
+      "bounding": [
+        3620,
+        18,
+        2431,
+        934
+      ],
+      "color": "#4c6d81",
+      "flags": {}
+    },
+    {
+      "id": 3,
+      "title": "03  MiniMax H3 orbit / 周回素材",
+      "bounding": [
+        720,
+        1435,
+        3389,
+        1094
+      ],
+      "color": "#695785",
+      "flags": {}
+    },
+    {
+      "id": 4,
+      "title": "04  Fixed subject / 人物固定と接地",
+      "bounding": [
+        4194,
+        1435,
+        2815,
+        714
+      ],
+      "color": "#806044",
+      "flags": {}
+    },
+    {
+      "id": 5,
+      "title": "05  Panorama and floor / 背景・床・継ぎ目",
+      "bounding": [
+        720,
+        2612,
+        2331,
+        1649
+      ],
+      "color": "#3c7b6d",
+      "flags": {}
+    },
+    {
+      "id": 6,
+      "title": "06  Explore and save / 回転・構図・保存",
+      "bounding": [
+        3136,
+        2612,
+        2023,
+        1044
+      ],
+      "color": "#766350",
+      "flags": {}
+    }
+  ],
+  "extra": {
+    "ds": {
+      "scale": 0.1,
+      "offset": [
+        900,
+        1500
+      ]
+    },
+    "komaorbit_name": "KomaOrbit"
+  },
+  "version": 0.4
+}

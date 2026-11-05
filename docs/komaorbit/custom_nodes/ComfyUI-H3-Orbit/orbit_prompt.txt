@@ -1,0 +1,30 @@
+subject_definitions:
+<Picture 1> supplies the complete starting composition, including the foreground, main subject or group, background, and visual style.
+<Subject 1> is the main subject or central group in <Picture 1>, with the same identity, hairstyle, outfit, proportions, pose, and expression.
+<Subject 2> is the surrounding location in <Picture 1>, including its architecture, terrain, furniture, vegetation, and lighting.
+
+summary:
+[reference generation] ORB360_CW. One continuous clockwise camera orbit around <Subject 1> inside <Subject 2>. Time is stopped while the camera circles once. The original illustration or photographic style is retained.
+
+retention_analysis:
+<Picture 1> ([Shot 1] beginning and ending): fully_preserved - use the supplied composition as the starting and returning viewpoint, including its background.
+<Subject 1> (appears in [Shot 1]): fully_preserved - keep identity, appearance, pose, and the number of subjects consistent across views.
+<Subject 2> (appears in [Shot 1]): partially_preserved - preserve visible landmarks and their relative locations; infer plausible connected scenery where the input gives no view.
+
+detailed_description:
+Retain the source image's rendering style, linework, palette, textures, and level of abstraction. A drawing remains a drawing. Treat the depicted content as a scene with depth, rather than as an image printed on a rotating sheet.
+[Shot 1] Start with the framing and viewing direction of <Picture 1>. <Subject 1> remains at its original location in <Subject 2>. The camera travels clockwise around the central subject or group, maintaining its initial height, viewing distance, lens, and look-at point. There is a single uninterrupted turn with no cuts. Maintain a steady angular progression so that each intermediate image represents the next neighboring view. The camera movement reveals the sides and back of the subject and the surrounding setting. The subject does not turn to face the lens.
+
+Use the following schedule for a 124-frame sequence at 24 frames per second. The last frame is frame 123 at 5.125 seconds; it returns to the initial viewpoint. All milestones are within [Shot 1].
+At 0.000000 seconds, frame 0: starting azimuth, 0 degrees, corresponding to <Picture 1>.
+At 1.708333 seconds, frame 41: clockwise azimuth 120 degrees from the starting viewpoint.
+At 3.416667 seconds, frame 82: clockwise azimuth 240 degrees from the starting viewpoint.
+At 5.125000 seconds, frame 123: clockwise azimuth 360 degrees, returning to <Picture 1>.
+
+Across the entire turn, faces, hairstyles, clothing, limbs, and accessories retain their identities and relative arrangement. Keep all people and objects motionless: no walking, lip movement, gestures, blinking, head tracking, or hair movement. Preserve the original number of subjects; occlusion may hide an existing subject but must not create a second copy. Infer unseen surfaces as continuations of the same forms. Let nearby and distant scenery change in perspective according to their depth, with background objects staying fixed in world space. Preserve the original location and lighting direction throughout. Do not replace the background with an empty studio, spin the whole scene like a card, zoom toward the subject, tilt the horizon, reverse direction, or introduce a second revolution. Complete the turn at the original camera position without changing the scene to disguise the join.
+
+overall_soundscape:
+N/A
+
+non_diegetic_music:
+N/A

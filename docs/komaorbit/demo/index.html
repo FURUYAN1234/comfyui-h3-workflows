@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KomaOrbit | 一枚絵から構図を探す</title>
+<meta name="description" content="KomaOrbit: a local ComfyUI workflow for orbit, pan, zoom and source-size PNG export. 導入と操作の案内。">
+<style>
+:root{color-scheme:dark;--bg:#101817;--card:#182421;--ink:#eef5ef;--muted:#b4c8bd;--accent:#b2f097}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.8 system-ui,sans-serif}main{max-width:1000px;margin:auto;padding:64px 24px 80px}a{color:var(--accent);text-underline-offset:4px}h1{font-size:clamp(48px,8vw,88px);line-height:1.1;letter-spacing:-.04em;margin:16px 0 22px}h2{font-size:25px;margin-top:52px}p{max-width:790px}.eyebrow,.en{color:var(--muted)}.eyebrow{letter-spacing:.14em;font-size:13px}nav{display:flex;gap:16px;flex-wrap:wrap;margin:30px 0}nav a{display:inline-block;border:1px solid #47604f;border-radius:10px;padding:12px 20px;text-decoration:none}nav a:first-child{background:var(--accent);color:#122010;border-color:var(--accent)}.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.control{background:var(--card);border:1px solid #2e4339;border-radius:12px;padding:24px}.control strong{font-size:24px;display:block}.control p{margin:8px 0}li{margin:12px 0}code{background:#23332c;padding:2px 6px;border-radius:4px}footer{margin-top:56px;border-top:1px solid #33483d;padding-top:24px;color:var(--muted);font-size:14px}@media(max-width:650px){main{padding-top:36px}.controls{grid-template-columns:1fr}.control{padding:18px}h2{font-size:22px}}
+</style>
+<main>
+<div class="eyebrow">COMFYUI WORKFLOW · LOCAL GENERATION</div>
+<h1>KomaOrbit</h1>
+<p>一枚絵を読み込み、人物と背景を3Dの構図として探索する。回転・平行移動・拡大縮小をマウスで操作し、元画像と同じ幅・高さで保存します。</p>
+<p class="en" lang="en">Explore a composition around an illustrated subject. Orbit, pan and zoom locally in ComfyUI, then export a PNG at the source image dimensions.</p>
+<nav aria-label="入手先"><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/komaorbit-20261105142122">ZIPを取得 / Download</a><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/tree/main/docs/komaorbit">README・ソース / Source</a></nav>
+<p>このページは導入・操作の案内です。実行にはローカルのComfyUIを使います。配布物はワークフローとノードのソースで、入力画像・モデルは別途用意します。<br><span class="en" lang="en">This is a setup and usage guide. Run the workflow in local ComfyUI with your own input and separately obtained models.</span></p>
+<h2>完成ノード⑩で操作 / Controls</h2>
+<div class="controls"><section class="control"><strong>左ドラッグ</strong><p>回転 / Orbit</p><span class="en">左右の周回・アオリ・俯瞰</span></section><section class="control"><strong>右ドラッグ</strong><p>平行移動 / Pan</p><span class="en">構図を上下・左右に移動</span></section><section class="control"><strong>ホイール</strong><p>拡大縮小 / Zoom</p><span class="en">保存する画角を調整</span></section></div>
+<p>「中央に戻す」で初期構図へ。「この視点を保存」で白枠内を元画像の寸法でPNGにします。⑧は高さ3段階×73方位を一括保存できます。<br><span class="en" lang="en">Reset with “中央に戻す” and save the framed view with “この視点を保存”. Node ⑧ exports 3 heights × 73 directions.</span></p>
+<h2>導入の流れ / Setup</h2>
+<ol><li>Releaseの名前付きZIPを展開し、<code>verify_package.py</code>で確認。<br><span class="en">Extract the named release ZIP and verify its files.</span></li><li>ComfyUI用Pythonで<code>install.py --comfy /path/to/ComfyUI --dependencies</code>を実行。<br><span class="en">Install the three node packages and their dependencies using ComfyUI's Python.</span></li><li>READMEに従ってWorldMirrorの公式コード、CUDA描画環境、指定モデルを準備。<br><span class="en">Prepare the separately licensed WorldMirror source, CUDA renderer and listed models.</span></li><li>ComfyUIを再起動し、<code>KomaOrbit.json</code>を開いて①に自分の画像を指定。<br><span class="en">Restart ComfyUI, open the workflow and select your image at ①.</span></li></ol>
+<p>Linux / WSL2とNVIDIA CUDAを対象に検証しています。対応版・手順・モデルURLは<a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/komaorbit/README.md">README</a>、検証範囲は<a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/komaorbit/VALIDATION.md">VALIDATION</a>を参照。<br><span class="en" lang="en">See the README for versions, model URLs and installation, and VALIDATION for the actual test scope.</span></p>
+<h2>出力と制約 / Outputs and limits</h2>
+<p>元画像と同じ寸法のPNG、角度別画像、Gaussian Splat形式のPLYを保存できます。PLYの読み込みには対応するアプリが必要です。通常のボーン付きメッシュではありません。見えない形状・背景は推定され、顔や背面の厳密な一致は保証されません。<br><span class="en" lang="en">Export source-size PNGs, a view grid and Gaussian-splat PLY. Use a compatible splat importer. Hidden geometry and background are inferred; exact identity from every angle is not guaranteed.</span></p>
+<footer>独自コード・ワークフローはMIT。第三者コード・モデルは各配布元の条件に従います。<a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/komaorbit/THIRD_PARTY_NOTICES.md">クレジット・権利表示 / Credits and notices</a><br><span lang="en">Original code and workflow: MIT. Third-party components and models retain their respective terms.</span></footer>
+</main>
+</html>

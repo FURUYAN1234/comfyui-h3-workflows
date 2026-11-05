@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><title>H3 Orbit 操作検査用</title>
+<style>body{background:#272a31;color:white;font:16px sans-serif;margin:24px}#mount{width:640px;height:700px;max-width:100%}button{padding:8px}pre{white-space:pre-wrap}</style>
+<h1>回転プレビューの操作検査</h1>
+<p>これは色と番号だけの検査用画像です。H3の生成品質を検証するものではありません。</p>
+<button id="landscape">横長</button> <button id="portrait">縦長</button>
+<button id="grid">上下3段階</button> <button id="refs">参照4方向×3段階</button>
+<button id="missing">読込失敗</button> <button id="burst">連続更新</button> <button id="restore">再読込を再現</button>
+<div id="mount"></div><pre id="state"></pre>
+<script type="module">
+import { OrbitViewer } from "../web/viewer.mjs";
+const mount = document.querySelector('#mount');
+const output = document.querySelector('#state');
+let viewer, saved, broken = false;
+const makeUrl = (filename, subfolder) => {
+  if (broken) return './missing-frame-for-negative-test.png';
+  const portrait = subfolder.includes('portrait');
+  const canvas = document.createElement('canvas');
+  canvas.width = portrait ? 400 : 600; canvas.height = portrait ? 600 : 400;
+  const ctx = canvas.getContext('2d');
+  const number = Number(filename.match(/\d+/)?.[0] || 0);
+  ctx.fillStyle = `hsl(${number / 123 * 360},50%,32%)`; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle = 'white'; ctx.lineWidth = 6; ctx.strokeRect(3,3,canvas.width-6,canvas.height-6);
+  ctx.font='32px sans-serif'; ctx.fillStyle='white'; ctx.fillText(filename,20,80);
+  ctx.fillText(`${canvas.width} × ${canvas.height}`,20,130);
+  ctx.fillText(subfolder.match(/row_\d+/)?.[0] || 'legacy',20,180);
+  return canvas.toDataURL();
+};
+function manifest(portrait) {
+  return {schema_version:1,status:'complete',type:'output',subfolder:'H3_ORB360/test_'+(portrait?'portrait':'landscape'),frame_count:124,fps:24,width:portrait?400:600,height:portrait?600:400,source_width:portrait?400:600,source_height:portrait?600:400};
+}
+function create() {
+  viewer?.dispose();
+  viewer = new OrbitViewer(makeUrl, (m,i,row) => {
+    saved = {manifest:m,index:i,row}; output.textContent=JSON.stringify({index:i,row,cache:viewer.cache.size,manifest:m.subfolder},null,2);
+  });
+  mount.append(viewer.root);
+}
+create(); viewer.load(manifest(false));
+document.querySelector('#landscape').onclick=()=>{broken=false;viewer.load(manifest(false))};
+document.querySelector('#portrait').onclick=()=>{broken=false;viewer.load(manifest(true))};
+document.querySelector('#grid').onclick=()=>{broken=false;viewer.load({...manifest(true),schema_version:2,kind:'orbit_grid',row_count:3,elevations:[-30,0,30],default_row:1})};
+document.querySelector('#refs').onclick=()=>{broken=false;viewer.load({...manifest(false),schema_version:2,kind:'references',frame_count:4,fps:0,row_count:3,elevations:[-30,0,30],default_row:1})};
+document.querySelector('#missing').onclick=()=>{broken=true;viewer.load(manifest(false))};
+document.querySelector('#burst').onclick=()=>{for(let i=0;i<124;i++)viewer.show(i)};
+document.querySelector('#restore').onclick=()=>{const previous=structuredClone(saved);broken=false;create();viewer.load(previous.manifest,previous.index,previous.row)};
+</script></html>

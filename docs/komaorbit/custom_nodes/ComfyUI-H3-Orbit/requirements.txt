@@ -1,0 +1,15 @@
+# Install using the same Python environment as ComfyUI.
+# torch/torchvision and their CUDA version are supplied by ComfyUI.
+gsplat==1.5.3
+ninja>=1.11
+jaxtyping>=0.2
+lightning-utilities>=0.15
+rich>=12
+numpy>=1.26
+scipy>=1.13
+opencv-python-headless>=4.10
+safetensors>=0.5.3
+huggingface-hub>=0.30
+einops>=0.8
+plyfile>=1.1
+trimesh>=4
