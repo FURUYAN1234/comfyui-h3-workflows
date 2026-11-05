@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H3 MV | 完成した曲をミュージックビデオにする</title>
+<meta name="description" content="完成音源、歌詞、キャラクター画像から、元曲と字幕を合わせたMVを作るComfyUIワークフロー。">
+<link rel="canonical" href="https://furuyan1234.github.io/comfyui-h3-workflows/h3-mv/demo/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FURU ComfyUI Workflows">
+<meta property="og:url" content="https://furuyan1234.github.io/comfyui-h3-workflows/h3-mv/demo/">
+<meta property="og:title" content="H3 MV｜完成した曲をミュージックビデオにする">
+<meta property="og:description" content="完成音源、歌詞、キャラクター画像から、元曲と字幕を合わせたMVを作るComfyUIワークフロー。">
+<meta property="og:image" content="https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/h3/mv-cover.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="670">
+<link rel="stylesheet" href="../../assets/h3-guides.css">
+</head>
+<body class="mv">
+<a class="skip" href="#main">本文へ / Skip to content</a>
+<main id="main">
+<header><p class="kicker">ComfyUI workflow · Local generation · v1.2.1</p>
+<h1>H3 MV</h1><p class="subtitle">完成した曲をミュージックビデオにする</p>
+<div class="summary"><p>完成音源、歌詞、キャラクター画像から、元曲と字幕を合わせたMVを作るComfyUIワークフロー。<br><span class="en" lang="en">Create a music video from a finished song, exact lyrics and a character sheet. The final export restores the original audio and can add timed subtitles.</span></p></div>
+<nav class="actions" aria-label="入手先と記事"><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261105183000/H3_MV_20261105183000_v1.2.1.zip">専用ZIPを取得 / Download</a><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/mv/README.md">GitHubのREADME</a><a href="https://note.com/happy_duck780/n/ne8a84cb6db37">noteの解説記事</a></nav>
+<p class="file">H3_MV_20261105183000_v1.2.1.zip</p>
+<figure><img class="cover" src="https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/h3/mv-cover.png" alt="H3 MVのnote見出し画像" width="1280" height="670"></figure></header>
+<section aria-labelledby="inputs"><h2 id="inputs">用意するもの / What to bring</h2><div class="choices">
+<article class="choice"><h3>完成音源 / Finished song</h3><p>YuE2などで用意した元曲を音源バンドルにします。<br><span class="en" lang="en">Prepare a bundle from the original song, for example a track made in YuE2.</span></p></article>
+<article class="choice"><h3>歌詞 / Exact lyrics</h3><p>歌詞をバンドルに含め、必要に応じてWhisperで字幕の時刻を合わせます。<br><span class="en" lang="en">Include exact lyrics in the bundle and use Whisper to time subtitles if needed.</span></p></article>
+<article class="choice"><h3>キャラクター画像 / Character sheet</h3><p>シートと演出指示で、画面に出す人物や歌唱者を指定します。<br><span class="en" lang="en">Use the sheet and directions to identify the characters and performers.</span></p></article>
+</div><figure><img loading="lazy" src="https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/workflow-bridge-yue2-to-mv-v1.2.0.png" alt="作曲側の完成音源バンドルをMV側へ渡す流れ"><figcaption>作曲からMVへの引き継ぎ / Song-to-MV handoff</figcaption></figure></section>
+<section aria-labelledby="setup"><h2 id="setup">導入 / Setup</h2>
+<ol>
+<li>専用ZIPを展開し、<code>python -B verify_package.py</code>を実行します。<br><span class="en" lang="en">Extract the named ZIP and run the package verifier.</span></li>
+<li>同梱の6フォルダーをComfyUIの<code>custom_nodes/</code>へ置き、ComfyUIのPythonへ<code>requirements.txt</code>の依存ライブラリを入れます。<br><span class="en" lang="en">Copy the 6 node folders into ComfyUI and install the requirements with its Python.</span></li>
+<li>指定のH3モデル4本、CUDAに対応するPyTorch・Triton、FFmpeg／ffprobe、LM Studioを準備します。字幕の時刻合わせにはWhisperを指定します。<br><span class="en" lang="en">Set up the four H3 model files, CUDA PyTorch and Triton, FFmpeg and LM Studio. Configure Whisper for subtitle alignment.</span></li>
+<li>ComfyUIを再起動し、ZIPの<code>workflows/</code>からMV用JSONを開きます。<br><span class="en" lang="en">Restart ComfyUI and open the MV workflow from the ZIP.</span></li>
+</ol><p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/SETUP.md">モデルの配置先と環境設定 / Model paths and detailed setup</a></p></section>
+<section aria-labelledby="run"><h2 id="run">まず20秒で確認 / First run: 20 seconds</h2>
+<p>音源バンドルとキャラクター画像を選び、演出を入力します。20秒、フェード1秒で試し、口の動き・人物・元曲・字幕を確認してから「音源末尾まで（可変尺）」へ切り替えます。<br><span class="en" lang="en">Select the bundle and character sheet, enter directions, and try 20 seconds with a one-second fade. Check the performers, lip movement, original song and subtitles before switching to the full song.</span></p>
+<p>最終ノードで元曲を合わせ、設定に応じて字幕やフェードを合成します。完成ファイルは<code>ComfyUI/output/video/MV/&lt;title_timestamp&gt;/final.mp4</code>です。<br><span class="en" lang="en">The final node restores the original song and applies configured subtitles and fades. The output is the final.mp4 shown above.</span></p>
+<p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/mv/README.md">MVの入力仕様・導入と操作 / MV bundle format and full guide</a></p></section>
+<section aria-labelledby="limits"><h2 id="limits">実行環境と確認 / Runtime and review</h2>
+<p>この案内からZIPを取得し、ご自身のComfyUIで実行します。モデルと入力素材は別途用意します。人物の見た目や音声の一致は、生成した映像で確認してください。<br><span class="en" lang="en">Download the kit and run it in your local ComfyUI. Obtain models and inputs separately. Review the generated video for visual identity and audio.</span></p>
+<p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/VALIDATION.md">検証環境と確認済み範囲 / Validation record</a></p></section>
+<footer><p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/LICENSES_AND_NOTICES.md">クレジット・利用条件 / Credits and notices</a>。モデルと入力素材には別の利用条件があります。<br><span lang="en">Models and inputs have separate terms.</span></p>
+<nav class="siblings" aria-label="ほかのワークフロー"><a href="https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/">H3 Video</a><a href="https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/">KomaOrbit</a><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows">配布一覧 / All workflows</a></nav></footer>
+</main>
+</body>
+</html>

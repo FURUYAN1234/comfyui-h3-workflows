@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>H3 Video | 文章・画像から音声付き動画を作る</title>
+<meta name="description" content="文章だけのT2V、開始画像を動かすI2V、人物や衣装を参照するRef2V。用途から選べるComfyUIワークフロー3本セット。">
+<link rel="canonical" href="https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="FURU ComfyUI Workflows">
+<meta property="og:url" content="https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/">
+<meta property="og:title" content="H3 Video｜文章・画像から音声付き動画を作る">
+<meta property="og:description" content="文章だけのT2V、開始画像を動かすI2V、人物や衣装を参照するRef2V。用途から選べるComfyUIワークフロー3本セット。">
+<meta property="og:image" content="https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/h3/video-cover.png">
+<meta property="og:image:width" content="1280">
+<meta property="og:image:height" content="670">
+<link rel="stylesheet" href="../../assets/h3-guides.css">
+</head>
+<body class="video">
+<a class="skip" href="#main">本文へ / Skip to content</a>
+<main id="main">
+<header><p class="kicker">ComfyUI workflow · Local generation · v1.2.1</p>
+<h1>H3 Video</h1><p class="subtitle">文章・画像から音声付き動画を作る</p>
+<div class="summary"><p>文章だけのT2V、開始画像を動かすI2V、人物や衣装を参照するRef2V。用途から選べるComfyUIワークフロー3本セット。<br><span class="en" lang="en">Choose text to video, animate a starting image, or guide a video with references. All three workflows are included in the H3 Video ZIP.</span></p></div>
+<nav class="actions" aria-label="入手先と記事"><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261105183000/H3_Video_20261105183000_v1.2.1.zip">専用ZIPを取得 / Download</a><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows">GitHubのREADME</a><a href="https://note.com/happy_duck780/n/n15e732b3147b">noteの解説記事</a></nav>
+<p class="file">H3_Video_20261105183000_v1.2.1.zip</p>
+<figure><img class="cover" src="https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/docs/assets/h3/video-cover.png" alt="H3 Videoのnote見出し画像" width="1280" height="670"></figure></header>
+<section aria-labelledby="choose"><h2 id="choose">3方式から選ぶ / Choose a workflow</h2><div class="choices">
+<article class="choice"><h3><span class="key">T2V</span>文章から作る</h3><p>場面、動き、必要な台詞を文章で指定します。<br><span class="en" lang="en">Describe the scene, movement and optional dialogue.</span></p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/t2v/README.md">T2Vの使い方 / T2V guide →</a></article>
+<article class="choice"><h3><span class="key">I2V</span>開始画像を動かす</h3><p>冒頭に使う画像を1枚読み込み、続く動きを書きます。<br><span class="en" lang="en">Upload one starting image and describe what happens next.</span></p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/i2v/README.md">I2Vの使い方 / I2V guide →</a></article>
+<article class="choice"><h3><span class="key">Ref2V</span>参照画像で見た目を指定</h3><p>人物・衣装・場所などを1〜5枚で指定します。<br><span class="en" lang="en">Use one to five images as visual references.</span></p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/ref2v/README.md">Ref2Vの使い方 / Ref2V guide →</a></article>
+</div></section>
+<section aria-labelledby="setup"><h2 id="setup">導入 / Setup</h2>
+<ol>
+<li>専用ZIPを展開し、<code>python -B verify_package.py</code>を実行します。<br><span class="en" lang="en">Extract the named ZIP and run the package verifier.</span></li>
+<li>同梱の5フォルダーをComfyUIの<code>custom_nodes/</code>へ置き、ComfyUIのPythonへ<code>requirements.txt</code>の依存ライブラリを入れます。<br><span class="en" lang="en">Copy the 5 node folders into ComfyUI and install the requirements with its Python.</span></li>
+<li>指定のH3モデル4本、CUDAに対応するPyTorch・Triton、FFmpeg／ffprobe、LM Studioを準備します。音声検査を使う場合はWhisperも設定します。<br><span class="en" lang="en">Set up the four H3 model files, CUDA PyTorch and Triton, FFmpeg and LM Studio. Configure Whisper for speech review.</span></li>
+<li>ComfyUIを再起動し、ZIPの<code>workflows/</code>から使いたい方式のJSONを開きます。<br><span class="en" lang="en">Restart ComfyUI and open the workflow you want from the ZIP.</span></li>
+</ol><p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/SETUP.md">モデルの配置先と環境設定 / Model paths and detailed setup</a></p></section>
+<section aria-labelledby="run"><h2 id="run">最初は5秒で試す / First run: 5 seconds</h2>
+<p>画像を使う方式は該当の画像欄を埋めます。「動画指示」と尺の設定を5秒に揃えて実行し、プレビューで画と音を確認します。文章内に明示した尺が優先されます。<br><span class="en" lang="en">Fill the image inputs when required. Set a five-second duration in both the instructions and the duration control, queue the run, then check the picture and audio. An explicit duration in the instructions takes precedence.</span></p>
+<p>完成MP4は<code>ComfyUI/output/video/MiniMax_H3/H3_T2V-I2V-Ref2V/</code>に保存されます。長い生成を再開する場合は入力とキャッシュ名を揃えます。<br><span class="en" lang="en">Find the completed MP4 in the output folder above. Keep the same inputs and cache name to resume a longer run.</span></p>
+<p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/SETTINGS.md">設定・区間生成・再開 / Settings, segments and recovery</a></p></section>
+<section aria-labelledby="limits"><h2 id="limits">実行環境と確認 / Runtime and review</h2>
+<p>この案内からZIPを取得し、ご自身のComfyUIで実行します。モデルと入力素材は別途用意します。人物の見た目や音声の一致は、生成した映像で確認してください。<br><span class="en" lang="en">Download the kit and run it in your local ComfyUI. Obtain models and inputs separately. Review the generated video for visual identity and audio.</span></p>
+<p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/VALIDATION.md">検証環境と確認済み範囲 / Validation record</a></p></section>
+<footer><p><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/LICENSES_AND_NOTICES.md">クレジット・利用条件 / Credits and notices</a>。モデルと入力素材には別の利用条件があります。<br><span lang="en">Models and inputs have separate terms.</span></p>
+<nav class="siblings" aria-label="ほかのワークフロー"><a href="https://furuyan1234.github.io/comfyui-h3-workflows/h3-mv/demo/">H3 MV</a><a href="https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/">KomaOrbit</a><a href="https://github.com/FURUYAN1234/comfyui-h3-workflows">配布一覧 / All workflows</a></nav></footer>
+</main>
+</body>
+</html>
