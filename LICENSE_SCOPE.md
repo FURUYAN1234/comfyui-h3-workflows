@@ -1,6 +1,6 @@
 # License scope and existing permissions / ライセンス適用範囲と既存の許諾
 
-Documentation revision / 文書改定: 2026-10-08. Software baseline / ソフトウェア基準: **H3 v1.2.1**, commit `a3a0d42f664142aabaeef6bb08b0b223d8a94c63`.
+Documentation revision / 文書改定: 2026-11-14. Software baseline / ソフトウェア基準: **H3 v1.2.2**, runtime commit `89fc0b43d4fce67e879f5f9309bde86b999336b8`.
 
 This document clarifies rights; it does not replace [LICENSE](LICENSE), impose additional restrictions on existing software, change version numbers or republish ZIPs. / 本書は権利の説明です。[LICENSE](LICENSE)を置き換えず、既存ソフトウェアへ独自制限を加えず、版番号変更やZIP再公開も行いません。
 
@@ -31,3 +31,5 @@ See [component/model notices](LICENSES_AND_NOTICES.md) and [FURU usage guidance]
 | `licenses/MINIMAX_H3_LICENSE.txt`, `licenses/NOTICE.txt` | MiniMax model license, not the FURU software grant / MiniMaxモデル条件でありFURU許諾ではありません |
 
 Use per-file headers, bundled LICENSE/NOTICE files and the pinned source commit to resolve individual third-party contributions; the repository owner is not asserted to own all bundled material. / 個々の第三者寄与はファイル内表示・同梱LICENSE/NOTICE・上記ソースコミットで確認し、リポジトリ所有者が同梱物すべての権利者であるとは扱いません。
+
+The 2026-11-14 revision updates current-version references without changing license grants. / 2026-11-14改定は現行版の参照更新であり、ライセンスの許諾は変更しません。

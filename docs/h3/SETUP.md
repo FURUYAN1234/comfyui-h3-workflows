@@ -7,9 +7,9 @@ Install this once for the H3 video set or MV. KomaOrbit uses its own instruction
 
 ### 1. Choose one package / 1. 必要なZIPを1つ選ぶ
 
-Use **H3_Video_20261114065048_v1.2.2.zip** for T2V/I2V/Ref2V, or **H3_MV_20261114065048_v1.2.2.zip** for MV. Each is self-contained for its custom nodes; neither needs KomaOrbit or the other ZIP. / T2V・I2V・Ref2Vは **H3_Video_20261114065048_v1.2.2.zip**、MVは **H3_MV_20261114065048_v1.2.2.zip** を選びます。それぞれに必要なノードが入り、KomaOrbitやもう一方のZIPは不要です。
+Use **H3_Video_20261114072010_v1.2.2.zip** for T2V/I2V/Ref2V, or **H3_MV_20261114072010_v1.2.2.zip** for MV. Each is self-contained for its custom nodes; neither needs KomaOrbit or the other ZIP. / T2V・I2V・Ref2Vは **H3_Video_20261114072010_v1.2.2.zip**、MVは **H3_MV_20261114072010_v1.2.2.zip** を選びます。それぞれに必要なノードが入り、KomaOrbitやもう一方のZIPは不要です。
 
-[Named ZIP assets / 名前付きZIPを取得](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/h3-split-20261114065048)
+[Named ZIP assets / 名前付きZIPを取得](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/h3-split-20261114072010)
 
 Extract the entire selected ZIP. Before updating, back up existing same-named node folders outside ComfyUI. / 選んだZIP全体を展開します。同名ノードの更新前には、既存フォルダーをComfyUIの外へ退避してください。
 
@@ -69,24 +69,24 @@ For ComfyUI Portable on Windows, run this from the Portable root: / Windows Port
 
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_Video_20261114065048_v1.2.2\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\path\to\H3_Video_20261114072010_v1.2.2\requirements.txt"
 ```
 
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_Video_20261114065048_v1.2.2\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_Video_20261114072010_v1.2.2\requirements.txt"
 ```
 
 For a Linux or WSL venv installation, run this from the ComfyUI directory: / Linux・WSLのvenv版では、ComfyUIフォルダーから実行します。
 
 
 ```bash
-.venv/bin/python -m pip install -r "/path/to/H3_Video_20261114065048_v1.2.2/requirements.txt"
+.venv/bin/python -m pip install -r "/path/to/H3_Video_20261114072010_v1.2.2/requirements.txt"
 ```
 
 
 ```bash
-.venv/bin/python -m pip install -r "/展開先/H3_Video_20261114065048_v1.2.2/requirements.txt"
+.venv/bin/python -m pip install -r "/展開先/H3_Video_20261114072010_v1.2.2/requirements.txt"
 ```
 
 Install the Triton build required by SLA separately, matching your OS, PyTorch, and CUDA combination. For native Windows guidance, see [triton-windows](https://github.com/woct0rdho/triton-windows). / SLAに必要なTritonはOSとPyTorchの組み合わせに合わせて別途用意します。Windowsネイティブの情報は [triton-windows](https://github.com/woct0rdho/triton-windows) を確認してください。

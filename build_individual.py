@@ -56,7 +56,7 @@ def build(kind, destination, stamp):
                 shutil.copy2(ROOT/'docs/assets'/name, assets/name)
         meta = json.loads((ROOT/'VERSION.json').read_text())
         meta.update(distribution_kind=kind, distribution_revision='split1',
-                    workflow_built_at_jst=meta['built_at_jst'], built_at_jst=stamp,
+                    workflow_built_at_jst=meta.get('workflow_built_at_jst', meta['built_at_jst']), built_at_jst=stamp,
                     archive_prefix=prefix, archive_root=f"{prefix}_{stamp}_v{meta['version']}",
                     workflow_files=[p.name for p in chosen],
                     custom_node_packages=sorted(p.name for p in (root/'custom_nodes').iterdir() if p.is_dir()),

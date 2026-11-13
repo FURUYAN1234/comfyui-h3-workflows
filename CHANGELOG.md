@@ -51,3 +51,8 @@
 - Recognizes screen-text bans without inventing speech. / 「画面文字なし」などの指定を発話要求と取り違えないよう修正しました。
 - Confirms suspected action replay using ordered action phases; checks every suspected duplicate frame independently. One clarification is allowed for uncertain visibility. Unresolved evidence stays unavailable and cannot authorize a defect-based rerender. / 動作のやり直し疑義を時系列の動作段階で確認し、人物重複の疑義は該当する全フレームを個別確認します。不確かな場合の再確認は1回までとし、未確定は検査不能として保持し、欠陥を根拠にした再生成へ進めません。
 - Shared repairs apply to H3 Video and MV. KomaOrbit is unchanged. / 共通修正はH3 VideoとMVに適用し、KomaOrbitは変更していません。
+
+
+## Documentation correction 20261114072010 / 文書訂正20261114072010
+
+Updated current download links, the two guide pages, the MV workflow reference and current-version license references. Version remains v1.2.2; runtime code and workflow JSONs are unchanged from the 20261114065048 release. Historical notes remain. / 現行のダウンロードリンク、案内ページ2本、MVワークフロー参照、利用条件の現行版表示を更新しました。版はv1.2.2のまま、実行コードとワークフローJSONは20261114065048版から変更していません。過去の記録は保持します。

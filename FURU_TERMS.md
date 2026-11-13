@@ -1,8 +1,8 @@
 # FURU workflow and custom-node usage guidance / FURUワークフロー・カスタムノードの利用案内
 
-Revision / 改定: 2026-10-08. Copyright (c) 2026 FURU / FURUYAN1234.
+Revision / 改定: 2026-11-14. Copyright (c) 2026 FURU / FURUYAN1234.
 
-Current project / 現在の対象: **H3 v1.2.1**. [Exact version, files and rights holders / 正確な版・ファイル・権利者](LICENSE_SCOPE.md).
+Current project / 現在の対象: **H3 v1.2.2**. [Exact version, files and rights holders / 正確な版・ファイル・権利者](LICENSE_SCOPE.md).
 
 > [!IMPORTANT]
 > The current LICENSE and component licenses govern. This is usage guidance, not a replacement license or an additional commercialization restriction. / 現行LICENSEと構成要素の各ライセンスが適用されます。本書は利用案内であり、代替ライセンスや商品化制限の追加ではありません。
@@ -66,3 +66,5 @@ MiniMax H3 has a separate Community License; Qwen and Whisper models retain thei
 See [component/model notices](LICENSES_AND_NOTICES.md). / [構成要素・モデルの条件](LICENSES_AND_NOTICES.md)を参照してください。
 
 Reference for the shared free-use intent / 無料利用の趣旨を参照した基準文書: [nano-banana-pro LICENSE, fixed commit 45c19a4](https://github.com/FURUYAN1234/nano-banana-pro/blob/45c19a446b3ace48a1adb422e24c1865588f73c4/LICENSE). That separately licensed project is excluded from this repository's scope; its paid-offering restrictions are not imported here. / この別プロジェクトは本リポジトリの適用対象に含めず、有料提供制限を本リポジトリへ持ち込みません。
+
+2026-11-14: Updated the current-version reference only; existing permissions and the 2026-10-08 clarification remain unchanged. / 現行版の参照を更新しました。既存の許諾と2026-10-08の説明は維持します。

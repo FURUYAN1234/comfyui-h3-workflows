@@ -56,3 +56,8 @@ v1.1.8を基準に、指定尺を超える明示タイムラインと、混合�
 - 動画版115ファイル、MV版120ファイルの実行用ソースとJSONは、分割前の同じソースとバイト単位で一致。
 - 分割配布1件、ライセンス13件、既存仕様8件、モデル情報パス34件、MV可搬性3件の検査を実行。
 - 今回は配布・文書の改訂です。新しいGPU生成や別PCでの生成は実施していません。上記の通常生成の記録は以前の検証であり、今回のZIP展開検査とは区別します。
+
+
+## Documentation correction 20261114072010 / 文書訂正20261114072010
+
+Updated current download links, the two guide pages, the MV workflow reference and current-version license references. Version remains v1.2.2; runtime code and workflow JSONs are unchanged from the 20261114065048 release. Historical notes remain. / 現行のダウンロードリンク、案内ページ2本、MVワークフロー参照、利用条件の現行版表示を更新しました。版はv1.2.2のまま、実行コードとワークフローJSONは20261114065048版から変更していません。過去の記録は保持します。

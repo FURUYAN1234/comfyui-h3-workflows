@@ -3,8 +3,8 @@
 Use the release tag matching the asset. From the repository root / 対象Releaseタグを取得し、リポジトリ直下で実行:
 
 ```sh
-python -B build_individual.py video /absolute/output/H3_Video_20261114065048_v1.2.2.zip --stamp 20261114065048
-python -B build_individual.py mv /absolute/output/H3_MV_20261114065048_v1.2.2.zip --stamp 20261114065048
+python -B build_individual.py video /absolute/output/H3_Video_20261114072010_v1.2.2.zip --stamp 20261114072010
+python -B build_individual.py mv /absolute/output/H3_MV_20261114072010_v1.2.2.zip --stamp 20261114072010
 ```
 
 For KomaOrbit, change to `docs/komaorbit` and run / KomaOrbitは専用ディレクトリへ移動して実行:

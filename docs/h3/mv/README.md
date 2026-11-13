@@ -11,7 +11,7 @@ Provide a completed song, exact lyrics and a character sheet. This workflow gene
 
 ## Download / 入手先
 
-[Download H3_MV_20261114065048_v1.2.2.zip / MV専用ZIPを取得](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261114065048/H3_MV_20261114065048_v1.2.2.zip). It contains only **MV_H3_YuE2-LMStudio_v1.2.2.json** and its six custom-node packages. The T2V/I2V/Ref2V and KomaOrbit packages are not required. / JSONは **MV_H3_YuE2-LMStudio_v1.2.2.json** の1本だけで、必要な6ノードパッケージを同梱します。動画3方式やKomaOrbitのZIPは不要です。
+[Download H3_MV_20261114072010_v1.2.2.zip / MV専用ZIPを取得](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261114072010/H3_MV_20261114072010_v1.2.2.zip). It contains only **MV_H3_YuE2-LMStudio_v1.2.2.json** and its six custom-node packages. The T2V/I2V/Ref2V and KomaOrbit packages are not required. / JSONは **MV_H3_YuE2-LMStudio_v1.2.2.json** の1本だけで、必要な6ノードパッケージを同梱します。動画3方式やKomaOrbitのZIPは不要です。
 
 [Workflow JSON only / 導入済みの方向けJSON単体](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/workflows/MV_H3_YuE2-LMStudio_v1.2.2.json)
 

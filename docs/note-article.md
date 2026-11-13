@@ -2,7 +2,7 @@
 
 ## 利用条件（2026-10-08 文書改定）
 
-H3 v1.2.1：FURU独自部分はMIT。同梱ノードはパッケージごとにGPL-3.0-only・MIT・Apache-2.0。 MiniMax H3は別途Community License。Qwen・Whisper等のモデルも取得元の条件に従います。
+H3 v1.2.2：FURU独自部分はMIT。同梱ノードはパッケージごとにGPL-3.0-only・MIT・Apache-2.0。 MiniMax H3は別途Community License。Qwen・Whisper等のモデルも取得元の条件に従います。
 
 ソースコード公開・利用無料。個人利用、業務、社内利用、受託制作、無料の組み込み・無料提供には、申請・事前連絡・FURUの許可は不要です。第三者とAPIの条件は別です。
 
@@ -53,7 +53,7 @@ YuE2 v1.6.1のMV素材バンドルには、1枚のシートから読み取った
 - YuE2日本語おまかせ作曲: https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese
 - YuE2の解説note: https://note.com/happy_duck780/n/n57df44cf7fd2
 
-初回はGitHubの「Source code」やJSON単体ではなく、ReleaseのAssetsにある `H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1.zip` を使ってください。
+初回はGitHubの「Source code」やJSON単体ではなく、ReleaseのAssetsにある `H3_MV_20261114072010_v1.2.2.zip` を使ってください。これはMV専用の独立配布です。T2V・I2V・Ref2Vを使う場合は、同じReleaseの `H3_Video_20261114072010_v1.2.2.zip` を選びます。
 
 ![YuE2からMVへの連携](assets/workflow-bridge-yue2-to-mv-v1.2.0.png)
 
@@ -169,13 +169,13 @@ ComfyUIが実際に使うPythonで実行します。
 Windows Portable例：
 
 ```powershell
-.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1\requirements.txt"
+.\python_embeded\python.exe -m pip install -r "C:\展開先\H3_MV_20261114072010_v1.2.2\requirements.txt"
 ```
 
 WSL/Linux venv例：
 
 ```bash
-.venv/bin/python -m pip install -r "/展開先/H3_T2V-I2V-Ref2V-MV_20260923075019_v1.2.1/requirements.txt"
+.venv/bin/python -m pip install -r "/展開先/H3_MV_20261114072010_v1.2.2/requirements.txt"
 ```
 
 続けて `ffmpeg -version`、`ffprobe -version`、ComfyUIのPythonで `torch.cuda.is_available()` を確認します。
@@ -226,7 +226,7 @@ ComfyUI/models/whisper/whisper-large-v3-turbo/
 ## 7. まず20秒で確認
 
 1. ComfyUIを完全に再起動
-2. `workflows/MV_H3_YuE2-LMStudio_v1.2.1.json` を開く
+2. `workflows/MV_H3_YuE2-LMStudio_v1.2.2.json` を開く
 3. 赤い不足ノードがないことを確認
 4. `mv-assets/曲名_日時_ID` を入力
 5. キャラクター画像をLoadImageへアップロード
@@ -272,7 +272,7 @@ https://note.com/happy_duck780/n/n57df44cf7fd2
 
 ## ダウンロード
 
-- MV／H3ワークフロー: https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/v1.2.1
+- MV／H3ワークフロー: https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/tag/h3-split-20261114072010
 - YuE2日本語おまかせ作曲: https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.1
 
 どちらも初回はRelease Assetsの名前付きZIPを使い、展開後に `verify_package.py` を実行してください。自動生成されるGitHubのSource code ZIPやJSON単体だけでは、必要なカスタムノードと検査ファイルが揃いません。
