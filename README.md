@@ -7,8 +7,8 @@ Choose what you want to make. There are **three independent ZIP packages**; you 
 
 | Package / 配布物 | Input → result / 入力と結果 | Download / 入手先 |
 |---|---|---|
-| **H3 Video**: T2V / I2V / Ref2V | Text or images → video with audio / 文章・画像から音声付き動画 | [動画3方式のZIP / Video ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261105183000/H3_Video_20261105183000_v1.2.1.zip) |
-| **H3 MV** | Song + lyrics + character sheet → MV / 完成曲・歌詞・キャラ画像からMV | [MV専用ZIP / MV ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261105183000/H3_MV_20261105183000_v1.2.1.zip) |
+| **H3 Video**: T2V / I2V / Ref2V | Text or images → video with audio / 文章・画像から音声付き動画 | [動画3方式のZIP / Video ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261114065048/H3_Video_20261114065048_v1.2.2.zip) |
+| **H3 MV** | Song + lyrics + character sheet → MV / 完成曲・歌詞・キャラ画像からMV | [MV専用ZIP / MV ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261114065048/H3_MV_20261114065048_v1.2.2.zip) |
 | **KomaOrbit** | Illustration → camera control and PNG / 一枚絵の構図を動かしてPNG保存 | [KomaOrbit専用ZIP / KomaOrbit ZIP](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/komaorbit-20261105183001/KomaOrbit_20261105183001.zip) |
 
 Each ZIP includes its custom-node source, instructions, model URLs, integrity checks and notices. Models and user inputs are separate. / 各ZIPに必要なノードのソース、説明書、モデル取得先、検査ファイル、権利表示を含みます。モデル本体と入力素材は別途用意します。
@@ -73,8 +73,15 @@ When using H3 Video and MV together, install their identical shared folders only
 
 ## Versions and terms / 版と利用条件
 
-H3 guides describe **v1.2.1**. The split distribution keeps the existing runtime; separately discussed Comfy Kitchen Attention experiments are not included. Older releases remain available. / H3の各ガイドは **v1.2.1** を説明します。分割配布では既存コードを維持し、別途紹介したComfy Kitchen Attentionの実験設定は追加していません。旧版ZIPは履歴として残します。
+H3 guides describe **v1.2.2**. Workflow inputs, selected models and four video steps are retained while the shared LM connection and visual inspection are repaired; separately discussed Comfy Kitchen Attention experiments are not included. Older releases remain available. / H3の各ガイドは **v1.2.2** を説明します。入力方式・選択モデル・映像4ステップを維持し、共通のLM接続と画像検査を修正しました。別途紹介したComfy Kitchen Attentionの実験設定は追加していません。旧版ZIPは履歴として残します。
 
 [H3 setup / H3共通導入](docs/h3/SETUP.md) · [Settings and recovery / 設定と再開](docs/h3/SETTINGS.md) · [Validation / 検証記録](VALIDATION.md) · [H3 note article / H3解説](https://note.com/happy_duck780/n/n15e732b3147b)
 
 [Usage guide / 利用案内](FURU_TERMS.md) · [License scope / 適用条件](LICENSE_SCOPE.md) · [H3 notices / H3権利表示](LICENSES_AND_NOTICES.md) · [KomaOrbit notices / KomaOrbit権利表示](docs/komaorbit/THIRD_PARTY_NOTICES.md). Source licenses grant no extra model/output rights. / ソースのライセンスがモデルや生成物に追加の権利を与えるものではありません。
+
+## Changes in v1.2.2 / v1.2.2の変更点
+
+- Restores the bundled LM Studio schema and client; a clean kit no longer needs private Qwen nodes. Start LM Studio and load your chosen vision model manually. / 同梱スキーマとLM Studioクライアントを再接続し、非同梱の個人用Qwenノードへの依存を解消しました。LM Studioと選択した画像対応モデルは手動で起動します。
+- Recognizes screen-text bans without inventing speech. / 「画面文字なし」などの指定を発話要求と取り違えないよう修正しました。
+- Confirms suspected action replay using ordered action phases; checks every suspected duplicate frame independently. One clarification is allowed for uncertain visibility. Unresolved evidence stays unavailable and cannot authorize a defect-based rerender. / 動作のやり直し疑義を時系列の動作段階で確認し、人物重複の疑義は該当する全フレームを個別確認します。不確かな場合の再確認は1回までとし、未確定は検査不能として保持し、欠陥を根拠にした再生成へ進めません。
+- Shared repairs apply to H3 Video and MV. KomaOrbit is unchanged. / 共通修正はH3 VideoとMVに適用し、KomaOrbitは変更していません。

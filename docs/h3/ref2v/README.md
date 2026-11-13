@@ -9,9 +9,9 @@ One to five references for characters, clothing, objects or locations. Reference
 
 ## Download / 入手先
 
-[Download H3_Video_20261105183000_v1.2.1.zip / 動画3方式のZIPを取得](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261105183000/H3_Video_20261105183000_v1.2.1.zip). This package contains T2V, I2V and Ref2V; open only **Ref2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json** for this task. MV and KomaOrbit are not included or required. / 3本セットの中から、今回は **Ref2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json** だけを開きます。MV・KomaOrbitは同梱せず、別途導入も不要です。
+[Download H3_Video_20261114065048_v1.2.2.zip / 動画3方式のZIPを取得](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261114065048/H3_Video_20261114065048_v1.2.2.zip). This package contains T2V, I2V and Ref2V; open only **Ref2V_H3_T2V-I2V-Ref2V_4step_20261114065048_v1.2.2.json** for this task. MV and KomaOrbit are not included or required. / 3本セットの中から、今回は **Ref2V_H3_T2V-I2V-Ref2V_4step_20261114065048_v1.2.2.json** だけを開きます。MV・KomaOrbitは同梱せず、別途導入も不要です。
 
-[Workflow JSON only / 導入済みの方向けJSON単体](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20260923075019_v1.2.1.json) · [Shared setup / 共通導入](https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/SETUP.md)
+[Workflow JSON only / 導入済みの方向けJSON単体](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/workflows/Ref2V_H3_T2V-I2V-Ref2V_4step_20261114065048_v1.2.2.json) · [Shared setup / 共通導入](https://github.com/FURUYAN1234/comfyui-h3-workflows/blob/main/docs/h3/SETUP.md)
 
 ## Requirements and installation / 必要な環境と導入
 

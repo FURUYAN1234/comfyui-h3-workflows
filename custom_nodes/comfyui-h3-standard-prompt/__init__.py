@@ -8,7 +8,7 @@ import unicodedata
 from .lm_device import prompt_gpu_session, ensure_cpu_for_video
 
 import folder_paths
-import nodes
+from .lm_client import LocalLMHelper
 from .standard import timing, timeline, segment_prompt, normalize_lm_fields, reference_format_errors, boundary_errors, segment_frame_budget
 from .quality_guard import conversion_errors, VOCAL_REQUEST
 
@@ -29,7 +29,7 @@ _SPEECH_REQUEST_RE = re.compile(
     r'言う|言っ|言います|台詞|セリフ|会話|ナレーション|歌う|歌って|歌詞|発声|掛け声|挨拶|あいさつ|'
     r'\b(?:speak|speaks|speaking|talk|talks|talking|say|says|dialogue|narration|sing|sings|singing)\b', re.I)
 # A mixed list can prohibit voice, music and visible text in any order.
-_BAN_ITEM = r'(?:台詞|セリフ|会話|ナレーション|発声|掛け声|歌声|歌詞|歌|人声|声|BGM|背景音楽|音楽|劇伴|サウンドトラック|字幕|テロップ|文字|ロゴ|効果音|環境音)'
+_BAN_ITEM = r'(?:台詞|セリフ|会話|ナレーション|発声|掛け声|歌声|歌詞|歌|人声|声|BGM|背景音楽|音楽|劇伴|サウンドトラック|字幕|テロップ|画面(?:内)?(?:の)?文字|文字|ロゴ|効果音|環境音)'
 _LIST_BAN_RE = re.compile(
     _BAN_ITEM + r'(?:[・、,／/\s]+' + _BAN_ITEM + r')*'
     r'(?:は|を|の)?\s*(?:なし|無し|不要|入れない|追加しない)', re.I)
@@ -631,7 +631,7 @@ def split_conversion_issues(errors, prompt, image_count):
 class H3StandardPrompt:
     @classmethod
     def INPUT_TYPES(cls):
-        schema = copy.deepcopy(nodes.NODE_CLASS_MAPPINGS['H3VideoJapanesePromptLMStudio'].INPUT_TYPES())
+        schema = json.loads(Path(__file__).with_name('input_schema.json').read_text(encoding='utf-8'))
         schema['required']['fallback_to_japanese'][1].update(default=False, display_name='旧・原文続行（安全のため無効）', tooltip='互換性のため残していますが、ONでも未変換原文は動画へ渡しません。内容不備は最大2回修正依頼し、未解決なら停止します。')
         schema['required']['mode'] = (['T2VA','I2VA','Ref2VA (R2V)'],)
         schema['required']['duration_seconds'][1].update(default=15.0, min=0.1, max=600.0,
@@ -645,6 +645,8 @@ class H3StandardPrompt:
         return schema
 
     ensure_cpu_for_video = staticmethod(ensure_cpu_for_video)
+    local_lm_helper = LocalLMHelper
+    local_visual_helper = LocalLMHelper
 
     RETURN_TYPES = ('STRING','STRING','INT','INT','MINIMAX_H3_LONG_PROMPT_PLAN')
     RETURN_NAMES = ('H3_PROMPT','実行計画','総フレーム数','内部区間フレーム数','区間プロンプト計画')
@@ -672,7 +674,7 @@ class H3StandardPrompt:
         status = '直接入力：LM Studio・外部API呼出しなし'
         device_report = {'enabled': False}
         if brief:
-            helper = nodes.NODE_CLASS_MAPPINGS['QwenJapanesePromptLMStudio']()
+            helper = LocalLMHelper()
             helper.SYSTEM_PROMPT = system_prompt(mode, duration, boundaries)
             helper.STREAM_RESPONSE = True
             helper.H3_SAMPLING = True

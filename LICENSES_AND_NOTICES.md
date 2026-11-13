@@ -65,3 +65,8 @@ comfyui-h3-standard-promptの尺検査と日本語禁止指定の解析を修正
 ### v1.2.1（2026-09-23）
 
 独自作成の `comfyui-mv-workflow` にschema v2の複数人物処理を追加しました。第三者パッケージ、モデル、同梱ライセンス、入力素材の扱いはv1.2.0から変更していません。
+
+
+### v1.2.2 public adaptation / v1.2.2の公開用変更
+
+Restored portable LM connections and added structured visual witnesses and their regression checks. Runtime dependencies include `jsonschema` (MIT, installed separately; its source is not bundled). Existing package licenses remain unchanged. / 可搬なLM接続を復元し、構造化した画像観測と回帰検査を追加しました。実行依存に別途インストールするMITの`jsonschema`を追加し、そのソースは同梱していません。各パッケージの既存ライセンスは維持します。

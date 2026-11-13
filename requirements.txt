@@ -6,3 +6,4 @@ requests
 soundfile
 transformers>=4.46
 lmstudio
+jsonschema>=4.18

@@ -11,9 +11,9 @@ Provide a completed song, exact lyrics and a character sheet. This workflow gene
 
 ## Download / 入手先
 
-[Download H3_MV_20261105183000_v1.2.1.zip / MV専用ZIPを取得](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261105183000/H3_MV_20261105183000_v1.2.1.zip). It contains only **MV_H3_YuE2-LMStudio_v1.2.1.json** and its six custom-node packages. The T2V/I2V/Ref2V and KomaOrbit packages are not required. / JSONは **MV_H3_YuE2-LMStudio_v1.2.1.json** の1本だけで、必要な6ノードパッケージを同梱します。動画3方式やKomaOrbitのZIPは不要です。
+[Download H3_MV_20261114065048_v1.2.2.zip / MV専用ZIPを取得](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261114065048/H3_MV_20261114065048_v1.2.2.zip). It contains only **MV_H3_YuE2-LMStudio_v1.2.2.json** and its six custom-node packages. The T2V/I2V/Ref2V and KomaOrbit packages are not required. / JSONは **MV_H3_YuE2-LMStudio_v1.2.2.json** の1本だけで、必要な6ノードパッケージを同梱します。動画3方式やKomaOrbitのZIPは不要です。
 
-[Workflow JSON only / 導入済みの方向けJSON単体](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/workflows/MV_H3_YuE2-LMStudio_v1.2.1.json)
+[Workflow JSON only / 導入済みの方向けJSON単体](https://raw.githubusercontent.com/FURUYAN1234/comfyui-h3-workflows/main/workflows/MV_H3_YuE2-LMStudio_v1.2.2.json)
 
 ## Requirements and installation / 必要な環境と導入
 
@@ -35,7 +35,7 @@ Use a YuE2 v1.6.1 schema-v2 bundle for 1–12 characters with stable IDs. Views 
 ![MV layout reference, v1.2.0 / 配置の参考・v1.2.0画面](../../assets/workflow-mv-v1.2.0.png)
 
 1. In [ComfyUI-YuE2-Japanese v1.6.1](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.1), generate a song. The YuE2 final song-export node creates `ComfyUI/output/mv-assets/TITLE_TIMESTAMP_ID/` at the same time as the normal song folder. / [ComfyUI-YuE2-Japanese v1.6.1](https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese/releases/tag/v1.6.1)で曲を生成します。通常の曲フォルダーと同じ実行で、YuE2の完成曲を書き出すノードが `ComfyUI/output/mv-assets/曲名_日時_ID/` を別途作ります。
-2. Open `workflows/MV_H3_YuE2-LMStudio_v1.2.1.json`. Enter that relative folder as `mv-assets/TITLE_TIMESTAMP_ID`; an absolute path is not required. / `workflows/MV_H3_YuE2-LMStudio_v1.2.1.json` を開き、`mv-assets/曲名_日時_ID` の相対名を入力します。絶対パスは不要です。
+2. Open `workflows/MV_H3_YuE2-LMStudio_v1.2.2.json`. Enter that relative folder as `mv-assets/TITLE_TIMESTAMP_ID`; an absolute path is not required. / `workflows/MV_H3_YuE2-LMStudio_v1.2.2.json` を開き、`mv-assets/曲名_日時_ID` の相対名を入力します。絶対パスは不要です。
 3. Upload one character sheet with the standard `LoadImage` node. Use a clean reference that shows the intended face, hair, body proportions, and clothing. / 標準 `LoadImage` へキャラクターシートを1枚アップロードします。顔・髪・体格・服装が分かる参照を使います。
 4. In the large Japanese direction field, describe the mood or write “お任せ”. The bundled rules ask LM Studio to retain the input's 2D anime, 3D, or live-action appearance and avoid unauthorized redesign. / 大きな日本語欄へMVの雰囲気を書くか「お任せ」と入力します。同梱ルールは入力が2Dアニメ・3D・実写のどれかを維持し、勝手な別デザイン化を避けるよう指示します。
 5. Select `任意秒数` for a short test such as 20 seconds, or `音源末尾まで（可変尺）` for a complete song. `start_seconds` can begin from another section. / 20秒等の検証は `任意秒数`、1曲完走は `音源末尾まで（可変尺）` を選びます。`start_seconds` で途中からも開始できます。
@@ -69,7 +69,7 @@ Final file: `ComfyUI/output/video/MV/<title_timestamp>/final.mp4`. Segment cache
 
 ## Limits and validation / 制約と検証
 
-The recorded v1.2.1 normal-path test used a two-character bundle, generated five H3 segments and produced a 60.000-second 864×480 24fps MP4 with four subtitle intervals and restored original audio. This packaging revision does not claim a new song generation. Exact identity and lip sync are not guaranteed for every input. / 記録済みのv1.2.1検証は2人物バンドルからH3の5区間を生成し、60.000秒・864×480・24fps、字幕4区間、元音源を確認したものです。今回の配布整理で新たな曲を生成したという意味ではありません。全入力での人物一致や口の同期は保証できません。
+The recorded v1.2.2 normal-path test used a two-character bundle, generated five H3 segments and produced a 60.000-second 864×480 24fps MP4 with four subtitle intervals and restored original audio. This packaging revision does not claim a new song generation. Exact identity and lip sync are not guaranteed for every input. / 記録済みのv1.2.2検証は2人物バンドルからH3の5区間を生成し、60.000秒・864×480・24fps、字幕4区間、元音源を確認したものです。今回の配布整理で新たな曲を生成したという意味ではありません。全入力での人物一致や口の同期は保証できません。
 
 Missing bundle files or wrong hashes stop preparation. Check the selected bundle and original sheet. For missing subtitles, check the Whisper path and alignment. / バンドル欠落やハッシュ不一致は準備段階で停止します。素材フォルダーと元のシートを確認してください。字幕が出ない場合はWhisperのパスと時刻合わせを確認します。
 

@@ -212,6 +212,7 @@ def _auto_start_lm_studio(timeout_seconds):
     return False, 'LM StudioのDeveloper画面でサーバーと画像対応モデルを起動し、モデル名と接続先を確認してください。配布版は自動起動やPC設定変更を行いません。'
 
 class LocalLMHelper:
+    SUPPORTS_JSON_SCHEMA = True
     SYSTEM_PROMPT = ''
     def convert(
         self,
@@ -295,7 +296,16 @@ class LocalLMHelper:
             request_errors = []
             for base in (bases or _candidate_api_bases(api_base)):
                 try:
-                    data = _post_h3_structured(_native_chat_url(base), payload, int(request_timeout), self.H3_FIELDS) if getattr(self, 'H3_FIELDS', None) else (_post_json_stream if getattr(self, 'STREAM_RESPONSE', False) else _post_json)(_native_chat_url(base), payload, int(request_timeout))
+                    if getattr(self, 'JSON_SCHEMA', None):
+                        try:
+                            data = _post_json_schema(_native_chat_url(base), payload, int(request_timeout), self.JSON_SCHEMA)
+                        except Exception as exc:
+                            if getattr(exc, 'schema_evidence', None):
+                                self.JSON_SCHEMA_EVIDENCE = getattr(self, 'JSON_SCHEMA_EVIDENCE', []) + [exc.schema_evidence]
+                            raise
+                        self.JSON_SCHEMA_EVIDENCE = getattr(self, 'JSON_SCHEMA_EVIDENCE', []) + [data['schema_evidence']]
+                    else:
+                        data = _post_h3_structured(_native_chat_url(base), payload, int(request_timeout), self.H3_FIELDS) if getattr(self, 'H3_FIELDS', None) else (_post_json_stream if getattr(self, 'STREAM_RESPONSE', False) else _post_json)(_native_chat_url(base), payload, int(request_timeout))
                     prompt = "\n".join(
                         item.get("content", "").strip()
                         for item in data.get("output", [])
@@ -345,3 +355,133 @@ class LocalLMHelper:
         if fallback_to_japanese:
             return (instruction, message + " / 日本語原文をそのまま使用")
         raise RuntimeError(message)
+
+
+def _unique_json_object(pairs):
+    value={}
+    for key,item in pairs:
+        if key in value:
+            raise ValueError('duplicate typed JSON field: '+key)
+        value[key]=item
+    return value
+
+def _post_json_schema(url, payload, timeout, schema):
+    """LM Studio JSON grammar; no fallback to an external model or partial JSON.
+
+    Protocol: https://lmstudio.ai/docs/developer/openai-compat/structured-output
+    """
+    import folder_paths
+    content = payload['input']
+    if isinstance(content, list):
+        content = [{'type':'text', 'text':x['content']} if x['type']=='text'
+                   else {'type':'image_url', 'image_url':{'url':x['data_url']}} for x in content]
+    body = {'model':payload['model'], 'temperature':payload['temperature'],
+            'messages':[{'role':'system','content':payload['system_prompt']},
+                        {'role':'user','content':content}],
+            'max_tokens':payload['max_output_tokens'], 'stream':True,
+            'reasoning_effort':'none', 'chat_template_kwargs':{'enable_thinking':False},
+            'response_format':{'type':'json_schema','json_schema':{
+                'name':'h3_typed_analysis','strict':True,'schema':schema}}}
+    endpoint = url.split('/api/v1/chat')[0]+'/v1/chat/completions'
+    request = urllib.request.Request(endpoint, data=json.dumps(body,ensure_ascii=False).encode(),
+                 headers={'Content-Type':'application/json','Authorization':'Bearer lm-studio'})
+    import hashlib
+    identity = hashlib.sha256(json.dumps(body,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
+    output = Path(folder_paths.get_output_directory())/'h3-plan-audits'
+    output.mkdir(parents=True,exist_ok=True)
+    receipt_path = output/f'{identity}_{os.getpid()}_{time.time_ns()}.json'
+    started = last_report = time.monotonic()
+    parts=[]; finish=None; ended=False; failure=None
+    record={'schema':'h3.typed_lm_response.v1','request_sha256':identity,
+            'model':payload['model'],'max_tokens':payload['max_output_tokens'],'timeout_seconds':timeout,
+            'response_schema':schema,'status':'started','system_prompt':payload['system_prompt'],
+            'input':payload['input'] if isinstance(payload['input'],str) else [
+                item if item['type']=='text' else {'type':'image','sha256':hashlib.sha256(item['data_url'].encode()).hexdigest()}
+                for item in payload['input']]}
+    try:
+        idle, total = structured_stream_budget(payload, float(timeout), float(timeout))
+        for raw in stream_lines(request, idle, total):
+            elapsed=time.monotonic()-started
+            line=raw.decode('utf-8').strip()
+            if not line.startswith('data:'):
+                continue
+            data=line[5:].strip()
+            if data=='[DONE]':
+                ended=True;break
+            event=json.loads(data)
+            if 'error' in event:
+                raise RuntimeError(str(event['error']))
+            for choice in event.get('choices',[]):
+                if choice.get('index',0)!=0:
+                    raise ValueError('unexpected additional typed response')
+                delta=choice.get('delta',{});parts.append(delta.get('content') or '')
+                if choice.get('finish_reason'):
+                    finish=choice['finish_reason']
+            if time.monotonic()-last_report>=30:
+                print(f'[H3 typed analysis] elapsed={elapsed:.0f}s chars={sum(map(len,parts))}')
+                last_report=time.monotonic()
+        text=''.join(parts).strip()
+        if not ended or finish!='stop':
+            raise ValueError(f'incomplete typed JSON response: done={ended}, finish={finish}')
+        parsed=json.loads(text,object_pairs_hook=_unique_json_object,parse_constant=lambda value: (_ for _ in ()).throw(ValueError('nonfinite JSON constant')))
+        from jsonschema import Draft202012Validator, ValidationError
+        Draft202012Validator.check_schema(schema)
+        try:
+            Draft202012Validator(schema).validate(parsed)
+        except ValidationError as exc:
+            raise ValueError('typed response violates its schema: '+exc.message) from exc
+        record['schema_validation']='passed'
+        record['status']='returned'
+    except Exception as exc:
+        failure=exc
+        record.update(status='error',exception_type=type(exc).__name__,reason=str(exc))
+        if isinstance(exc, urllib.error.HTTPError):
+            record['http_status'] = exc.code
+            try:
+                error_body = exc.read(2049)
+                record['http_error_body'] = error_body[:2048].decode('utf-8', 'replace')
+                record['http_error_body_truncated'] = len(error_body) > 2048
+            except (OSError, ValueError):
+                record['http_error_body_unavailable'] = True
+        raise
+    finally:
+        record.update(raw_response=''.join(parts),finish_reason=finish,stream_done=ended,
+                      elapsed_seconds=time.monotonic()-started)
+        temporary=receipt_path.with_suffix('.tmp')
+        temporary.write_text(json.dumps(record,ensure_ascii=False,indent=2),encoding='utf-8')
+        os.replace(temporary,receipt_path)
+        if failure is not None:
+            failure.schema_evidence={'ref':str(receipt_path),'sha256':hashlib.sha256(receipt_path.read_bytes()).hexdigest()}
+        print(f"[H3 typed analysis] {record['status']} elapsed={record['elapsed_seconds']:.1f}s receipt={receipt_path}")
+    return {'output':[{'type':'message','content':text}],
+            'schema_evidence':{'ref':str(receipt_path),'sha256':hashlib.sha256(receipt_path.read_bytes()).hexdigest()}}
+
+
+def ensure_lm_studio_model_ready(model, api_base, timeout_seconds):
+    for base in _ready_lm_studio_bases(api_base):
+        try:
+            root = _clean_api_base(base)[:-len('/v1')]
+            data = _post_model_list(root + '/api/v1/models')
+            for item in data.get('models', []):
+                identifiers = {item.get('key'), item.get('id'), item.get('identifier')}
+                identifiers.update(x.get('id') for x in item.get('loaded_instances', []))
+                if model in identifiers and item.get('loaded_instances'):
+                    return True, 'Configured model is loaded'
+        except (OSError, ValueError, urllib.error.URLError):
+            continue
+    return False, 'Start LM Studio and load the configured model manually: ' + model
+
+def _post_model_list(url):
+    with urllib.request.urlopen(urllib.request.Request(url, headers={'Authorization':'Bearer lm-studio'}), timeout=2) as response:
+        return json.loads(response.read().decode('utf-8'))
+
+def structured_stream_budget(payload, idle, total):
+    return min(float(idle), float(total)), float(total)
+
+def stream_lines(request, idle, total):
+    started = time.monotonic()
+    with urllib.request.urlopen(request, timeout=idle) as response:
+        for raw in response:
+            if time.monotonic() - started > total:
+                raise RuntimeError('LM Studio structured stream exceeded total time budget')
+            yield raw

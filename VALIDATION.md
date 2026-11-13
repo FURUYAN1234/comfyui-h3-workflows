@@ -1,3 +1,21 @@
+# v1.2.2 validation / v1.2.2の検証（2026-11-14）
+
+Public-bundle checks use only the included schema/client, without private Qwen nodes. / 公開用の検査は同梱スキーマとクライアントだけを使用し、個人用Qwenノードは使いません。
+
+- 60 visual-audit and 6 motion-witness regressions pass, including valid held action, replay, later-frame duplicates, uncertain visibility, independent defects, untimed opening input and focused-inspection scope. / 動作保持・やり直し・後続フレームの人物重複・不確定・独立欠陥・時刻なし冒頭・限定検査の対象範囲を含む画像検査60件と動作観測6件に合格しました。
+- Seven clean-public client checks cover missing private mappings, Japanese screen-text bans, chosen/missing model readiness, typed conversion, malformed/incomplete JSON and request-specific failure receipts. / 個人用ノード不在、画面文字の禁止指定、指定モデルと未読込、構造化変換、不正・未完了JSON、失敗時の証拠対応を公開クライアント7件で確認しました。
+- The actual bundled client inspected 12 ordered images through the configured LM Studio model: valid ongoing/held action → confirmed_no_replay (276.9 s); completed sequence restarted → confirmed_replay (317.5 s). / 同梱クライアントから設定済みLM Studioへ12枚の時系列画像を実送信し、正常な動作継続・保持はやり直しなし（276.9秒）、完了後の再開はやり直し検出（317.5秒）となりました。
+- An existing generated same-scene two-character fixture was independently confirmed_duplicate through that same public client (92.08 s). / 既存の同一場面に2人を生成した異常素材を同じ公開クライアントで検査し、人物重複を検出しました（92.08秒）。
+- Transport measurements run from each client call to parsed response, excluding model startup and generation of reused fixtures. They are wall-clock observations, not billing or speed guarantees. / 時間はクライアント呼出から応答解析までの実測で、モデル起動と再利用素材の生成は含みません。請求額や速度の保証ではありません。
+- Existing distribution/license/path/MV checks and the 13 JavaScript security checks pass. Python test mocks now restore prior modules so combined execution remains valid. / 既存の配布・ライセンス・パス・MV検査とJavaScript安全性13件に合格しました。Pythonテストのモックは元のモジュールを復元し、まとめて実行しても干渉しないよう修正しました。
+
+- Ordinary public T2V workflow executed through an isolated ComfyUI with only the six bundled node packages: run `e7fc6de8-937d-4933-bb83-5a6eaeca0b3f`, 2026-11-14 07:01:52–07:10:46 JST, 534.557 s including LM conversion, cold model loading, video/audio generation, inspection and final saving; no cache or retry. / 同梱6パッケージだけを読み込む隔離ComfyUIで公開T2Vの通常経路を実行しました。実行IDは同左、07:01:52～07:10:46、実測534.557秒です。LM変換・コールドモデル読込・映像音声生成・検査・最終保存を含み、キャッシュ・再試行はありません。
+- Retained 15 s, 864×480, 24 fps, the specified Fused4 video model and four video steps, SLA settings, and two audio-refinement steps at denoise 0.5. The test payload alone disabled optional GPU/CPU switching to preserve the already loaded LM's placement; public JSON defaults and the switching feature remain unchanged. / 15秒・864×480・24fps、指定Fused4モデルと映像4ステップ、SLA、音声2ステップ・denoise 0.5を維持しました。既存LMの配置を保全するため試験payloadだけGPU/CPU切替をOFFにし、公開JSONの既定値と切替機能は維持しました。
+- The first candidate passed broad and independent opening inspection. Selected actual frames show one consistent character, a single wave, the held pose and the same park; no material visual break was observed. Final H.264/AAC output is 15.000 s. The configured LM stayed loaded; no TTL-related audit failure occurred. / 初回候補が全体検査と独立した冒頭検査に合格しました。実フレームで同一人物・1回の手振り・その後の保持・公園の継続を確認し、意味を損なう破綻は見られませんでした。最終H.264/AACは15.000秒です。設定LMは読込を維持し、TTLによる検査不能は発生していません。
+- The final public T2V JSON was loaded in the actual UI with no missing-node dialog; four steps and the retained GPU/CPU option were visible. Human full-length audio listening is not claimed. / 公開T2Vの最終JSONを実画面で読み込み、不足ノード表示がないこと、4ステップと既存GPU/CPU設定を確認しました。人による全編の音声試聴は今回の確認に含めません。
+
+No other-PC GPU or Windows-native generation claim is made. The older results below retain their original scope and date. / 別PC・WindowsネイティブのGPU実生成は今回確認していません。以下の過去検証は元の日付と範囲で保持します。
+
 # v1.2.1 検証範囲（2026-09-23）
 
 v1.2.0のT2V・I2V・Ref2V・MV機能を保持し、YuE2 schema v2の複数人物契約をMVへ引き継ぐ経路を追加しました。

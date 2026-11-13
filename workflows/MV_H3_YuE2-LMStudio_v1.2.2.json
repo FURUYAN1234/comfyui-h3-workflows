@@ -2563,7 +2563,7 @@
       ],
       "overlays": "top-left fading title; bottom-right end credit and URL",
       "llm_gpu": "temporary GPU load, CPU restore before H3",
-      "release_version": "1.2.1",
+      "release_version": "1.2.2",
       "public_workflow": true,
       "related_yue2": "https://github.com/FURUYAN1234/ComfyUI-YuE2-Japanese",
       "related_yue2_note": "https://note.com/happy_duck780/n/n57df44cf7fd2",

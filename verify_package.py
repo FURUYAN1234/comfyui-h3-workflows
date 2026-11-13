@@ -57,7 +57,7 @@ def verify_bilingual_readme_text(readme):
     require(len(readme)>=24000,'README bilingual content is unexpectedly short')
     paired_headings=(
         '## What you can do / できること',
-        '## Changes in v1.2.1 / v1.2.1の変更点',
+        '## Changes in v1.2.2 / v1.2.2の変更点',
         '## Package contents / 配布内容',
         '## Requirements / 必要な環境',
         '## Installation / インストール',
@@ -78,7 +78,7 @@ def verify_bilingual_readme_text(readme):
     )
     for heading in paired_headings:
         require(readme.count(heading)==1,'Missing or duplicated bilingual README section: '+heading)
-    for token in ('T2V','I2V','Ref2V','MV_H3_YuE2-LMStudio_v1.2.1.json','requirements.txt','models.json','LM Studio','Whisper','verify_package.py','VALIDATION.md','LICENSES_AND_NOTICES.md','ComfyUI-YuE2-Japanese'):
+    for token in ('T2V','I2V','Ref2V','MV_H3_YuE2-LMStudio_v1.2.2.json','requirements.txt','models.json','LM Studio','Whisper','verify_package.py','VALIDATION.md','LICENSES_AND_NOTICES.md','ComfyUI-YuE2-Japanese'):
         require(token in readme,'README content token missing: '+token)
     require(readme.count(' / ')>=50,'README does not contain enough paired English/Japanese units')
 def verify_bilingual_readme(root):
@@ -135,7 +135,7 @@ def verify(root=ROOT):
                 require(n['properties']['models']==[{k:m[k] for k in ('name','directory','url')}],'Model download metadata mismatch')
             if n['type']=='LoadImage':require(n['widgets_values'][0]=='','Image or private path remains')
         if kind=='MV':
-            require(f.name=='MV_H3_YuE2-LMStudio_v1.2.1.json','MV workflow name differs')
+            require(f.name=='MV_H3_YuE2-LMStudio_v1.2.2.json','MV workflow name differs')
             require(ns[200]['type']=='MVAssetBundlePrepare' and ns[201]['type']=='MVFinalize','MV bridge/finalizer missing')
             require(ns[204]['type']=='LoadImage','Standard ComfyUI image input missing')
             require(ns[200]['widgets_values'][:2]==['mv-assets/YOUR_BUNDLE_FOLDER',''],'Private or ambiguous MV input remains')
@@ -194,7 +194,7 @@ def verify(root=ROOT):
     require(not (root/'custom_nodes/ComfyUI-Custom-Scripts/pysssss.json').exists(),'Personal UI configuration included')
     cfg=json.loads((root/'custom_nodes/ComfyUI-MiniMax-H3-Long-Video/minimax_h3_long_video/local_audio_audit.json').read_text())
     require(cfg=={'enabled':True,'model_path':''},'Private/disabled speech configuration')
-    for n in ['continuity_audit.py','local_audio_audit.py']:
+    for n in ['continuity_audit.py','motion_witness.py','local_audio_audit.py']:
         require((root/'custom_nodes/ComfyUI-MiniMax-H3-Long-Video/minimax_h3_long_video'/n).is_file(),'Missing speech/visual guard')
     require((root/'configure_audio_audit.py').is_file(),'Missing speech setup helper')
     for p in root.rglob('*'):

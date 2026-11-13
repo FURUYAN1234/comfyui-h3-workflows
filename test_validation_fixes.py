@@ -18,6 +18,7 @@ def load_standard():
 
 
 def load_prompt_package():
+    previous = {name: sys.modules.get(name) for name in ("folder_paths", "nodes")}
     folder_paths = types.ModuleType("folder_paths")
     folder_paths.base_path = str(ROOT)
     sys.modules.setdefault("folder_paths", folder_paths)
@@ -31,8 +32,15 @@ def load_prompt_package():
     )
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
-    spec.loader.exec_module(module)
-    return module
+    try:
+        spec.loader.exec_module(module)
+        return module
+    finally:
+        for name, original in previous.items():
+            if original is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = original
 
 
 class ValidationFixTests(unittest.TestCase):

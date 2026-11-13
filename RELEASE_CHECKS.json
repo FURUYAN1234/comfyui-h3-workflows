@@ -1,23 +1,22 @@
 {
-  "version": "1.2.1",
-  "baseline": "v1.2.0",
-  "scope": "H3 T2V/I2V/Ref2V plus YuE2 schema-v2 multi-character fixed/variable-duration MV workflow",
+  "version": "1.2.2",
+  "baseline": "public-main-decda5dba12cb9fe1fb9d4e5a1e32f799875fade",
+  "scope": "Portable LM Studio connection and structured visual witness repairs shared by H3 Video/MV; KomaOrbit unchanged",
   "new_gpu_generation": true,
   "paid_api_execution": false,
   "checks": [
-    "package graph and settings",
-    "duration-bound and mixed-ban regression tests",
-    "schema-v2 multi-character MV bundle, IMAGE input, subtitle and finishing regression tests",
-    "multi-character normal-path MV GPU generation and prior T2V/I2V/Ref2V normal-path generations",
-    "real ComfyUI CPU import and planning",
-    "fresh extraction manifest",
-    "clean tag rebuild",
-    "published asset download comparison"
+    "66 combined root Python checks",
+    "60 visual and 6 motion witness regressions",
+    "13 JavaScript security checks and progress checks",
+    "public client actual LM normal/replay/duplicate checks",
+    "ordinary public T2V 15s 4-step generation with first-candidate visual pass",
+    "final public T2V actual UI and selected frame inspection",
+    "fresh split-package integrity, dependency, settings and license checks"
   ],
   "unverified": [
     "other-PC GPU",
     "native-Windows GPU",
-    "exact character identity across every song and reference sheet",
-    "elimination of all speech, subtitle and visual artifacts"
+    "full-length human audio listening",
+    "elimination of every possible generation artifact"
   ]
 }

@@ -17,3 +17,12 @@ Automatic GPU switching preserves the local LM Studio model settings, uses GPU d
 Long Video keeps up to five cumulative attempts per segment under the same cache and generation settings and does not reset counts after a predecessor changes. Segment resume and stop_after_segment allow partial review. / Long Videoは同一キャッシュと生成条件のもとで区間ごとの累計最大5回を保持し、前区間変更後も回数をリセットしません。区間指定の再開とstop_after_segmentによる途中確認を使用できます。
 
 Configure a local Whisper folder to enable Japanese audio review. This does not guarantee all aspects of voice quality. Setup and limits are in the root README_JA.md. / Whisperのローカルフォルダーを設定して日本語音声検査を有効にします。声の全面的な品質保証ではありません。導入と制約は配布ルートREADME_JA.mdに記載。
+
+
+### Portable LM Studio connection / 配布版のLM Studio接続
+
+The bundled client uses the endpoint and model identifier you enter. Start the LM Studio server and load that vision-capable model before running. The kit does not launch services or substitute the chosen model. The existing GPU-for-prompt/CPU-before-video option is retained; turn it off to keep device placement unchanged. / 同梱クライアントは入力された接続先とモデル識別子を使います。実行前にLM Studioサーバーと画像対応モデルを読み込んでください。配布版はサービス起動や選択モデルの置換を行いません。既存の「LLM変換時GPU・動画前CPU」設定は維持し、配置を変えない場合はOFFにできます。
+
+Visual inspection requires structured JSON output. Unknown evidence is retained as unavailable rather than treated as a visual defect or a pass. / 画像検査では構造化JSON出力を使います。未確定の証拠は欠陥や合格とみなさず、検査不能として保持します。
+
+Keep the chosen model loaded through video generation and the final inspection: disable idle auto-unload or choose an idle timeout longer than the full run. / 選択モデルは動画生成から最終検査まで読み込んだ状態を保ってください。自動アンロードを無効にするか、実行全体より長い待機時間に設定します。

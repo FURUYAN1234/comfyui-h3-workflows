@@ -17,7 +17,7 @@ PACKAGES = {
 ROOT_FILES = (
     'LICENSE', 'FURU_TERMS.md', 'LICENSE_SCOPE.md', 'LICENSES_AND_NOTICES.md',
     'requirements.txt', 'models.json', 'configure_audio_audit.py',
-    'verify_package.py', 'build_release.py', 'VALIDATION.md', 'VERSION',
+    'verify_package.py', 'build_release.py', 'VALIDATION.md', 'VERSION', 'CHANGELOG.md',
 )
 
 

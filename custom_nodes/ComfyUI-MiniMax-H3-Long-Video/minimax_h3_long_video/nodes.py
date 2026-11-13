@@ -17,7 +17,7 @@ from pathlib import Path
 
 import av
 import torch
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 from safetensors import safe_open
 
 import comfy.nested_tensor
@@ -37,7 +37,8 @@ from . import local_audio_audit
 from .cloud_prompt import MiniMaxH3CloudPrompt
 from .dialogue_timing import (plan_confirmed_windows, validate_timing, validate_local_dialogues,
                              require_timing_connection, recovery_segments, needs_duration_repair)
-from .continuity_audit import POLICY as THREE_MODE_POLICY, upstream_graph, standard_audit_settings, audit_instruction, appearance_instruction, parse_verdict
+from .continuity_audit import POLICY as THREE_MODE_POLICY, upstream_graph, standard_audit_settings, audit_instruction, appearance_instruction, parse_verdict, people_free_sample_indices, people_free_audit_instruction, prop_only_audit_instruction, duplicate_cast_audit_instruction, composition_stasis_audit_instruction, opening_plan_match_instruction, reconcile_opening_space, visual_verdict_schema, duplicate_witness_schema, duplicate_witness_instruction, parse_duplicate_witness, composition_observation_schema, composition_observation_instruction, parse_composition_observations
+from .motion_witness import motion_witness_schema, motion_witness_instruction, parse_motion_witness
 
 from .timeline import (
     FPS,
@@ -815,17 +816,11 @@ def _visual_audit_settings(graph_prompt):
 
 
 def _load_qwen_audit_module():
-    global _QWEN_AUDIT_MODULE
-    if _QWEN_AUDIT_MODULE is not None:
-        return _QWEN_AUDIT_MODULE
-    module_path = Path(__file__).resolve().parents[2] / "qwen_rapid_jp" / "nodes.py"
-    if not module_path.is_file():
-        return None
-    spec = importlib.util.spec_from_file_location(
-        "minimax_h3_long_video_qwen_audit", module_path)
+    # The public bundle owns its LM transport; no private Qwen node is required.
+    module_path = Path(__file__).resolve().parents[2] / 'comfyui-h3-standard-prompt' / 'lm_client.py'
+    spec = importlib.util.spec_from_file_location('h3_public_visual_client', module_path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    _QWEN_AUDIT_MODULE = module
     return module
 
 
@@ -1038,7 +1033,7 @@ def _audit_closed_cast_video(master_path, segments, master_prompt, ref_images, s
         return [], "unavailable: missing reference tensors or subject inventory"
     module = _load_qwen_audit_module()
     if module is None:
-        return [], "unavailable: qwen_rapid_jp is not installed"
+        return [], "unavailable: bundled local LM client is missing"
     model, api_base, timeout = settings
     sheets = supplied_sheets if supplied_sheets is not None else _video_segment_contact_sheets(master_path, segments)
     failed = []
@@ -1064,7 +1059,7 @@ def _audit_closed_cast_video(master_path, segments, master_prompt, ref_images, s
             failed.append(segment.index)
             details.append("{}:missing_frames".format(segment.index))
             continue
-        helper = module.QwenJapanesePromptLMStudio()
+        helper = module.LocalLMHelper()
         helper.SYSTEM_PROMPT = system_prompt
         instruction = (
             "REFERENCE INVENTORY:\n{}\nAudit every human in all three contact-sheet "
@@ -1571,18 +1566,86 @@ def _audit_three_mode_segment(candidate, previous, source_segment, segment, vae,
     """Compare the actual cut boundary through the existing local visual LM."""
     if not settings:
         return [segment.index], 'unavailable: three-mode local visual inspector settings missing'
+    prompt_node = comfy_nodes.NODE_CLASS_MAPPINGS.get('H3StandardPrompt')
+    helper_class = getattr(prompt_node, 'local_lm_helper', None)
+    if helper_class is None:
+        return [segment.index], 'unavailable: local visual inspector node missing'
+    model, api_base, timeout = settings
+    audit_module = _load_qwen_audit_module()
+    if audit_module is None:
+        return [segment.index], 'unavailable: local visual audit model loader is missing'
+    ready_bases, readiness_reason = _local_visual_audit_bases(audit_module, model, api_base, timeout)
+    if not ready_bases:
+        return [segment.index], 'unavailable: ' + readiness_reason
+    prompt_node = comfy_nodes.NODE_CLASS_MAPPINGS.get('H3StandardPrompt')
+    helper = (prompt_node.local_visual_helper() if hasattr(prompt_node, 'local_visual_helper') else helper_class())
+    helper.SYSTEM_PROMPT = ('Evaluate only visible chronological continuity. Return valid compact JSON without Markdown. '
+                            'Keep identity/clothing summaries concise; cite visible contradictions with frame indices.')
+    helper.H3_MANAGED_API_BASE = ready_bases[0]
+    original_convert = helper.convert
+    request_number = 0
+    def recorded_convert(*args, **kwargs):
+        import time
+        nonlocal request_number
+        comfy.model_management.throw_exception_if_processing_interrupted()
+        request_number += 1
+        receipts_before = len(getattr(helper, "JSON_SCHEMA_EVIDENCE", []) or [])
+        started = time.monotonic()
+        receipt = {"schema": "h3.visual_request.v1", "request_number": request_number,
+                   "model": model, "max_tokens": args[4], "timeout_seconds": args[5],
+                   "question": args[0], "system_prompt": helper.SYSTEM_PROMPT,
+                   "attachment_count": len(kwargs.get("input_images") or []),
+                   "json_schema":getattr(helper,"JSON_SCHEMA",None),
+                   "typed_protocol_requested":bool(getattr(helper,"SUPPORTS_JSON_SCHEMA",False))}
+        receipt_path = evidence_path.with_suffix(f".request-{request_number:02d}.json")
+        print(f"[H3 visual request] segment={segment.index} call={request_number} max_tokens={args[4]}")
+        try:
+            # Decoding the current/prior video can outlast the model's remaining
+            # idle TTL. Check at the actual inference boundary, for every call.
+            ready, reason = audit_module.ensure_lm_studio_model_ready(model, api_base, timeout)
+            if not ready:
+                raise RuntimeError('local visual audit model is not ready: ' + reason)
+            current_bases = audit_module._ready_lm_studio_bases(api_base)
+            if not current_bases:
+                raise RuntimeError('local visual audit endpoint is not ready')
+            helper.H3_MANAGED_API_BASE = current_bases[0]
+            comfy.model_management.throw_exception_if_processing_interrupted()
+            answer, status = original_convert(*args, **kwargs)
+            comfy.model_management.throw_exception_if_processing_interrupted()
+            receipt.update(status="returned", raw_response=answer, transport_status=status,
+                           typed_response_evidence=((getattr(helper,"JSON_SCHEMA_EVIDENCE",[]) or [None])[-1]
+                               if len(getattr(helper,"JSON_SCHEMA_EVIDENCE",[]) or []) > receipts_before else None))
+            return answer, status
+        except comfy.model_management.InterruptProcessingException:
+            receipt.update(status="interrupted")
+            raise
+        except Exception as exc:
+            receipt.update(status="error", exception_type=type(exc).__name__, reason=str(exc))
+            raise
+        finally:
+            receipt["elapsed_seconds"] = time.monotonic() - started
+            if getattr(helper,"JSON_SCHEMA",None):
+                receipt["typed_response_evidence"]=((getattr(helper,"JSON_SCHEMA_EVIDENCE",[]) or [None])[-1]
+                               if len(getattr(helper,"JSON_SCHEMA_EVIDENCE",[]) or []) > receipts_before else None)
+            _atomic_json(receipt_path, receipt)
+            print(f"[H3 visual response] segment={segment.index} call={request_number} "
+                  f"status={receipt['status']} elapsed={receipt['elapsed_seconds']:.1f}s")
+    helper.convert = recorded_convert
     video, _ = _streams(candidate)
-    images = vae.decode(video)
+    images = _decode_video_frames(vae, video)
     if images.ndim == 5:images = images.reshape(-1, *images.shape[-3:])
     if images.shape[0] < segment.context_frames + segment.output_frames:
         raise ValueError('visual audit received too few delivered frames')
     last = (segment.output_frames - 1) / FPS
-    offsets = (0.0, min(0.25,last), last/2, min(last,last/2+0.25), max(0,last-0.25), last)
+    # Even temporal coverage is required to expose mid-segment action loops.
+    # The former start/middle/end pairs left most of a 13-second segment unseen.
+    sample_count = min(10, max(6, math.ceil(last / 1.75) + 1))
+    offsets = tuple(last * index / (sample_count - 1) for index in range(sample_count))
     current = [images[segment.context_frames + round(t*FPS):segment.context_frames + round(t*FPS)+1].detach().cpu() for t in offsets]
     prior = []
     if previous is not None and source_segment is not None:
         prior_video, _ = _streams(previous)
-        prior_images = vae.decode(prior_video)
+        prior_images = _decode_video_frames(vae, prior_video)
         if prior_images.ndim == 5:prior_images = prior_images.reshape(-1,*prior_images.shape[-3:])
         end = source_segment.context_frames + source_segment.output_frames
         for index in (max(source_segment.context_frames,end-7),end-1):
@@ -1601,37 +1664,370 @@ def _audit_three_mode_segment(candidate, previous, source_segment, segment, vae,
         picture=Image.fromarray(array).resize((width,height),Image.Resampling.LANCZOS)
         sheet.paste(picture,((i%4)*width,(i//4)*height))
     sheet.save(evidence_path)
-    helper_class = comfy_nodes.NODE_CLASS_MAPPINGS.get('QwenJapanesePromptLMStudio')
-    if helper_class is None:return [segment.index], 'unavailable: local visual inspector node missing'
-    helper = helper_class()
-    helper.SYSTEM_PROMPT = 'Evaluate only visible chronological continuity. Return the requested JSON without Markdown.'
-    model, api_base, timeout = settings
-    response, _ = helper.convert(audit_instruction(prompt,len(references),len(prior),offsets),
-                                 model,api_base,0.0,1024,timeout,False,'',
-                                 input_images=inspection_frames,reasoning='off')
-    passed, detail = parse_verdict(response,len(current))
-    verdict = json.loads(detail)
-    appearance = verdict.get('appearance_comparison') if references else None
-    if references:
-        # Identity and continuity share the same labeled frames and one local-LM
-        # request.  A second identical multimodal prefill doubled CPU audit time
-        # and could time out after the continuity half had already succeeded.
-        if (not isinstance(appearance, dict) or type(appearance.get('pass')) is not bool
-                or appearance.get('frames_checked') != len(current)
-                or not isinstance(appearance.get('issues'), list)):
-            raise ValueError('combined visual audit omitted appearance comparison')
-        if any(issue.get('kind') not in {'identity_mismatch', 'wardrobe_mismatch'}
-               for issue in appearance['issues'] if isinstance(issue, dict)):
-            raise ValueError('appearance comparison returned an unrelated issue')
-        if appearance['pass'] != (not appearance['issues']):
-            raise ValueError('appearance comparison contradicts its evidence')
-        if not appearance['pass'] and passed:
-            raise ValueError('top-level visual verdict ignored appearance failure')
+    page_labels = ([f'PREVIOUS END {i}' for i in range(len(prior))]
+                   + [f'CURRENT FRAME {i} at {offsets[i]:.3f} s' for i in range(len(current))])
+    audit_attachments = inspection_frames[:len(references)] + _audit_contact_pages(
+        inspection_frames[len(references):], page_labels)
+    audit_question = audit_instruction(
+        prompt, len(references), len(prior), offsets, segment.context_frames / FPS)
+    helper.JSON_SCHEMA = visual_verdict_schema(len(current), appearance=bool(references))
+    retry_feedback = ''
+    for audit_round in range(2):
+        response, _ = helper.convert(
+            audit_question + retry_feedback, model, api_base, 0.0, 3072,
+            timeout, False, '', input_images=audit_attachments, reasoning='off')
+        try:
+            passed, detail = parse_verdict(response, len(current))
+            verdict = json.loads(detail)
+            appearance = verdict.get('appearance_comparison') if references else None
+            if isinstance(appearance, dict) and any(
+                    str(appearance.get(key, '')).strip().lower() in
+                    {'visible summary', 'summary', 'visible observation', ''}
+                    for key in ('reference_identity', 'current_identity',
+                                'reference_clothing', 'current_clothing')):
+                raise ValueError('appearance verdict copied a placeholder instead of inspecting frames')
+            if references:
+                # A structurally valid top-level verdict can still omit the
+                # appearance half. Feed that specific defect back to the same
+                # visual model before treating the audit as unavailable.
+                appearance = _require_combined_appearance(verdict, len(current), passed)
+            break
+        except ValueError as exc:
+            if audit_round:
+                raise
+            retry_feedback = ('\nYour previous verdict was invalid: ' + str(exc) +
+                              '. Inspect the attached images again. Return fresh concrete '
+                              'visible observations, correct zero-based frame indices and '
+                              'the complete required JSON; do not copy an example.')
+    # The combined identity/continuity question produced a demonstrable false
+    # pass on an opening with people in two explicitly empty frames. Ask the
+    # same local vision model a separate, short yes/no question using only the
+    # actual delivered frames that fall inside the people-free phase.
+    people_free_indices = people_free_sample_indices(
+        prompt, offsets, segment.context_frames / FPS)
+    prop_only_indices = (tuple(range(len(current)))
+                         if not people_free_indices and _visual_cutaway_mode(
+                             prompt, segment.context_frames, segment.output_frames) == 'prop_only'
+                         else ())
+    verdict = _discard_unscheduled_cutaway_issues(
+        verdict, people_free_indices, prop_only_indices,
+        bool(re.search(r'\b(?:prop[- ]only|detail[- ]only|close insert|'
+                       r'only the assigned singer.s hands)\b', prompt or '', re.I)))
+    passed = verdict['pass']
+    detail = json.dumps(verdict, ensure_ascii=False)
+    focused_indices = people_free_indices or prop_only_indices
+    focused_kind = ('scenery_cut_omission' if people_free_indices
+                    else 'prop_cutaway_omission')
+    focused_result = None
+    if focused_indices:
+        focused_response = ''
+        try:
+            helper.SYSTEM_PROMPT = ('Inspect the attached video frame images for visible '
+                                    'composition. Return only the requested JSON.')
+            focused_images = [inspection_frames[len(references) + len(prior) + index]
+                              for index in focused_indices]
+            focused_question = (people_free_audit_instruction(focused_indices)
+                                if people_free_indices else
+                                prop_only_audit_instruction(focused_indices))
+            helper.JSON_SCHEMA = visual_verdict_schema(len(focused_indices), kinds={focused_kind}, max_issues=2)
+            focused_retry = ''
+            for focused_round in range(2):
+                focused_response, _ = helper.convert(
+                    focused_question + focused_retry,
+                    model, api_base, 0.0, 400, timeout, False, '',
+                    input_images=focused_images, reasoning='off')
+                try:
+                    focused_pass, focused_detail = parse_verdict(
+                        focused_response, len(focused_indices))
+                    break
+                except ValueError as exc:
+                    if focused_round:
+                        raise
+                    focused_retry = ('\nYour prior JSON was invalid: ' + str(exc) +
+                                     '. Reinspect the images and give each visible-person '
+                                     'issue kind=' + focused_kind + ', its zero-based image '
+                                     'frame number and a concrete evidence sentence.')
+            focused_result = json.loads(focused_detail)
+            focused_result['mode'] = ('people_free' if people_free_indices else 'prop_only')
+            verdict = _reconcile_focused_visibility(
+                verdict, focused_kind, focused_indices,
+                focused_pass, focused_result)
+            passed = verdict['pass']
+            detail = json.dumps(verdict, ensure_ascii=False)
+        except comfy.model_management.InterruptProcessingException:
+            raise
+        except Exception as exc:
+            focused_result = {'status': 'unavailable', 'reason': str(exc)[:300],
+                              'last_response': (focused_response or '')[:1200],
+                              'mode': 'people_free' if people_free_indices else 'prop_only'}
+    duplicate_result = None
+    if re.search(r'<Subject\s+\d+>', prompt or ''):
+        duplicate_response = ''
+        try:
+            helper.SYSTEM_PROMPT = ('Count simultaneous copies of each named principal '
+                                    'in the attached frames. Return only the requested JSON.')
+            cast_images = [inspection_frames[len(references) + len(prior) + index]
+                           for index in range(len(current))]
+            cast_question = duplicate_cast_audit_instruction(
+                tuple(range(len(current))), prompt, len(references))
+            helper.JSON_SCHEMA = visual_verdict_schema(len(current), kinds={'duplicate_body'}, max_issues=4)
+            duplicate_retry = ''
+            for duplicate_round in range(2):
+                duplicate_response, _ = helper.convert(
+                    cast_question + duplicate_retry, model, api_base, 0.0,
+                    1000, timeout, False, '',
+                    input_images=inspection_frames[:len(references)] + cast_images,
+                    reasoning='off')
+                try:
+                    duplicate_pass, duplicate_detail = parse_verdict(
+                        duplicate_response, len(current))
+                    duplicate_result = json.loads(duplicate_detail)
+                    if any(issue.get('kind') != 'duplicate_body'
+                           for issue in duplicate_result['issues']):
+                        raise ValueError('cast multiplicity audit returned an unrelated issue')
+                    break
+                except ValueError as exc:
+                    if duplicate_round:
+                        raise
+                    duplicate_retry = (
+                        '\nYour prior cast verdict was invalid: ' + str(exc)
+                        + '. Reinspect the same attached frames. Return one complete '
+                          'JSON object with boolean pass, frames_checked and issues. '
+                          'Only duplicate_body issues with concrete frame evidence are allowed.')
+            duplicate_claims=list(duplicate_result['issues'])+[item for item in verdict['issues'] if item['kind']=='duplicate_body']
+            if duplicate_claims:
+                # Each unique claimed frame gets an independent witness and at
+                # most one clarification if its visibility/identity is unknown.
+                # A clean first frame cannot resolve claims about other frames.
+                # This is bounded by the delivered sample count, not a retry loop.
+                claimed_frames=sorted({issue['frame'] for issue in duplicate_claims})
+                subjects=sorted({'Subject '+number for number in re.findall(r'<Subject\s+(\d+)>',prompt or '',re.I)})
+                if not subjects:
+                    raise ValueError('duplicate witness has no declared character identities')
+                witnesses=[]
+                confirmed_issues=[]
+                for witness_number,witness_frame in enumerate(claimed_frames):
+                    helper.SYSTEM_PROMPT='Count physical character instances in the single final attachment. Return only the requested JSON.'
+                    helper.JSON_SCHEMA=duplicate_witness_schema(subjects,witness_frame)
+                    witness_image=inspection_frames[len(references)+len(prior)+witness_frame]
+                    suffix='.duplicate_witness' if witness_number==0 else f'.duplicate_witness-{witness_frame:04d}'
+                    witness_path=evidence_path.with_suffix(suffix+'.png')
+                    Image.fromarray((witness_image[0,...,:3].detach().cpu()*255).clamp(0,255).to(torch.uint8).numpy()).save(witness_path)
+                    witness_response,_=helper.convert(
+                        duplicate_witness_instruction(prompt,witness_frame,len(references),
+                                                      suspected_instances=duplicate_claims),
+                        model,api_base,0.,1000,timeout,False,'',
+                        input_images=inspection_frames[:len(references)]+[witness_image],reasoning='off')
+                    witness=parse_duplicate_witness(witness_response,witness_frame,subjects)
+                    if witness['status']=='unknown':
+                        initial_observation=witness
+                        _atomic_json(evidence_path.with_suffix(suffix+'.initial.json'),initial_observation)
+                        # Reinspect without the montage allegation, which can
+                        # anchor an otherwise clear one-person count as uncertain.
+                        clarification=(duplicate_witness_instruction(prompt,witness_frame,len(references))
+                            + '\nReinspect this frame independently. Visibility clear means the image can be '
+                              'inspected sufficiently to count physical people and assign the listed identities. '
+                              'A close-up or a body naturally cropped by the frame edge alone does not make '
+                              'the count uncertain. Keep visibility uncertain if blur, occlusion, overlap or '
+                              'identity ambiguity actually prevents that determination; describe the specific '
+                              'unresolved visual evidence. Do not assume either a clean or duplicate result.')
+                        witness_response,_=helper.convert(
+                            clarification,model,api_base,0.,1000,timeout,False,'',
+                            input_images=inspection_frames[:len(references)]+[witness_image],reasoning='off')
+                        witness=parse_duplicate_witness(witness_response,witness_frame,subjects)
+                        witness['initial_observation']=initial_observation
+                    witness.update(delivered_frame=round(offsets[witness_frame]*FPS),
+                                   raw_frame=segment.context_frames+round(offsets[witness_frame]*FPS),
+                                   observed_at_seconds=offsets[witness_frame])
+                    witnesses.append(witness)
+                    _atomic_json(evidence_path.with_suffix(suffix+'.json'),witness)
+                    if witness['status']=='confirmed_duplicate':
+                        confirmed_issues.extend(witness['issues'])
+                        break
+                _atomic_json(evidence_path.with_suffix('.duplicate_witnesses.json'),
+                             {'claimed_frames':claimed_frames,'witnesses':witnesses})
+                if confirmed_issues:
+                    duplicate_pass=False
+                    duplicate_result={'pass':False,'frames_checked':len(current),'issues':confirmed_issues}
+                elif all(item['status']=='confirmed_no_duplicate' for item in witnesses):
+                    duplicate_pass=True
+                    duplicate_result={'pass':True,'frames_checked':len(current),'issues':[]}
+                else:
+                    raise ValueError('single-frame duplicate evidence remains uncertain')
+            verdict = _reconcile_focused_visibility(
+                verdict, 'duplicate_body', tuple(range(len(current))),
+                duplicate_pass, duplicate_result)
+            passed = verdict['pass']
+            detail = json.dumps(verdict, ensure_ascii=False)
+        except comfy.model_management.InterruptProcessingException:
+            raise
+        except Exception as exc:
+            duplicate_result = {'status': 'unavailable', 'reason': str(exc)[:300],
+                                'last_response': (duplicate_response or '')[:1200]}
+            # Unconfirmed montage claims are unknown, not proven defects that
+            # justify another generation. Other independently found issues stay.
+            verdict = _reconcile_focused_visibility(
+                verdict, 'duplicate_body', tuple(range(len(current))), True, {'issues': []})
+            passed = verdict['pass']
+            detail = json.dumps(verdict, ensure_ascii=False)
+    composition_result = None
+    if ('[Lyric L' in (prompt or '') and offsets[-1] - offsets[0] >= 6.0):
+        composition_response = ''
+        try:
+            helper.SYSTEM_PROMPT = ('Compare the camera composition in the '
+                                    'ordered video samples. Return only JSON.')
+            composition_images = [inspection_frames[len(references) + len(prior) + index]
+                                  for index in range(len(current))]
+            structured_observations = getattr(helper, "SUPPORTS_JSON_SCHEMA", False) is True
+            composition_question = (composition_observation_instruction(offsets) if structured_observations
+                                    else composition_stasis_audit_instruction(offsets, prompt))
+            helper.JSON_SCHEMA = (composition_observation_schema(len(current)) if structured_observations
+                                  else visual_verdict_schema(len(current), kinds={'composition_stasis'}, max_issues=2))
+            composition_retry = ''
+            for composition_round in range(2):
+                composition_response, _ = helper.convert(
+                    composition_question + composition_retry,
+                    model, api_base, 0.0, (1200 if structured_observations else 600), timeout, False, '',
+                    input_images=composition_images, reasoning='off')
+                try:
+                    if structured_observations:
+                        observed = parse_composition_observations(composition_response, offsets,
+                            prompt=prompt, context_seconds=segment.context_frames / FPS)
+                        composition_pass, composition_detail = observed['pass'], json.dumps(observed)
+                    else:
+                        composition_pass, composition_detail = parse_verdict(
+                            composition_response, len(current))
+                    break
+                except ValueError as exc:
+                    if composition_round:
+                        raise
+                    composition_retry = ('\nYour previous verdict was invalid: ' + str(exc)
+                                         + '. Reinspect the same frames and return a complete '
+                                           'JSON verdict with concrete frame evidence. Every '
+                                           'issue object must use the exact key "kind" with '
+                                           'value "composition_stasis" (not "issue" or '
+                                           '"type"), plus integer "frame" and string '
+                                           '"evidence". One well-evidenced issue is enough.')
+                    if structured_observations:
+                        composition_retry = '\nPrevious observations were invalid: '+str(exc)+'. Return the same observation schema with complete frame coverage.'
+            composition_result = json.loads(composition_detail)
+            if any(issue.get('kind') != 'composition_stasis'
+                   for issue in composition_result['issues']):
+                raise ValueError('composition audit returned an unrelated issue')
+            verdict = _reconcile_focused_visibility(
+                verdict, 'composition_stasis', tuple(range(len(current))),
+                composition_pass, composition_result)
+            passed = verdict['pass']
+            detail = json.dumps(verdict, ensure_ascii=False)
+        except comfy.model_management.InterruptProcessingException:
+            raise
+        except Exception as exc:
+            composition_result = {'status': 'unavailable', 'reason': str(exc)[:300],
+                                  'last_response': (composition_response or '')[:1200]}
+    motion_result = None
+    replay_claims = [issue for issue in verdict['issues'] if issue.get('kind') == 'action_replay']
+    if replay_claims:
+        try:
+            # The completed action can be far before the alleged restart.
+            # Keep the entire delivered sample sequence, including prior tail.
+            indices = list(range(len(current)))
+            witness_frames = prior + [current[i] for i in indices]
+            witness_labels = [f'WITNESS FRAME {i}' for i in range(len(witness_frames))]
+            # Individual 384px frames keep CPU vision prefill bounded; a large
+            # combined sheet exceeded the actual inspector's inference budget.
+            witness_images = _audit_contact_pages(
+                [_labeled_audit_image(frame, label) for frame, label in zip(witness_frames, witness_labels)],
+                witness_labels, page_size=1, columns=1, tile_width=384)
+            helper.SYSTEM_PROMPT = 'Observe chronological action states independently in every supplied frame.'
+            helper.JSON_SCHEMA = motion_witness_schema(len(witness_frames))
+            response, _ = helper.convert(
+                motion_witness_instruction(prompt, len(witness_frames)), model, api_base,
+                0.0, 2200, timeout, False, '',
+                input_images=witness_images, reasoning='off')
+            motion_result = parse_motion_witness(response, len(witness_frames))
+            _atomic_json(evidence_path.with_suffix('.motion_witness.json'), motion_result)
+            if motion_result['status'] != 'unavailable':
+                confirmed = []
+                for replay in motion_result['replays']:
+                    position = replay['frame'] - len(prior)
+                    if position >= 0:
+                        confirmed.append({'kind': 'action_replay', 'frame': position,
+                                          'evidence': replay['evidence']})
+                verdict = _reconcile_focused_visibility(verdict, 'action_replay', indices,
+                    not confirmed, {'issues': confirmed})
+                passed = verdict['pass']
+                detail = json.dumps(verdict, ensure_ascii=False)
+        except comfy.model_management.InterruptProcessingException:
+            raise
+        except Exception as exc:
+            motion_result = {'status': 'unavailable', 'reason': str(exc)[:300]}
+        if motion_result.get('status') == 'unavailable':
+            # A suspected replay is not a confirmed defect without a readable
+            # temporal witness. Retain the unavailable result so it cannot pass,
+            # while preserving any independently observed defects.
+            verdict = _reconcile_focused_visibility(verdict, 'action_replay', indices,
+                True, {'issues': []})
+            passed = verdict['pass']
+            detail = json.dumps(verdict, ensure_ascii=False)
+    opening_result = None
+    if segment.index == 0 and not segment.context_frames and len(current) >= 2:
+        opening_response = ''
+        try:
+            helper.SYSTEM_PROMPT = ('Compare actual opening video frames with '
+                                    'the first timed visual phase. Return only JSON.')
+            helper.JSON_SCHEMA = visual_verdict_schema(2, kinds={'scene_reset'}, opening=True, max_issues=2)
+            opening_response, _ = helper.convert(
+                opening_plan_match_instruction(prompt), model, api_base,
+                0.0, 450, timeout, False, '',
+                input_images=inspection_frames[len(references) + len(prior):
+                                                len(references) + len(prior) + 2],
+                reasoning='off')
+            opening_pass, opening_detail = parse_verdict(opening_response, 2)
+            opening_result = reconcile_opening_space(json.loads(opening_detail))
+            opening_pass = opening_result['pass']
+            if any(issue.get('kind') != 'scene_reset'
+                   for issue in opening_result['issues']):
+                raise ValueError('opening audit returned an unrelated issue')
+            if opening_result.get('status') == 'unavailable':
+                # An uncorroborated crop/setting claim is unknown, not a confirmed defect.
+                # Other independently observed kinds remain failures; the missing opening
+                # verdict is retained below and prevents a pass.
+                verdict = _reconcile_focused_visibility(
+                    verdict, 'scene_reset', (0, 1), True, {'issues': []})
+            else:
+                verdict = _reconcile_focused_visibility(
+                    verdict, 'scene_reset', (0, 1), opening_pass, opening_result)
+            passed = verdict['pass']
+            detail = json.dumps(verdict, ensure_ascii=False)
+        except comfy.model_management.InterruptProcessingException:
+            raise
+        except Exception as exc:
+            opening_result = {'status': 'unavailable', 'reason': str(exc)[:300],
+                              'last_response': (opening_response or '')[:1200]}
+    # A missing focused inspection must not suppress independent inspections.
+    # Preserve both observed defects and missing evidence; neither can be a pass.
+    unavailable_checks = {
+        name: result for name, result in (
+            ('people_free', focused_result), ('duplicate_cast', duplicate_result),
+            ('composition', composition_result), ('motion_replay', motion_result), ('opening_plan', opening_result))
+        if isinstance(result, dict) and result.get('status') == 'unavailable'}
+    if unavailable_checks:
+        verdict['unavailable_checks'] = unavailable_checks
+        detail = json.dumps(verdict, ensure_ascii=False)
     _atomic_json(evidence_path.with_suffix('.json'),{'scope':'visual_continuity_only',
                  'appearance_reference_frames':len(references),
                  'prior_delivered_frames':len(prior),'current_offsets_seconds':offsets,
-                 'passed':passed,'detail':json.loads(detail),'appearance_comparison':appearance})
-    return ([],'pass') if passed else ([segment.index],'fail: visual continuity: '+detail)
+                 'passed':(None if passed and unavailable_checks else passed),'detail':json.loads(detail),'appearance_comparison':appearance,
+                 'focused_people_free':focused_result,
+                 'focused_duplicate_cast':duplicate_result,
+                 'focused_composition':composition_result,
+                 'focused_motion_replay':motion_result,
+                 'focused_opening_plan':opening_result})
+    if not passed:
+        return ([segment.index], 'fail: visual continuity: ' + detail)
+    if unavailable_checks:
+        return ([segment.index], 'unavailable: focused visual inspections: ' + detail)
+    return ([], 'pass')
 
 def _split_retake_feedback(feedback):
     """Separate concrete failures; a checker outage is not a visual defect."""
@@ -4301,3 +4697,157 @@ async def comfy_entrypoint():
     from .resume_api import register_routes
     register_routes()
     return MiniMaxH3LongVideoExtension()
+
+
+def _audit_contact_pages(labeled_frames, labels, *, page_size=6, columns=3, tile_width=400):
+    """Pack all ordered audit frames into a few legible vision attachments.
+
+    The prior request sent each frame as an independent image. On a CPU-only
+    local VLM, that multimodal prefill timed out even though ComfyUI's GPU
+    sampler had finished. Keep every labeled frame while reducing attachment
+    count and record the same individual frames in the evidence sheet.
+    """
+    if len(labeled_frames) != len(labels):
+        raise ValueError('visual audit contact page labels do not match frames')
+    pages = []
+    try:
+        font = ImageFont.truetype('DejaVuSans.ttf', 18)
+    except OSError:
+        font = ImageFont.load_default()
+    for offset in range(0, len(labeled_frames), page_size):
+        group = labeled_frames[offset:offset + page_size]
+        pictures = []
+        for frame, label in zip(group, labels[offset:offset + page_size]):
+            array = (frame[0, ..., :3].detach().cpu() * 255).clamp(0, 255).to(torch.uint8).numpy()
+            picture = Image.fromarray(array)
+            height = max(1, round(picture.height * tile_width / picture.width))
+            picture = picture.resize((tile_width, height), Image.Resampling.LANCZOS)
+            ImageDraw.Draw(picture).rectangle((0, 0, tile_width, 27), fill='white')
+            ImageDraw.Draw(picture).text((5, 3), label, fill='black', font=font)
+            pictures.append(picture)
+        row_height = max(picture.height for picture in pictures)
+        page = Image.new('RGB', (columns * tile_width,
+                                 math.ceil(len(pictures) / columns) * row_height), 'white')
+        for index, picture in enumerate(pictures):
+            page.paste(picture, ((index % columns) * tile_width,
+                                 (index // columns) * row_height))
+        pages.append(torch.from_numpy(__import__('numpy').asarray(page).copy()).float().div(255).unsqueeze(0))
+    return pages
+
+def _reconcile_focused_visibility(verdict, kind, indices, focused_pass, focused_result):
+    """Use the focused inspector for its one category, retaining all other issues.
+
+    The broad visual question sometimes files an issue for a clean frame while
+    describing a violation in an earlier frame. The focused, frame-indexed
+    inspection is authoritative for this category, including a clean result.
+    """
+    inspected = set(indices)
+    issues = [dict(issue) for issue in verdict.get('issues', [])
+              if isinstance(issue, dict) and not (
+                  issue.get('kind') == kind and issue.get('frame') in inspected)]
+    if not focused_pass:
+        for issue in focused_result['issues']:
+            mapped = dict(issue)
+            mapped['frame'] = indices[mapped['frame']]
+            issues.append(mapped)
+    revised = dict(verdict)
+    revised['issues'] = issues
+    revised['pass'] = not issues
+    return revised
+
+def _discard_unscheduled_cutaway_issues(verdict, people_free_indices,
+                                        prop_only_indices, planned_prop_cutaway=False):
+    """A cutaway-omission verdict needs a corresponding planned shot."""
+    unsupported = set()
+    if not people_free_indices:
+        unsupported.add('scenery_cut_omission')
+    if not prop_only_indices and not planned_prop_cutaway:
+        unsupported.add('prop_cutaway_omission')
+    revised = dict(verdict)
+    revised['issues'] = [issue for issue in verdict.get('issues', [])
+                         if issue.get('kind') not in unsupported]
+    revised['pass'] = not revised['issues']
+    return revised
+
+def _require_combined_appearance(verdict, expected_frames, passed):
+    """Validate the identity half while the visual-model retry is available."""
+    appearance = verdict.get('appearance_comparison')
+    if isinstance(appearance, dict) and 'issue_indices' in appearance:
+        indices = appearance['issue_indices']
+        issues = verdict.get('issues')
+        if (not isinstance(indices, list) or not isinstance(issues, list)
+                or any(type(index) is not int or not 0 <= index < len(issues)
+                       for index in indices)
+                or len(set(indices)) != len(indices)):
+            raise ValueError('appearance comparison has invalid issue indices')
+        expected = {index for index, issue in enumerate(issues)
+                    if isinstance(issue, dict) and issue.get('kind') in
+                    {'identity_mismatch', 'wardrobe_mismatch'}}
+        if set(indices) != expected:
+            raise ValueError('appearance indices omit or misclassify a top-level issue')
+        selected = [issues[index] for index in indices]
+        if 'issues' in appearance and appearance['issues'] != selected:
+            raise ValueError('appearance indexed issues contradict duplicate bodies')
+        appearance = {**appearance, 'issues': selected}
+    if (not isinstance(appearance, dict) or type(appearance.get('pass')) is not bool
+            or appearance.get('frames_checked') != expected_frames
+            or not isinstance(appearance.get('issues'), list)):
+        raise ValueError('combined visual audit omitted appearance comparison')
+    for key in ('reference_identity','current_identity','reference_clothing','current_clothing'):
+        value=appearance.get(key)
+        if (not isinstance(value,str) or not value.strip() or len(value)>3000
+                or value.strip().lower() in {'visible summary','summary','visible observation'}):
+            raise ValueError('appearance comparison lacks concrete typed observations')
+    parse_verdict(json.dumps(appearance,ensure_ascii=False), expected_frames)
+    if any(issue.get('kind') not in {'identity_mismatch', 'wardrobe_mismatch'}
+           for issue in appearance['issues'] if isinstance(issue, dict)):
+        raise ValueError('appearance comparison returned an unrelated issue')
+    if appearance['pass'] != (not appearance['issues']):
+        raise ValueError('appearance comparison contradicts its evidence')
+    if not appearance['pass'] and passed:
+        raise ValueError('top-level visual verdict ignored appearance failure')
+    if not appearance['pass'] and not any(
+            issue.get('kind') in {'identity_mismatch', 'wardrobe_mismatch'}
+            for issue in verdict['issues'] if isinstance(issue, dict)):
+        raise ValueError('top-level visual verdict omitted appearance issue')
+    if any(issue not in verdict['issues'] for issue in appearance['issues']):
+        raise ValueError('top-level visual verdict omitted an appearance issue')
+    return appearance
+
+def _local_visual_audit_bases(audit_module, model, api_base, timeout):
+    # A long GPU run can outlast the CPU model's idle TTL. Load/restore it
+    # before probing its model list; probing first makes recovery unreachable.
+    ready, reason = audit_module.ensure_lm_studio_model_ready(model, api_base, timeout)
+    if not ready:
+        return [], 'local visual audit model is not ready: ' + str(reason)
+    bases = audit_module._ready_lm_studio_bases(api_base)
+    return bases, '' if bases else 'local visual audit endpoint is not ready after model startup'
+
+def _visual_cutaway_mode(local_prompt, context_frames, output_frames):
+    """Identify an entire shot with no visible person or no visible face."""
+    if context_frames or output_frames < 2:
+        return None
+    offsets = (0.0, (output_frames - 1) / FPS)
+    if people_free_sample_indices(local_prompt, offsets) == (0, 1):
+        return 'people_free'
+    description = re.search(
+        r'(?ms)^detailed_description:\s*(.*?)(?=^AUTHORITATIVE SOURCE VOCAL SCHEDULE\b|^overall_soundscape:)',
+        local_prompt or '')
+    if not description:
+        return None
+    phases = list(re.finditer(
+        r'(?m)^\d{2}:\d{2}(?:\.\d{3})?-\d{2}:\d{2}(?:\.\d{3})?\s*$',
+        description.group(1)))
+    if len(phases) != 1:
+        return None
+    phase = description.group(1)[phases[0].end():]
+    if (re.search(r'\b(?:close insert|only the assigned singer.s hands)\b', phase, re.I)
+            and re.search(r'\b(?:no face visible|faces? outside the frame|'
+                          r'keep every face[^.!?]{0,70}outside the frame)\b', phase, re.I)
+            and not re.search(r'\b(?:then (?:cut|return)|face-readable performer)\b', phase, re.I)):
+        return 'prop_only'
+    return None
+
+
+def _decode_video_frames(vae, video):
+    return vae.decode(video)
