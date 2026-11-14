@@ -15,6 +15,11 @@ Each ZIP includes its custom-node source, instructions, model URLs, integrity ch
 
 ## H3 Video — three ways to make video / 動画を作る3方式
 
+[![Download H3 Video ComfyUI workflow ZIP / 動画3方式のZIPをダウンロード](docs/assets/h3-video-download-banner.png)](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261114072010/H3_Video_20261114072010_v1.2.2.zip)
+
+**Workflow package / ワークフロー配布ZIP:** Download and extract this package, then follow the installation instructions and model requirements in this README. / この配布ZIPをダウンロードして展開し、このREADMEの導入手順と必要なモデル・環境を確認してください。
+
+
 [![H3 Video note cover / H3 Videoのnote見出し画像](docs/assets/h3/video-cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)
 
 **[Open the H3 Video guide / H3 Videoの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/h3-video/demo/)**
@@ -41,6 +46,11 @@ Use one to five references for characters, clothes, objects or places. These gui
 
 ## MV — finished song to music video / 完成曲をMVにする
 
+[![Download H3 MV ComfyUI workflow ZIP / MV制作のZIPをダウンロード](docs/assets/h3-mv-download-banner.png)](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/h3-split-20261114072010/H3_MV_20261114072010_v1.2.2.zip)
+
+**Workflow package / ワークフロー配布ZIP:** Download and extract this package, then follow the installation instructions and model requirements in this README. / この配布ZIPをダウンロードして展開し、このREADMEの導入手順と必要なモデル・環境を確認してください。
+
+
 [![H3 MV note cover / H3 MVのnote見出し画像](docs/assets/h3/mv-cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/h3-mv/demo/)
 
 **[Open the H3 MV guide / H3 MVの案内ページを開く →](https://furuyan1234.github.io/comfyui-h3-workflows/h3-mv/demo/)**
@@ -52,6 +62,11 @@ Use **H3 MV** with a song bundle, exact lyrics and a character sheet. It generat
 **[MV: installation, inputs, first run and output / MVの使い方](docs/h3/mv/README.md)** · [MV note article / note解説](https://note.com/happy_duck780/n/ne8a84cb6db37)
 
 ## KomaOrbit — illustration to 3D composition / 一枚絵から3Dで構図を探す
+
+[![Download KomaOrbit ComfyUI workflow ZIP / KomaOrbitのZIPをダウンロード](docs/assets/komaorbit-download-banner.png)](https://github.com/FURUYAN1234/comfyui-h3-workflows/releases/download/komaorbit-20261105183001/KomaOrbit_20261105183001.zip)
+
+**Workflow package / ワークフロー配布ZIP:** Download and extract this package, then follow the installation instructions and model requirements in this README. / この配布ZIPをダウンロードして展開し、このREADMEの導入手順と必要なモデル・環境を確認してください。
+
 
 [![KomaOrbit original concept cover / 以前作成した紹介用サムネイル](docs/assets/komaorbit/cover.png)](https://furuyan1234.github.io/comfyui-h3-workflows/komaorbit/demo/)
 
